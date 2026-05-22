@@ -585,7 +585,9 @@ function diffFillInspector(d) {
     else if (!cf) rowCls = 'dfr-removed';
     else rowCls = 'dfr-changed';
 
-    const bCell = el('div', `diff-field-row ${rowCls}`);
+    // Colour only the cell that has content — the absent (—) cell gets no highlight
+    // so green/red never lands on a dash.
+    const bCell = el('div', `diff-field-row${bf ? ' ' + rowCls : ''}`);
     if (bf) {
       const wrap = el('div', 'diff-field-text');
       const n = el('div','diff-field-name'); setText(n, bf.name); wrap.appendChild(n);
@@ -598,7 +600,7 @@ function diffFillInspector(d) {
       bCell.appendChild(el('div','diff-field-absent')).textContent = '—';
     }
 
-    const cCell = el('div', `diff-field-row ${rowCls}`);
+    const cCell = el('div', `diff-field-row${cf ? ' ' + rowCls : ''}`);
     if (cf) {
       const wrap = el('div', 'diff-field-text');
       const n = el('div','diff-field-name'); setText(n, cf.name); wrap.appendChild(n);
