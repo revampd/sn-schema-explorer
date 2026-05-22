@@ -19,9 +19,9 @@ No installation, no server, no external dependencies.
 - Export graph as PNG or SVG; export schema or neighbourhood as JSON
 - Custom colour-coded export background with opacity control
 
-![Schema Map](screenshots/screenshot-feature-schema_map.png)
-![Diff](screenshots/screenshot-feature-diff.png)
-![Pathfinder](screenshots/screenshot-feature-pathfinder.png)
+![Schema Map](screenshots/screenshot-feature-schema_map.jpg)
+![Diff](screenshots/screenshot-feature-diff.jpg)
+![Pathfinder](screenshots/screenshot-feature-pathfinder.jpg)
 
 ## Getting the tool
 
