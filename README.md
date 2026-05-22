@@ -1,4 +1,4 @@
-# SN Schema Explorer
+# Schema Explorer for ServiceNow
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -89,7 +89,7 @@ Large schemas are split into a manifest + `.part*.json` files — drop all files
 Prerequisites: Node.js 18+, npm
 
 ```bash
-git clone https://github.com/<owner>/sn-schema-explorer.git
+git clone https://github.com/revampd/sn-schema-explorer.git
 cd sn-schema-explorer
 npm install
 npm run build        # builds all targets
