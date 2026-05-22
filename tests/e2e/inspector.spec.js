@@ -26,16 +26,17 @@ async function loadAndInject(page) {
   return errors;
 }
 
-test('inspector-content is empty before any node is selected', async ({ page }) => {
-  await loadAndInject(page);
-  // Before clicking a node the content div should have no children
+test('inspector-content is empty before any schema is loaded', async ({ page }) => {
+  // Navigate to the app but do NOT load a schema — inspector should be empty
+  await page.goto(APP_URL);
+  await page.waitForLoadState('domcontentloaded');
   const content = page.locator('#inspector-content');
   await expect(content).toBeEmpty();
 });
 
-test('clicking a node populates inspector-content', async ({ page }) => {
+test('schema load auto-selects a default table and populates inspector', async ({ page }) => {
+  // The app selects the 'task' node (or most-connected node) automatically after load
   await loadAndInject(page);
-  await page.locator('#graph-root g.node-group').first().click();
   const content = page.locator('#inspector-content');
   await expect(content).not.toBeEmpty({ timeout: 5_000 });
 });
