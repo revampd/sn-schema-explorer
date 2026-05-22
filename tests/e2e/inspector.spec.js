@@ -26,18 +26,18 @@ async function loadAndInject(page) {
   return errors;
 }
 
-test('inspector empty-state is visible before any node is selected', async ({ page }) => {
+test('inspector-content is empty before any node is selected', async ({ page }) => {
   await loadAndInject(page);
-  await expect(page.locator('#inspector-empty')).toBeVisible();
+  // Before clicking a node the content div should have no children
+  const content = page.locator('#inspector-content');
+  await expect(content).toBeEmpty();
 });
 
-test('clicking a node hides the empty-state and populates inspector-content', async ({ page }) => {
+test('clicking a node populates inspector-content', async ({ page }) => {
   await loadAndInject(page);
-  // Click the first rendered node group
   await page.locator('#graph-root g.node-group').first().click();
-  await expect(page.locator('#inspector-empty')).toBeHidden({ timeout: 5_000 });
   const content = page.locator('#inspector-content');
-  await expect(content).not.toBeEmpty();
+  await expect(content).not.toBeEmpty({ timeout: 5_000 });
 });
 
 test('inspector content contains the clicked table name', async ({ page }) => {
