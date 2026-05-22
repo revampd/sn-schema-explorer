@@ -1,0 +1,48 @@
+  <!-- Path Finder sidebar — shown when viewMode === 'path' -->
+  <div id="pf-sidebar" style="display:none">
+    <!-- Advanced configuration (gated by the advancedPathFinder experimental
+         feature; hidden by default, revealed via pfConfigSyncVisibility()) -->
+    <div class="pf-sidebar-section pf-config-section" id="pf-config-section" style="display:none">
+      <div class="pf-config-header">
+        <span class="pf-config-title">Search configuration</span>
+        <button class="pf-config-reset" id="pf-config-reset" title="Restore defaults (min 1, max 10, results 5)">Reset</button>
+      </div>
+      <div class="pf-config-row">
+        <label class="pf-config-label" for="pf-cfg-min">Min steps</label>
+        <input type="number" class="pf-config-input" id="pf-cfg-min" min="1" max="50" step="1">
+        <span class="pf-config-hint">drop paths shorter than this</span>
+      </div>
+      <div class="pf-config-row">
+        <label class="pf-config-label" for="pf-cfg-max">Max steps</label>
+        <input type="number" class="pf-config-input" id="pf-cfg-max" min="1" max="50" step="1">
+        <span class="pf-config-hint">drop paths longer than this</span>
+      </div>
+      <div class="pf-config-row">
+        <label class="pf-config-label" for="pf-cfg-results">Max results</label>
+        <input type="number" class="pf-config-input" id="pf-cfg-results" min="1" max="20" step="1">
+        <span class="pf-config-hint">primary + alternatives</span>
+      </div>
+    </div>
+    <div class="pf-sidebar-section">
+      <div class="pf-mode">
+        <button class="pf-mode-btn active" id="pf-mode-table" data-mode="table">→ Table</button>
+        <button class="pf-mode-btn" id="pf-mode-field" data-mode="field">→ Field</button>
+      </div>
+      <div class="pf-input-group">
+        <div class="pf-label">From table</div>
+        <div class="pf-input-wrap">
+          <input type="text" class="pf-input" id="pf-source" placeholder="e.g. incident" autocomplete="off" spellcheck="false">
+          <div class="pf-autocomplete" id="pf-source-ac"></div>
+        </div>
+      </div>
+      <div class="pf-input-group">
+        <div class="pf-label" id="pf-target-label">To table</div>
+        <div class="pf-input-wrap">
+          <input type="text" class="pf-input" id="pf-target" placeholder="e.g. core_company" autocomplete="off" spellcheck="false">
+          <div class="pf-autocomplete" id="pf-target-ac"></div>
+        </div>
+      </div>
+      <button class="pf-find-btn" id="pf-find" disabled>Find shortest path</button>
+      <div id="pf-result"></div>
+    </div>
+  </div>

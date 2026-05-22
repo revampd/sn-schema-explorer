@@ -1,0 +1,51 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="overview">Overview</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-overview">
+  <div class="guide-card">
+    <h3>What is Schema Explorer?</h3>
+    <p>Schema Explorer is an independent, community-built tool for visualising the table structure, relationships, and data model of any ServiceNow instance. It is not developed, endorsed, or affiliated with ServiceNow, Inc. in any way.</p>
+    <p>Load a schema JSON exported from your instance and immediately explore how tables connect through reference fields, inheritance, M2M relationships, and more — without needing to navigate the platform or read documentation manually.</p>
+    <div class="guide-tip"><p>Select any table to instantly see what it references, what references it, its full field list, and how it sits in the inheritance hierarchy.</p></div>
+  </div>
+  <div class="guide-grid">
+    <div class="guide-card">
+      <h4>Schema Map</h4>
+      <p>A physics-based force-directed graph where tables are nodes and relationships are edges. Adjust <strong>Max Nodes</strong>, <strong>Hop Depth</strong>, and edge-type toggles to control what's visible. Best for exploring a table's neighbourhood in depth.</p>
+    </div>
+    <div class="guide-card">
+      <h4>Additional view modes</h4>
+      <p><strong>Path Finder</strong> — finds shortest dot-walk paths between tables or to a specific field. Enable in Settings → Features.</p>
+      <p><strong>Schema Diff</strong> — compares two schema exports to highlight added, removed, and changed tables. Enable in Settings → Features.</p>
+    </div>
+  </div>
+  <div class="guide-card">
+    <h4>What you can do</h4>
+    <p>✦ Explore which tables reference a given table and vice versa</p>
+    <p>✦ Trace inheritance chains through the <code>extends</code> hierarchy</p>
+    <p>✦ Discover M2M junction tables and named relationships</p>
+    <p>✦ Inspect fields, types, and scopes for any table</p>
+    <p>✦ Search by table name <em>or</em> field name across the entire dataset</p>
+    <p>✦ Find the shortest dot-walk path between any two tables or to any field</p>
+    <p>✦ Compare two schema exports to see what changed between builds or upgrades</p>
+    <p>✦ Save named views and restore them instantly</p>
+    <p>✦ Export the graph as PNG or SVG, or export the schema or neighbourhood as JSON</p>
+  </div>
+  <div class="guide-card">
+    <h4>Header at a glance</h4>
+    <div class="guide-kv"><span class="guide-key">search box</span><span class="guide-val">Free-text search. The <strong>Tbl / Fld</strong> toggle inside the input switches between table-name and field-name search.</span></div>
+    <div class="guide-kv"><span class="guide-key">Schema Map</span><span class="guide-val">Segmented view-mode control. Schema Map is always present. Path Finder and Schema Diff appear here when enabled in Settings.</span></div>
+    <div class="guide-kv"><span class="guide-key">◀ / ▶</span><span class="guide-val">Navigation history. Step back and forward through your last 10 states — table selections, view-mode switches, filter changes, and density slider commits. Disabled until you have recorded at least two states. Keyboard shortcuts: <strong>Alt+←</strong> / <strong>Alt+→</strong>.</span></div>
+    <div class="guide-kv"><span class="guide-key">Refresh</span><span class="guide-val">Re-render the graph preserving the current selection, filters, and node positions.</span></div>
+    <div class="guide-kv"><span class="guide-key">Fit</span><span class="guide-val">Zoom and pan to fit all visible nodes into the viewport.</span></div>
+    <div class="guide-kv"><span class="guide-key">Export ▾</span><span class="guide-val">Download the full schema JSON, the current neighbourhood JSON, the canvas as PNG (multiple scales), or as SVG. See Tips &amp; Tricks for use cases.</span></div>
+    <div class="guide-kv"><span class="guide-key">Reference</span><span class="guide-val">Open the ServiceNow Data Model Reference. Covers CSDM 5 architecture, domain breakdown, service lifecycle, adoption maturity path, and the ESM blueprint across six tabs. Table name chips throughout the reference are interactive — when a table exists in your loaded schema it lights up green; click it to close the modal and navigate directly to that table in the schema map.</span></div>
+    <div class="guide-kv"><span class="guide-key">Guide</span><span class="guide-val">Opens this user guide.</span></div>
+    <div class="guide-kv"><span class="guide-key">Settings</span><span class="guide-val">Toggle features and preferences. Settings persist across sessions via localStorage.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Footer</h4>
+    <div class="guide-kv"><span class="guide-key">stats bar</span><span class="guide-val">Shows total tables, total edges, currently visible tables, and the selected table name.</span></div>
+    <div class="guide-kv"><span class="guide-key">instance pill</span><span class="guide-val">Appears after data is loaded. Shows the instance name and build. Click to open the <strong>Instance Info</strong> modal — full metadata, coverage statistics, and runtime info. When a diff schema is loaded, shows <em>base → compare</em> and the modal shows a side-by-side Stats Comparison.</span></div>
+  </div>
+</div>

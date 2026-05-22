@@ -1,0 +1,52 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="schemadiff">Schema Diff</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-schemadiff">
+  <div class="guide-card">
+    <h3>Schema Diff</h3>
+    <p>Schema Diff compares two schema JSON exports side by side, highlighting tables that were added, removed, or changed between them. Use it to understand the impact of an upgrade, a new application install, or any other schema change.</p>
+    <div class="guide-warn"><p>Schema Diff is disabled by default. Enable it in <strong>Settings → Features → Schema Diff</strong>. A new <strong>Diff</strong> button appears in the view-mode control at the top.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>How to use it</h4>
+    <p>Load your first (base) schema via the Load File tab as usual, then:</p>
+    <p>1. Enable Schema Diff in Settings → Features → Schema Diff.</p>
+    <p>2. Click <strong>Diff</strong> in the view-mode control to switch to the Diff view.</p>
+    <p>3. Drop a second JSON export onto the <strong>drop zone in the left sidebar</strong>. This becomes the <em>compare</em> schema.</p>
+    <p>4. The graph updates immediately: nodes are colour-coded by their diff status, and the sidebar lists all changes.</p>
+    <div class="guide-tip"><p>The two schemas don't need to be from the same instance, but they must use the same JSON format (same exporter version). Comparing a pre-upgrade and post-upgrade export of the same instance is the most common use case.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Reading the graph</h4>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-added)">Green outline</span><span class="guide-val">Table exists in the compare schema but not in the base — it was <strong>added</strong>.</span></div>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-removed)">Red outline</span><span class="guide-val">Table exists in the base schema but not in the compare — it was <strong>removed</strong>. Shown dimmed on the canvas.</span></div>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-changed)">Amber outline</span><span class="guide-val">Table exists in both schemas but has differences in its fields or relationships — it was <strong>changed</strong>.</span></div>
+    <p>Unchanged tables have no coloured outline. Use <strong>Show all</strong> in the sidebar to display them alongside changed tables, or toggle it off to focus only on changes.</p>
+  </div>
+  <div class="guide-card">
+    <h4>The Diff sidebar</h4>
+    <div class="guide-kv"><span class="guide-key">Summary row</span><span class="guide-val">Shows the count of added, removed, and changed tables at a glance.</span></div>
+    <div class="guide-kv"><span class="guide-key">Filter tabs</span><span class="guide-val">All · Added · Removed · Changed — click to narrow the list to one category.</span></div>
+    <div class="guide-kv"><span class="guide-key">Show all</span><span class="guide-val">Toggle to include or exclude unchanged tables in the graph.</span></div>
+    <div class="guide-kv"><span class="guide-key">Table list</span><span class="guide-val">All changed tables listed by category. Click any row to select that table and open it in the Inspector. Relationship-change rows inside a table entry are also clickable — clicking one navigates to the related table.</span></div>
+    <div class="guide-kv"><span class="guide-key">Clear (✕)</span><span class="guide-val">Remove the compare schema and return to the normal base-only view.</span></div>
+    <div class="guide-kv"><span class="guide-key">Export method warning</span><span class="guide-val">If the compare schema was exported with a different method than the base (e.g. <code>background-script</code> vs <code>table-api</code>), an amber banner appears below the drop zone. When one side is a Table API export, the banner also notes that tables or fields from privately-scoped apps may be absent due to cross-scope ACL restrictions — these gaps are expected and are not a data error.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Inspector in diff mode</h4>
+    <p>Click any changed table to open the Inspector. For <strong>changed</strong> tables, the Inspector shows a side-by-side field comparison:</p>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-added)">Added fields</span><span class="guide-val">Fields present in compare but not in base</span></div>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-removed)">Removed fields</span><span class="guide-val">Fields present in base but not in compare</span></div>
+    <div class="guide-kv"><span class="guide-key" style="color:var(--diff-changed)">Changed fields</span><span class="guide-val">Fields present in both but with different types, labels, or references</span></div>
+    <p>For <strong>added</strong> tables, the Inspector shows the full field list of the new table. For <strong>removed</strong> tables, it shows the base field list.</p>
+    <p>Field rows show the human-readable label beneath the technical name when the two differ (e.g. <em>Opened by</em> under <code>opened_by</code>), and the type column shows the readable type label (e.g. <em>Reference</em> instead of <code>reference</code>).</p>
+    <p>If a table's relationships changed, a <strong>Relationships</strong> section appears below the fields, listing each added or removed edge with its type, the related table's technical name, and its human-readable label. Clicking a relationship row navigates to that table.</p>
+  </div>
+  <div class="guide-card">
+    <h4>Stats comparison</h4>
+    <p>Once a compare schema is loaded, the footer pill updates to show <em>base → compare</em>. Click it to open the <strong>Schema Comparison</strong> modal, which shows:</p>
+    <p>• Identity and export metadata for both schemas</p>
+    <p>• A stats comparison table: tables, fields, references, M2M, extends edges, scopes, and more — with base value, compare value, and Δ (delta) for each stat. Increases are green, decreases are red, unchanged values are muted.</p>
+    <div class="guide-tip"><p>The <strong>tables</strong> count reflects <code>sys_db_object</code> entries only — DB views are listed separately in the DB views row. A background-script export may show more tables than a Table API export if ACL-restricted scoped-app tables are visible only to the admin session.</p></div>
+  </div>
+</div>

@@ -1,0 +1,445 @@
+  /* ── INSTANCE INFO MODAL ── */
+  .insti-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.78);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  }
+  .insti-overlay.is-open { display: flex; }
+  .insti-modal {
+    background: var(--surface);
+    background-color: #0d2738;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    width: min(620px, 92vw);
+    max-height: 80vh;
+    overflow: auto;
+    color: var(--text);
+    font-size: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.15) transparent;
+  }
+  .insti-modal::-webkit-scrollbar { width: 5px; }
+  .insti-modal::-webkit-scrollbar-track { background: transparent; }
+  .insti-modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+  .insti-modal::-webkit-scrollbar-thumb:hover { background: var(--sn-wasabi); }
+  .insti-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .insti-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .insti-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .insti-close:hover { background: var(--border); color: var(--text); }
+  .insti-body { padding: 14px 16px; }
+  .insti-section { margin-bottom: 16px; }
+  .insti-section:last-child { margin-bottom: 0; }
+  .insti-section h3 {
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .insti-kv { display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; }
+  .insti-kv dt { color: var(--muted); font-weight: 500; }
+  .insti-kv dd { margin: 0; color: var(--text); word-break: break-word; }
+  .insti-kv dd code {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+  .insti-kv dd .insti-unknown { color: var(--muted); font-style: italic; }
+  .insti-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .insti-stat {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .insti-stat-n { font-size: 18px; font-weight: 600; color: var(--text); }
+  .insti-stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .insti-warn {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid #c0a030;
+    background: rgba(192, 160, 48, 0.08);
+    color: var(--text);
+    font-size: 11px;
+  }
+  /* Banner headings used in diff mode to delineate base vs compare blocks. */
+  .insti-banner {
+    margin: 0 -16px 12px;
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+  }
+  .insti-banner:first-child { margin-top: -14px; border-top: none; }
+  .insti-banner-base    { color: var(--sn-wasabi); }
+  .insti-banner-compare { color: var(--diff-changed, #fbbf24); }
+
+  /* Stats diff comparison grid (shown when a compare schema is loaded).
+     Colour scheme:
+       • Column headers retain their identity colours (base=wasabi, compare=amber)
+         so the reader knows which column is which.
+       • Data values: base is always muted (it's the fixed reference point).
+         Compare value is coloured by direction: green if higher, red if lower,
+         muted if equal. Delta follows the compare colour. This way colour always
+         carries meaning — it never fires on equal rows. */
+  .insti-sdiff {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 1px 8px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .isd-h {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); text-align: right;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+  .isd-h-base  { color: var(--sn-wasabi); }
+  .isd-h-cmp   { color: var(--diff-changed, #fbbf24); }
+  .isd-h-delta { color: var(--muted); }
+  .isd-lbl {
+    color: var(--muted); font-size: 10px; text-align: left;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  /* Base values: always muted — the reference point doesn't need highlighting */
+  .isd-bval {
+    color: var(--muted); text-align: right;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  /* Compare values: layout only; colour applied by direction class below */
+  .isd-cval {
+    text-align: right;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  .isd-delta {
+    text-align: right; font-weight: 600;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+  }
+  /* Direction classes — applied to both isd-cval and isd-delta */
+  .isd-up   { color: var(--diff-added,   #4ade80); }
+  .isd-down { color: var(--diff-removed, #f87171); }
+  .isd-same { color: var(--muted); }
+
+  /* ── LOAD OVERLAY ── */
+  /* ── LOAD OVERLAY ──
+     Two-element pattern for "centre when short, scroll when tall":
+     • Outer (#load-overlay): flex column scroll container. overflow-y:auto
+       only fires when its flex child overflows.
+     • Inner (.load-overlay-inner): flex-shrink:0 so it is never compressed
+       below its natural height; margin:auto distributes the free vertical
+       space equally above+below, centering it when there IS free space.
+       When the inner is taller than the outer the auto margins collapse to 0,
+       the inner starts at the top, and the outer scrolls. */
+  #load-overlay {
+    position: absolute; inset: 0;
+    background: rgba(2,30,45,.97);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.15) transparent;
+  }
+  .load-overlay-inner {
+    margin: auto;
+    flex-shrink: 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 14px; padding: 20px;
+    width: 100%;
+  }
+  #load-overlay::-webkit-scrollbar { width: 5px; }
+  #load-overlay::-webkit-scrollbar-track { background: transparent; }
+  #load-overlay::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+  #load-overlay::-webkit-scrollbar-thumb:hover { background: var(--sn-wasabi); }
+  .overlay-title { font-family:'ServiceNow Sans',-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size:20px; font-weight:700; color:var(--sn-wasabi); text-align:center; letter-spacing:.02em; }
+  .overlay-sub   { color:var(--muted); font-size:11px; text-align:center; line-height:1.8; }
+
+  /* Tabs */
+  .ov-tabs {
+    display: flex; gap: 4px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px;
+  }
+  .ov-tab {
+    background: none; border: none; border-radius: 4px;
+    color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 11px; padding: 6px 14px; cursor: pointer;
+    transition: all .15s; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ov-tab:hover  { color: var(--text); }
+  .ov-tab.active { background: var(--surface); color: var(--accent); border: 1px solid var(--border); }
+
+  /* Panels */
+  .ov-panel { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 580px; }
+  .ov-panel.active { display: flex; }
+
+  /* Connect form */
+  .connect-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .cf-row {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .cf-label {
+    width: 68px; flex-shrink: 0;
+    color: var(--muted); font-size: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    text-align: right;
+  }
+  .cf-input-wrap {
+    flex: 1; display: flex; align-items: center;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; overflow: hidden; min-width: 0;
+  }
+  .cf-input-wrap:focus-within { border-color: var(--accent); }
+  .cf-prefix, .cf-suffix {
+    padding: 0 7px; color: var(--muted);
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 10px;
+    background: rgba(0,0,0,.2); white-space: nowrap; flex-shrink: 0;
+    line-height: 30px;
+  }
+  .cf-input {
+    background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 11px; padding: 5px 8px; min-width: 0; flex: 1;
+  }
+  .cf-input::placeholder { color: var(--muted); }
+  .cf-full {
+    flex: 1;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; outline: none; color: var(--text);
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px;
+    padding: 5px 10px; min-width: 0;
+    transition: border-color .2s;
+  }
+  .cf-full:focus { border-color: var(--accent); }
+  .cf-full::placeholder { color: var(--muted); }
+  .cf-short {
+    width: 70px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 4px; outline: none; color: var(--text);
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px;
+    padding: 5px 8px; text-align: center;
+    transition: border-color .2s;
+  }
+  .cf-short:focus { border-color: var(--accent); }
+  .cf-check {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--text); font-size: 11px; cursor: pointer;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cf-check input[type=checkbox] {
+    appearance: none; -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border: 1px solid var(--border); border-radius: 3px;
+    cursor: pointer; position: relative; flex-shrink: 0;
+  }
+  .cf-check input[type=checkbox]:checked { background: var(--accent2); border-color: var(--accent2); }
+  .cf-check input[type=checkbox]:checked::after {
+    content:'✓'; position:absolute; top:-1px; left:2px; font-size:10px; color:white;
+  }
+  .cf-note {
+    font-size: 10px; color: var(--muted); line-height: 1.6;
+    background: rgba(0,229,255,.04); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    border-radius: 4px; padding: 8px 10px;
+  }
+
+  /* ── Setup instructions inside overlay panels ── */
+  /* Collapsible setup guide */
+  .setup-guide-wrap { width: 100%; max-width: 560px; }
+  .setup-guide-toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 8px 12px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--sn-border);
+    border-radius: 7px; cursor: pointer;
+    font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 11px; font-weight: 600;
+    color: var(--sn-muted); letter-spacing: .04em;
+    transition: color .15s, border-color .15s, background .15s;
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .setup-guide-toggle:hover { border-color: var(--sn-wasabi); color: var(--text); }
+  .setup-guide-toggle.open  { border-color: var(--sn-wasabi); color: var(--sn-wasabi);
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+    border-bottom-color: transparent; }
+  .setup-guide-toggle .sg-arrow {
+    font-size: 12px; transition: transform .2s; flex-shrink: 0;
+  }
+  .setup-guide-toggle.open .sg-arrow { transform: rotate(180deg); }
+  .setup-guide-body {
+    overflow: hidden; max-height: 0;
+    transition: max-height .35s cubic-bezier(.4,0,.2,1), padding .25s;
+    padding: 0 2px;
+    display: flex; flex-direction: column; gap: 16px;
+    border: 1px solid var(--sn-wasabi); border-top: none;
+    border-bottom-left-radius: 7px; border-bottom-right-radius: 7px;
+  }
+  .setup-guide-body.open { max-height: 3000px; padding: 14px 2px; }
+  .setup-guide {
+    width: 100%;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .setup-step {
+    background: rgba(255,255,255,.03); border: 1px solid var(--sn-border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .setup-step-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--sn-border);
+    background: rgba(255,255,255,.03);
+  }
+  .setup-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--sn-wasabi); color: var(--sn-infinite);
+    font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-weight: 700;
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .setup-step-title {
+    font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-weight: 700;
+    font-size: 11px; color: var(--text); letter-spacing: .04em;
+  }
+  .setup-step-body { padding: 10px 14px; }
+  .setup-step-desc {
+    font-size: 10px; color: var(--muted); line-height: 1.7; margin-bottom: 8px;
+  }
+  .setup-step-desc a { color: var(--sn-blue); text-decoration: none; }
+  .setup-step-desc a:hover { text-decoration: underline; }
+  .code-block {
+    position: relative;
+    background: rgba(0,0,0,.35); border: 1px solid var(--sn-border);
+    border-radius: 6px; overflow: hidden;
+  }
+  .code-block-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 10px; border-bottom: 1px solid var(--sn-border);
+    background: rgba(255,255,255,.03);
+  }
+  .code-block-lang {
+    font-size: 9px; color: var(--sn-muted); letter-spacing: .1em; text-transform: uppercase;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  .code-copy-btn {
+    background: none; border: 1px solid var(--sn-border);
+    border-radius: 4px; color: var(--muted); cursor: pointer;
+    font-size: 9px; padding: 2px 8px;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    transition: all .15s;
+  }
+  .code-copy-btn:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+  .code-block pre {
+    margin: 0; padding: 10px 12px;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 9.5px;
+    line-height: 1.6; color: #cdd9e5;
+    overflow-x: auto; max-height: 240px; overflow-y: auto;
+    white-space: pre;
+  }
+  .code-block pre::-webkit-scrollbar { width: 4px; height: 4px; }
+  .code-block pre::-webkit-scrollbar-track { background: transparent; }
+  .code-block pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 2px; }
+  .code-block pre::-webkit-scrollbar-thumb:hover { background: var(--sn-wasabi); }
+  .code-block pre { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+  .setup-notice {
+    font-size: 10px; line-height: 1.6; padding: 8px 10px;
+    border-radius: 6px; display: flex; gap: 8px; align-items: flex-start;
+  }
+  .setup-notice.warn {
+    background: rgba(255,159,90,.07); border: 1px solid rgba(255,159,90,.3); color: #ff9f5a;
+  }
+  .setup-notice.info {
+    background: rgba(14,165,233,.07); border: 1px solid rgba(14,165,233,.3); color: var(--sn-blue);
+  }
+  .setup-notice-icon { flex-shrink: 0; font-size: 13px; }
+  .cf-note code { color: var(--accent2); font-size: 9px; }
+  .cf-note strong { color: var(--text); }
+  .cf-btn {
+    align-self: stretch; font-size: 11px; padding: 8px 16px;
+    margin-top: 4px;
+  }
+  .cf-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Progress bar */
+  .cf-progress { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+  .cf-prog-bar {
+    height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .cf-prog-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    border-radius: 2px; transition: width .4s ease;
+  }
+  .cf-prog-fill.indeterminate {
+    width: 40%; animation: progslide 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes progslide {
+    from { margin-left: 0%; }
+    to   { margin-left: 60%; }
+  }
+  .cf-prog-label { font-size: 10px; color: var(--muted); text-align: center; }
+
+  /* Error toast inside overlay */
+  .cf-error {
+    width: 100%; background: rgba(255,107,53,.1); border: 1px solid var(--accent3);
+    border-radius: 4px; padding: 8px 12px;
+    color: var(--accent3); font-size: 10px; line-height: 1.6;
+    display: none;
+  }
+  .cf-error.visible { display: block; }
+
+  /* File drop zone */
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 8px;
+    padding: 24px 40px; text-align: center;
+    cursor: pointer; transition: all .2s; position: relative;
+    width: 100%; max-width: 340px;
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color:var(--accent); background:rgba(0,229,255,.04); }
+  .drop-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .drop-zone-icon { font-size:26px; margin-bottom:8px; }
+  .drop-zone-text { color:var(--text); font-size:12px; }
+  .drop-zone-hint { color:var(--muted); font-size:10px; margin-top:4px; }
+  .or-divider { color:var(--muted); font-size:11px; }
+
+  @media (max-width: 480px) {
+    .cf-label { display: none; }
+    .cf-row   { flex-direction: column; align-items: stretch; }
+    .cf-input-wrap { flex: none; }
+    .ov-tab   { font-size: 10px; padding: 5px 10px; }
+  }

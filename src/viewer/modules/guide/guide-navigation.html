@@ -1,0 +1,65 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="navigation">Navigation</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-navigation">
+  <div class="guide-card">
+    <h3>Navigating the visualization</h3>
+    <h4>Pan &amp; Zoom</h4>
+    <div class="guide-kv"><span class="guide-key">Scroll wheel</span><span class="guide-val">Zoom in and out</span></div>
+    <div class="guide-kv"><span class="guide-key">Click + drag</span><span class="guide-val">Pan the canvas</span></div>
+    <div class="guide-kv"><span class="guide-key">+ / − buttons</span><span class="guide-val">Zoom in / out with the on-screen controls (right edge of canvas)</span></div>
+    <div class="guide-kv"><span class="guide-key">Fit (header)</span><span class="guide-val">Zoom and pan to fit all visible nodes into view</span></div>
+    <div class="guide-kv"><span class="guide-key">Minimap</span><span class="guide-val">Click or drag the minimap (bottom-right) to pan instantly. The green rectangle shows your current viewport.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Selecting tables</h4>
+    <div class="guide-kv"><span class="guide-key">Click a node</span><span class="guide-val">Select a table. Expands the neighbourhood based on Hop Depth and active Edge Types. Inspector opens on the right.</span></div>
+    <div class="guide-kv"><span class="guide-key">Sidebar list</span><span class="guide-val">Click any table name in the left panel to select and focus it. Click the selected table again to deselect.</span></div>
+    <div class="guide-kv"><span class="guide-key">Search box</span><span class="guide-val">Type to filter the sidebar list and dim non-matching nodes. Use <strong>Tbl / Fld</strong> to switch between table-name and field-name search.</span></div>
+    <div class="guide-kv"><span class="guide-key">Click canvas</span><span class="guide-val">Click empty canvas space to deselect and return to the full unfiltered view.</span></div>
+    <div class="guide-kv"><span class="guide-key">Right-click node</span><span class="guide-val">Context menu: Focus neighbourhood · Deselect · Copy table name · Open in ServiceNow.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>CMDB CI topology edges</h4>
+    <p>When a table is selected, <strong>CI topology</strong> (<code>cmdb_rel</code>) edges always render with arrows pointing <em>outward</em> from the focused node, regardless of whether the focused table is the parent or child in each relationship. This gives a consistent "radiate outward" view — every arrow leaving the selected node means "this table relates to that one" in some direction.</p>
+    <div class="guide-tip"><p>The Inspector's CI topology section shows the true direction with perspective-aware labels ("Contains" vs "Contained by"). Use it to understand which way each relationship actually flows.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Searching by field</h4>
+    <p>Click <strong>Fld</strong> in the search-box toggle to switch to field-name search. The sidebar narrows to tables that have a matching field; the canvas dims everything else.</p>
+    <div class="guide-tip"><p>Useful for questions like "which tables have an <code>assignment_group</code> field?" or "which tables reference <code>sys_user</code> via a field starting with <code>opened_</code>?"</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Viewport indicators</h4>
+    <p>When connected tables are off-screen, small pill-shaped indicators appear on the canvas borders pointing toward them. Click any pill to pan and zoom directly to that table.</p>
+    <div class="guide-tip"><p>Indicators only appear for tables connected to the currently selected table. They update automatically as you navigate.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Active Tables panel</h4>
+    <p>When a table is selected, the <strong>Active Tables</strong> panel appears in the top-right of the canvas. It lists the selected table and all visible neighbours.</p>
+    <p>Click any neighbour row to <strong>hide or show</strong> that table. Hidden tables are crossed out but remain in the list. The selected table itself cannot be hidden. Hidden tables reset when you select a different table.</p>
+  </div>
+  <div class="guide-card">
+    <h4>Navigation history</h4>
+    <p>The <strong>◀</strong> and <strong>▶</strong> buttons in the header toolbar step backwards and forwards through your last 10 states — exactly like browser history.</p>
+    <p>A history entry is recorded when you: select or deselect a table, switch view modes, apply a scope filter or edge-type toggle, or commit a Hop Depth / Max Nodes slider change.</p>
+    <div class="guide-kv"><span class="guide-key">◀ Back</span><span class="guide-val">Return to the previous state. Disabled at the earliest recorded entry. Keyboard: <strong>Alt+←</strong></span></div>
+    <div class="guide-kv"><span class="guide-key">▶ Forward</span><span class="guide-val">Re-apply the next state after going back. Disabled at the most recent entry. Keyboard: <strong>Alt+→</strong></span></div>
+    <div class="guide-tip"><p>The history stack resets when you load a new schema, so it always reflects the current dataset only.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Compact view</h4>
+    <p>The <strong>◑</strong> button in the top-right of the canvas toggles Compact view. When active, node labels and scope text are hidden and nodes shrink to their minimum size — useful for getting an overview of a large neighbourhood without individual labels cluttering the graph.</p>
+    <p>Click again (button reads <strong>◑ Full view</strong> when compact is on) to restore labels.</p>
+  </div>
+  <div class="guide-card">
+    <h4>Resizing panels</h4>
+    <p>Both the left sidebar and the right Inspector panel can be resized by dragging the thin handle on their inner edge. Your preferred widths are saved automatically.</p>
+    <div class="guide-tip"><p>Double-click the resize handle to instantly reset that panel to its default width.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Saved Views</h4>
+    <p>The <strong>Saved Views</strong> section in the left sidebar (when enabled in Settings → Features) lets you snapshot the current state — selection, scope filters, edge types, hop depth, max nodes, view mode — and restore it with one click.</p>
+    <p>Saved Views are stored per dataset (keyed by a fingerprint of the loaded schema), so views from one instance don't appear when you load another.</p>
+  </div>
+</div>

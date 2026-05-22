@@ -1,0 +1,696 @@
+import { graphState, uiState } from '../../core/state.js';
+import { Dom } from '../../core/dom.js';
+import { svg, root, zoom } from '../../engine/canvas.js';
+import { Settings } from '../settings/index.js';
+
+export function syncPair(desktopId, mobileId, val) {
+  [desktopId, mobileId].forEach(id=>document.getElementById(id)?.classList.toggle('active', val));
+}
+
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 500);
+}
+
+function exportTimestamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-` +
+         `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function exportSlug() {
+  if (uiState.selectedNode) return uiState.selectedNode.replace(/[^a-z0-9_-]+/gi, '_');
+  return 'schema';
+}
+
+export function exportSchemaJSON() {
+  if (!graphState.graphData) return;
+  const clean = {
+    nodes: graphState.graphData.nodes.map(n => {
+      const { x, y, vx, vy, fx, fy, index, ...rest } = n;
+      return rest;
+    }),
+    edges: graphState.graphData.edges.map(e => {
+      const { index, ...rest } = e;
+      return {
+        ...rest,
+        source: rest.source?.id ?? rest.source,
+        target: rest.target?.id ?? rest.target,
+      };
+    }),
+  };
+  const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.json`);
+}
+
+export function exportNeighbourhoodJSON() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert('Select a table first — there\'s no neighbourhood to export without one.');
+    return;
+  }
+  const visible = new Set(uiState.connectedNodes);
+  visible.add(uiState.selectedNode);
+  for (const h of uiState.hiddenNodes) visible.delete(h);
+  const nodes = graphState.graphData.nodes
+    .filter(n => visible.has(n.id))
+    .map(n => {
+      const { x, y, vx, vy, fx, fy, index, ...rest } = n;
+      return rest;
+    });
+  const edges = graphState.graphData.edges
+    .map(e => {
+      const s = e.source?.id ?? e.source;
+      const t = e.target?.id ?? e.target;
+      return { src: s, tgt: t, edge: e };
+    })
+    .filter(({src, tgt}) => visible.has(src) && visible.has(tgt))
+    .map(({src, tgt, edge}) => {
+      const { index, ...rest } = edge;
+      return { ...rest, source: src, target: tgt };
+    });
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    source: 'sn_schema_explorer.neighbourhood',
+    rootTable: uiState.selectedNode,
+    hopDepth: uiState.hopDepth, viewMode: uiState.viewMode,
+    nodes, edges,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.json`);
+}
+
+export function buildExportSvg(opts) {
+  opts = opts || {};
+  const scope = opts.scope || 'viewport';
+  const svgEl = document.getElementById('graph');
+  if (!svgEl) return null;
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+  let exportWidth, exportHeight;
+  if (scope === 'full') {
+    const liveRoot = document.getElementById('graph-root');
+    if (liveRoot) {
+      let bb;
+      try { bb = liveRoot.getBBox(); } catch (_) { bb = null; }
+      if (bb && bb.width > 0 && bb.height > 0) {
+        const MARGIN = 40;
+        const x = Math.floor(bb.x - MARGIN);
+        const y = Math.floor(bb.y - MARGIN);
+        const w = Math.ceil(bb.width  + MARGIN * 2);
+        const h = Math.ceil(bb.height + MARGIN * 2);
+        clone.setAttribute('viewBox', x + ' ' + y + ' ' + w + ' ' + h);
+        clone.setAttribute('width',  w);
+        clone.setAttribute('height', h);
+        exportWidth = w; exportHeight = h;
+        const cloneRoot = clone.querySelector('#graph-root');
+        if (cloneRoot) cloneRoot.removeAttribute('transform');
+      }
+    }
+  }
+  if (!exportWidth) {
+    const rect = svgEl.getBoundingClientRect();
+    exportWidth  = Math.round(rect.width);
+    exportHeight = Math.round(rect.height);
+    clone.setAttribute('width',  exportWidth);
+    clone.setAttribute('height', exportHeight);
+  }
+  const STYLE_PROPS = [
+    'fill','fill-opacity','stroke','stroke-width','stroke-opacity',
+    'stroke-dasharray','stroke-linecap','stroke-linejoin',
+    'opacity','font-family','font-size','font-weight','text-anchor',
+    'dominant-baseline',
+  ];
+  const CONTAINER_SKIP = new Set(['fill','fill-opacity','stroke','stroke-width',
+                                   'stroke-opacity','color']);
+  const CONTAINER_TAGS = new Set(['g','svg','defs','marker','symbol','pattern']);
+
+  const liveEls  = svgEl.querySelectorAll('*');
+  const cloneEls = clone.querySelectorAll('*');
+  for (let i = 0; i < liveEls.length; i++) {
+    const liveEl  = liveEls[i];
+    const cloneEl = cloneEls[i];
+    if (!cloneEl) continue;
+    const tag = liveEl.tagName.toLowerCase();
+    const isContainer = CONTAINER_TAGS.has(tag);
+    const cs = getComputedStyle(liveEl);
+    let inline = '';
+    for (const p of STYLE_PROPS) {
+      if (isContainer && CONTAINER_SKIP.has(p)) continue;
+      const v = cs.getPropertyValue(p);
+      if (!v) continue;
+      if (v === 'normal') continue;
+      inline += `${p}:${v};`;
+    }
+    if (liveEl.style.display === 'none') inline += 'display:none;';
+    if (liveEl.style.visibility === 'hidden') inline += 'visibility:hidden;';
+    if (inline) cloneEl.setAttribute('style', inline);
+  }
+
+  const _exportBg = getExportBgColor();
+  if (_exportBg !== 'transparent') {
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const vb = clone.getAttribute('viewBox');
+    if (vb) {
+      const parts = vb.split(/\s+/).map(Number);
+      bg.setAttribute('x',      parts[0]);
+      bg.setAttribute('y',      parts[1]);
+      bg.setAttribute('width',  parts[2]);
+      bg.setAttribute('height', parts[3]);
+    } else {
+      bg.setAttribute('width',  '100%');
+      bg.setAttribute('height', '100%');
+    }
+    bg.setAttribute('fill', _exportBg ||
+      getComputedStyle(document.getElementById('canvas')).backgroundColor ||
+      '#0b1220');
+    clone.insertBefore(bg, clone.firstChild);
+  }
+  // 'transparent' → no rect inserted; PNG canvas default is transparent,
+  // SVG renders without a background element.
+  return { svg: new XMLSerializer().serializeToString(clone), width: exportWidth, height: exportHeight };
+}
+
+const PNG_SCALE_KEY = 'snse:pngExportScale';
+export function getPngExportScale() {
+  const raw = localStorage.getItem(PNG_SCALE_KEY);
+  const n = parseInt(raw, 10);
+  const max = Settings.getMaxPngScale();
+  if (n >= 1 && n <= max) return n;
+  return Math.min(2, max);
+}
+export function setPngExportScale(n) {
+  n = Math.max(1, Math.min(Settings.getMaxPngScale(), Math.round(n)));
+  try { localStorage.setItem(PNG_SCALE_KEY, String(n)); } catch (_) {}
+  const slider = document.getElementById('export-scale-slider');
+  if (slider) slider.value = n;
+  const valEl = document.getElementById('export-scale-val');
+  if (valEl) valEl.textContent = n + '×';
+  _updateScaleInfo(n);
+}
+
+const EXPORT_BG_KEY = 'snse:exportBgColor';
+
+export function getExportBgColor() {
+  // null → use canvas computed background (default behaviour)
+  // hex string → user-chosen solid color
+  // 'transparent' → no background rect
+  return localStorage.getItem(EXPORT_BG_KEY) || null;
+}
+
+export function setExportBgColor(value) {
+  try { localStorage.setItem(EXPORT_BG_KEY, value); } catch (_) {}
+  _syncBgUI();
+}
+
+function _normaliseHex(raw) {
+  let s = String(raw || '').trim().replace(/^#+/, '');
+  // Expand 3-digit shorthand (#abc → #aabbcc)
+  if (s.length === 3) s = s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
+  if (!/^[0-9a-f]{6}$/i.test(s)) return null;
+  return '#' + s.toLowerCase();
+}
+
+// ── Custom HSV color picker ───────────────────────────────────────────────────
+
+let _cpH = 200, _cpS = 0.7, _cpV = 0.15;   // HSV state (h: 0–359, s/v: 0–1)
+let _cpA = 1;                                // opacity 0–1 (0 = transparent)
+let _cpDragging = false;
+
+function _hsvToRgb(h, s, v) {
+  h = ((h % 360) + 360) % 360;
+  const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if      (h < 60)  { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else              { r = c; b = x; }
+  return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+}
+
+function _rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d > 0) {
+    if      (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else                h = ((r - g) / d + 4) * 60;
+  }
+  return { h, s: max === 0 ? 0 : d / max, v: max };
+}
+
+function _rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
+}
+
+function _updateAlphaSliderBg() {
+  const wrap = document.querySelector('.export-cp-alpha-wrap');
+  if (!wrap) return;
+  const { r, g, b } = _hsvToRgb(_cpH, _cpS, _cpV);
+  wrap.style.setProperty('--alpha-color', `rgb(${r},${g},${b})`);
+}
+
+function _drawSVCanvas() {
+  const canvas = document.getElementById('export-cp-sv');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  // Saturation gradient: white → pure hue
+  const { r, g, b } = _hsvToRgb(_cpH, 1, 1);
+  const satGrad = ctx.createLinearGradient(0, 0, W, 0);
+  satGrad.addColorStop(0, '#fff');
+  satGrad.addColorStop(1, `rgb(${r},${g},${b})`);
+  ctx.fillStyle = satGrad;
+  ctx.fillRect(0, 0, W, H);
+  // Value gradient: transparent → black (top → bottom)
+  const valGrad = ctx.createLinearGradient(0, 0, 0, H);
+  valGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  valGrad.addColorStop(1, '#000');
+  ctx.fillStyle = valGrad;
+  ctx.fillRect(0, 0, W, H);
+  // Cursor ring
+  const cx = _cpS * W, cy = (1 - _cpV) * H;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.strokeStyle = (_cpV > 0.45 && _cpS < 0.85) ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function _cpSyncOutput() {
+  const { r, g, b } = _hsvToRgb(_cpH, _cpS, _cpV);
+  const hex = _rgbToHex(r, g, b);
+  const swBtn = document.getElementById('export-bg-swatch-btn');
+  const hexEl = document.getElementById('export-bg-hex');
+  let stored;
+  if (_cpA <= 0) {
+    stored = 'transparent';
+    if (swBtn) { swBtn.classList.add('transparent-mode'); swBtn.style.background = ''; }
+    if (hexEl) { hexEl.value = ''; hexEl.placeholder = 'transparent'; hexEl.classList.remove('invalid'); }
+  } else {
+    const a = parseFloat(_cpA.toFixed(3));
+    stored = a >= 1 ? hex : `rgba(${r},${g},${b},${a})`;
+    if (swBtn) { swBtn.style.background = `rgba(${r},${g},${b},${_cpA})`; swBtn.classList.remove('transparent-mode'); }
+    if (hexEl) { hexEl.value = hex; hexEl.classList.remove('invalid'); hexEl.placeholder = '#rrggbb'; }
+  }
+  _updateAlphaSliderBg();
+  try { localStorage.setItem(EXPORT_BG_KEY, stored); } catch (_) {}
+}
+
+function _cpSyncFromHex(raw) {
+  const alphaSlider = document.getElementById('export-cp-alpha');
+  // transparent / null / empty
+  if (!raw || raw === 'transparent') {
+    _cpA = 0;
+    if (alphaSlider) alphaSlider.value = 0;
+    _updateAlphaSliderBg();
+    return true;
+  }
+  // rgba(r,g,b,a) or rgb(r,g,b)
+  const m = String(raw).match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([0-9.]+))?\s*\)$/);
+  if (m) {
+    const { h, s, v: val } = _rgbToHsv(+m[1], +m[2], +m[3]);
+    _cpH = h; _cpS = s; _cpV = val;
+    _cpA = m[4] != null ? Math.min(1, Math.max(0, parseFloat(m[4]))) : 1;
+    const hueSlider = document.getElementById('export-cp-hue');
+    if (hueSlider) hueSlider.value = Math.round(_cpH);
+    if (alphaSlider) alphaSlider.value = Math.round(_cpA * 100);
+    _drawSVCanvas();
+    _updateAlphaSliderBg();
+    return true;
+  }
+  // #rrggbb hex
+  const n = _normaliseHex(raw);
+  if (!n) return false;
+  const v = parseInt(n.slice(1), 16);
+  const { h, s, v: val } = _rgbToHsv((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
+  _cpH = h; _cpS = s; _cpV = val; _cpA = 1;
+  const hueSlider = document.getElementById('export-cp-hue');
+  if (hueSlider) hueSlider.value = Math.round(_cpH);
+  if (alphaSlider) alphaSlider.value = 100;
+  _drawSVCanvas();
+  _updateAlphaSliderBg();
+  return true;
+}
+
+function _cpOpen() {
+  const picker = document.getElementById('export-color-picker');
+  const swBtn  = document.getElementById('export-bg-swatch-btn');
+  if (!picker) return;
+  picker.hidden = false;
+  if (swBtn) swBtn.setAttribute('aria-expanded', 'true');
+  // Sync canvas resolution to its actual rendered width (avoids blur)
+  const canvas = document.getElementById('export-cp-sv');
+  if (canvas && canvas.clientWidth > 0) {
+    const w = canvas.clientWidth;
+    canvas.width  = w;
+    canvas.height = Math.round(w * 130 / 240);
+  }
+  const stored = getExportBgColor();
+  if (!stored) {
+    // First use — default dark bg at full opacity
+    _cpA = 1;
+    const alphaSlider = document.getElementById('export-cp-alpha');
+    if (alphaSlider) alphaSlider.value = 100;
+    _cpSyncFromHex('#0b1220');
+  } else {
+    _cpSyncFromHex(stored);
+  }
+}
+
+function _cpClose() {
+  const picker = document.getElementById('export-color-picker');
+  const swBtn  = document.getElementById('export-bg-swatch-btn');
+  if (picker) picker.hidden = true;
+  if (swBtn) swBtn.setAttribute('aria-expanded', 'false');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _syncBgUI() {
+  const swBtn    = document.getElementById('export-bg-swatch-btn');
+  const hexInput = document.getElementById('export-bg-hex');
+  if (!swBtn) return;
+  const stored = getExportBgColor();
+  if (hexInput) hexInput.classList.remove('invalid');
+  if (!stored || stored === 'transparent') {
+    swBtn.classList.add('transparent-mode');
+    swBtn.style.background = '';
+    if (hexInput) { hexInput.value = ''; hexInput.placeholder = 'transparent'; }
+  } else if (/^rgba?\(/.test(stored)) {
+    swBtn.classList.remove('transparent-mode');
+    swBtn.style.background = stored;
+    if (hexInput) {
+      const m = stored.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (m) hexInput.value = _rgbToHex(+m[1], +m[2], +m[3]);
+    }
+  } else {
+    swBtn.classList.remove('transparent-mode');
+    swBtn.style.background = stored;
+    if (hexInput) { hexInput.value = stored; hexInput.placeholder = '#rrggbb'; }
+  }
+  // Keep picker in sync if open
+  const picker = document.getElementById('export-color-picker');
+  if (picker && !picker.hidden) _cpSyncFromHex(stored || '#0b1220');
+}
+
+function detectCanvasLimit() {
+  const candidates = [268435456, 67108864, 16777216, 8388608];
+  const probe = document.createElement('canvas');
+  for (const area of candidates) {
+    const side = Math.ceil(Math.sqrt(area));
+    probe.width = side;
+    probe.height = side;
+    const ctx = probe.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = 'rgb(1,0,0)';
+    ctx.fillRect(0, 0, 1, 1);
+    try {
+      if (ctx.getImageData(0, 0, 1, 1).data[0] === 1) return area;
+    } catch (_) {}
+  }
+  return 4194304;
+}
+const PNG_MAX_PIXELS = detectCanvasLimit();
+// Seed the Settings max-scale default based on what this browser can actually handle.
+// Only affects first-time users; stored preferences are always respected.
+Settings.initMaxPngScale(PNG_MAX_PIXELS);
+export function rasteriseSvgToPng(svgText, logicalW, logicalH, requestedScale, filename) {
+  let scale = requestedScale;
+  let capped = false;
+  while (scale > 1 && (logicalW * scale) * (logicalH * scale) > PNG_MAX_PIXELS) {
+    scale--;
+    capped = true;
+  }
+  const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width  = Math.round(logicalW * scale);
+    c.height = Math.round(logicalH * scale);
+    const ctx = c.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    c.toBlob(blob => {
+      if (!blob) {
+        alert('PNG export failed — the browser could not generate the image.');
+        return;
+      }
+      downloadBlob(blob, filename);
+      if (capped) {
+        console.info('[export] PNG was capped at ' + scale + '× to stay under the browser canvas size limit (' + PNG_MAX_PIXELS.toLocaleString() + ' pixels).');
+      }
+    }, 'image/png');
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    alert('PNG export failed — the browser could not rasterise the SVG.');
+  };
+  img.src = url;
+}
+
+export function exportViewSVG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'viewport' });
+  if (!result) return;
+  const blob = new Blob([result.svg], { type: 'image/svg+xml;charset=utf-8' });
+  downloadBlob(blob, `sn_view_${exportSlug()}_${exportTimestamp()}.svg`);
+}
+
+export function exportViewPNG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'viewport' });
+  if (!result) return;
+  rasteriseSvgToPng(result.svg, result.width, result.height, getPngExportScale(),
+    `sn_view_${exportSlug()}_${exportTimestamp()}.png`);
+}
+
+export function exportFullSVG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'full' });
+  if (!result) return;
+  const blob = new Blob([result.svg], { type: 'image/svg+xml;charset=utf-8' });
+  downloadBlob(blob, `sn_full_${exportSlug()}_${exportTimestamp()}.svg`);
+}
+
+export function exportFullPNG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'full' });
+  if (!result) return;
+  rasteriseSvgToPng(result.svg, result.width, result.height, getPngExportScale(),
+    `sn_full_${exportSlug()}_${exportTimestamp()}.png`);
+}
+
+function _updateScaleInfo(scale) {
+  const infoEl = document.getElementById('export-scale-info');
+  if (!infoEl) return;
+  const cv = Dom.canvas;
+  if (!cv || !cv.clientWidth || !cv.clientHeight) { infoEl.textContent = ''; return; }
+  const w = Math.round(cv.clientWidth  * scale);
+  const h = Math.round(cv.clientHeight * scale);
+  const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  let text = `→ ${fmt(w)} × ${fmt(h)} px`;
+  if (w * h > PNG_MAX_PIXELS) {
+    let cappedScale = scale;
+    while (cappedScale > 1 && cv.clientWidth * cappedScale * cv.clientHeight * cappedScale > PNG_MAX_PIXELS) {
+      cappedScale--;
+    }
+    text += `  (capped at ${cappedScale}×)`;
+    infoEl.classList.add('export-scale-capped');
+  } else {
+    infoEl.classList.remove('export-scale-capped');
+  }
+  infoEl.textContent = text;
+}
+
+export function exportMenuOpen() {
+  const r = Dom.btnExport.getBoundingClientRect();
+  Dom.exportMenu.style.top   = (r.bottom + 6) + 'px';
+  Dom.exportMenu.style.right = (window.innerWidth - r.right) + 'px';
+  const maxScale = Settings.getMaxPngScale();
+  const slider = document.getElementById('export-scale-slider');
+  if (slider) {
+    slider.max = maxScale;
+    const persisted = getPngExportScale();
+    slider.value = persisted;
+    const valEl = document.getElementById('export-scale-val');
+    if (valEl) valEl.textContent = persisted + '×';
+    _updateScaleInfo(persisted);
+  }
+  _syncBgUI();
+  Dom.exportMenu.classList.add('open');
+  Dom.exportMenu.setAttribute('aria-hidden','false');
+}
+
+export function exportMenuClose() {
+  Dom.exportMenu.classList.remove('open');
+  Dom.exportMenu.setAttribute('aria-hidden','true');
+  _cpClose();
+}
+
+export function fitGraph() {
+  if (!graphState.graphData) return;
+  const b = root.node().getBBox();
+  if (!b.width) return;
+  const cv=Dom.canvas, W=cv.clientWidth, H=cv.clientHeight;
+  const s = Math.min(0.9, 0.9/Math.max(b.width/W, b.height/H));
+  svg.transition().duration(600).call(zoom.transform,
+    d3.zoomIdentity.translate(W/2-s*(b.x+b.width/2), H/2-s*(b.y+b.height/2)).scale(s)
+  );
+}
+
+export function initExportListeners() {
+  Dom.btnExport.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (Dom.exportMenu.classList.contains('open')) exportMenuClose();
+    else exportMenuOpen();
+  });
+
+  Dom.exportMenu.addEventListener('click', (e) => {
+    const btn = e.target.closest('.export-item');
+    if (!btn) return;
+    exportMenuClose();
+    switch (btn.dataset.export) {
+      case 'schema-json':        exportSchemaJSON();        break;
+      case 'neighbourhood-json': exportNeighbourhoodJSON(); break;
+      case 'view-png':           exportViewPNG();           break;
+      case 'view-svg':           exportViewSVG();           break;
+      case 'full-png':           exportFullPNG();           break;
+      case 'full-svg':           exportFullSVG();           break;
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!Dom.exportMenu.classList.contains('open')) return;
+    if (e.target.closest('.export-wrap')) return;
+    if (e.target.closest('#export-menu')) return;
+    exportMenuClose();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && Dom.exportMenu.classList.contains('open')) {
+      exportMenuClose();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (Dom.exportMenu.classList.contains('open')) exportMenuClose();
+  });
+
+  // Swatch button — toggle picker open/close
+  document.getElementById('export-bg-swatch-btn')
+    ?.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const picker = document.getElementById('export-color-picker');
+      if (picker && !picker.hidden) _cpClose();
+      else _cpOpen();
+    });
+
+  // SV canvas — drag to pick saturation + value (mouse + touch)
+  const _svCanvas = document.getElementById('export-cp-sv');
+  if (_svCanvas) {
+    const _svCoords = (clientX, clientY) => {
+      const rect = _svCanvas.getBoundingClientRect();
+      _cpS = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      _cpV = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    };
+    _svCanvas.addEventListener('mousedown', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      _cpDragging = true;
+      _svCoords(e.clientX, e.clientY); _drawSVCanvas(); _cpSyncOutput();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!_cpDragging) return;
+      _svCoords(e.clientX, e.clientY); _drawSVCanvas(); _cpSyncOutput();
+    });
+    document.addEventListener('mouseup', () => { _cpDragging = false; });
+    // Touch support
+    _svCanvas.addEventListener('touchstart', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (!e.touches[0]) return;
+      _cpDragging = true;
+      _svCoords(e.touches[0].clientX, e.touches[0].clientY); _drawSVCanvas(); _cpSyncOutput();
+    }, { passive: false });
+    _svCanvas.addEventListener('touchmove', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (!_cpDragging || !e.touches[0]) return;
+      _svCoords(e.touches[0].clientX, e.touches[0].clientY); _drawSVCanvas(); _cpSyncOutput();
+    }, { passive: false });
+    _svCanvas.addEventListener('touchend', function() {
+      _cpDragging = false;
+    }, { passive: false });
+  }
+
+  // Hue slider — update hue, redraw canvas
+  document.getElementById('export-cp-hue')
+    ?.addEventListener('input', function(e) {
+      e.stopPropagation();
+      _cpH = parseInt(this.value, 10);
+      _drawSVCanvas();
+      _cpSyncOutput();
+    });
+
+  // Alpha slider — update opacity
+  document.getElementById('export-cp-alpha')
+    ?.addEventListener('input', function(e) {
+      e.stopPropagation();
+      _cpA = parseInt(this.value, 10) / 100;
+      _cpSyncOutput();
+    });
+
+  // Scale slider — live label + info, persist on release
+  const _scaleSlider = document.getElementById('export-scale-slider');
+  if (_scaleSlider) {
+    _scaleSlider.addEventListener('input', function(e) {
+      e.stopPropagation();
+      const n = parseInt(this.value, 10);
+      const valEl = document.getElementById('export-scale-val');
+      if (valEl) valEl.textContent = n + '×';
+      _updateScaleInfo(n);
+    });
+    _scaleSlider.addEventListener('change', function(e) {
+      e.stopPropagation();
+      setPngExportScale(parseInt(this.value, 10));
+    });
+  }
+
+  // Hex text input — live swatch preview on input, validate + store on blur
+  const _hexEl = document.getElementById('export-bg-hex');
+  if (_hexEl) {
+    _hexEl.addEventListener('input', function(e) {
+      e.stopPropagation();
+      const v = _normaliseHex(this.value);
+      this.classList.toggle('invalid', !!this.value && !v);
+      if (v) {
+        const swBtn = document.getElementById('export-bg-swatch-btn');
+        if (swBtn) { swBtn.style.background = v; swBtn.classList.remove('transparent-mode'); }
+        const picker = document.getElementById('export-color-picker');
+        if (picker && !picker.hidden) _cpSyncFromHex(v);
+      }
+    });
+    _hexEl.addEventListener('blur', function() {
+      const v = _normaliseHex(this.value);
+      if (v) setExportBgColor(v);
+      else _syncBgUI(); // revert invalid entry to stored value
+    });
+    _hexEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { this.blur(); e.preventDefault(); }
+    });
+  }
+
+}

@@ -1,0 +1,33 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="filters">Filters &amp; Edge Types</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-filters">
+  <div class="guide-card">
+    <h3>Filters &amp; Edge Types</h3>
+    <h4>Density Controls</h4>
+    <div class="guide-kv"><span class="guide-key">Max nodes</span><span class="guide-val">Limits how many tables are shown when a table is selected. The most-connected neighbours are prioritised. Defaults to 10 on large datasets; increase for broader context. The slider ceiling tracks what's reachable given current filters. Your value is preserved when you deselect.</span></div>
+    <div class="guide-kv"><span class="guide-key">Hop depth</span><span class="guide-val">Controls how many relationship hops to follow from the selected table. Depth 1 = direct connections only. Depth 2 = connections-of-connections. Higher values reveal broader context but can pull in many tables quickly.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Application Scope filter</h4>
+    <p>Each table belongs to an application scope (e.g. <code>global</code>, <code>sn_itsm</code>, <code>sn_cmdb</code>). Use the scope checkboxes to restrict the dataset to specific applications. <strong>All</strong> and <strong>None</strong> buttons quickly toggle everything. Each scope has a consistent colour dot used throughout the tool.</p>
+    <div class="guide-tip"><p>Filtering by scope also updates the Max Nodes slider ceiling and the table count in the density info line.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Edge Types legend</h4>
+    <p>The <strong>Edge Types</strong> panel sits in the bottom-left of the canvas. Click any row to toggle that relationship type on or off. Inactive types are dimmed and struck through.</p>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--edge-ref-to)" stroke-width="1.5"/></svg><div class="guide-edge-desc"><strong style="color:#00c896">Reference to</strong> — outgoing reference fields. The selected table has a field that points to another table.</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="var(--edge-ref-from)" stroke-width="1.5"/></svg><div class="guide-edge-desc"><strong style="color:#c46aff">Referenced by</strong> — incoming references. Other tables have a field pointing to the selected table.</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#2a6496" stroke-width="1.5" stroke-dasharray="4 2"/></svg><div class="guide-edge-desc"><strong style="color:#7090b0">Inheritance</strong> — extends/parent relationship. One table inherits all fields from another (e.g. <code>incident</code> extends <code>task</code>).</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#06d6a0" stroke-width="1.5" stroke-dasharray="2 3"/></svg><div class="guide-edge-desc"><strong style="color:#06d6a0">M2M junction</strong> — many-to-many relationship via a junction table.</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#ff9f5a" stroke-width="1.5" stroke-dasharray="5 2 2 2"/></svg><div class="guide-edge-desc"><strong style="color:#ff9f5a">Named relationship</strong> — explicit relationship definitions (e.g. <code>cmdb_rel_type</code>).</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#ffd166" stroke-width="1.5" stroke-dasharray="7 2"/></svg><div class="guide-edge-desc"><strong style="color:#ffd166">DB view member</strong> — the table participates in a database view that joins multiple tables.</div></div>
+    <div class="guide-edge"><svg width="30" height="8"><line x1="0" y1="4" x2="30" y2="4" stroke="#4dd0e1" stroke-width="1.5" stroke-dasharray="2 2 6 2"/></svg><div class="guide-edge-desc"><strong style="color:#4dd0e1">CI topology</strong> — runtime CI relationship from <code>cmdb_rel_type_suggest</code>. Structural, not dot-walkable.</div></div>
+    <div class="guide-tip"><p>Start with <strong>Reference to</strong> for the most common use case: tracing what data a table depends on. Add <strong>Referenced by</strong> to see impact — which tables break if this one changes.</p></div>
+    <div class="guide-tip"><p>Only active edge types are traversed during neighbourhood expansion. Toggling types off prunes the graph immediately without changing your selection.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Sort the table list</h4>
+    <p>The <strong>Sort</strong> bar above the table list lets you sort by name (A→Z or Z→A) or by edge count (most/least connected). Applies immediately to the list and to active search results.</p>
+  </div>
+</div>

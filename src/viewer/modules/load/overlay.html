@@ -1,0 +1,27 @@
+  <div id="load-overlay">
+    <div class="load-overlay-inner">
+      <div class="overlay-title">Schema Explorer</div>
+      <div class="overlay-sub">Visualize ServiceNow table dependencies,<br>reference fields &amp; inheritance chains.</div>
+
+      <!-- Tab bar -->
+      <div class="ov-tabs">
+        <button class="ov-tab active" data-tab="file">📄 Load File</button>
+        <button class="ov-tab" data-tab="demo">🔬 Demo</button>
+      </div>
+
+      <div class="ov-panel active" id="tab-file">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept=".json" multiple>
+          <div class="drop-zone-icon">⬇</div>
+          <div class="drop-zone-text">Drop schema JSON here</div>
+          <div class="drop-zone-hint">single file <em>or</em> manifest + .part*.json (multi-select / drop together) · or tap to browse</div>
+        </div>
+      <!--INJECT:setup-instructions-->
+      </div><!-- /.ov-panel#tab-file -->
+
+      <div class="ov-panel" id="tab-demo">
+        <div class="overlay-sub">Explore a pre-built dataset covering<br>ITSM, CMDB, HR, CSM, Risk &amp; Asset tables.</div>
+        <button class="btn cf-btn" id="btn-demo">Load Demo Dataset</button>
+      </div>
+    </div><!-- /.load-overlay-inner -->
+  </div>

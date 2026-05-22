@@ -1,0 +1,39 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="pathfinder">Path Finder</button>
+<!-- GUIDE:PANEL -->
+    <!-- PATH FINDER -->
+    <div class="g-panel" id="gpanel-pathfinder">
+      <div class="guide-card">
+        <h3>Path Finder</h3>
+        <p>Path Finder is an optional view mode that computes the <strong>shortest dot-walk path</strong> between two tables, or from a table to a specific field on a related table. It uses Dijkstra's algorithm with inheritance-aware weights and returns up to <strong>five alternative paths</strong> ranked by total cost.</p>
+        <div class="guide-warn"><p>Path Finder is disabled by default. Enable it in <strong>Settings → Features → Path Finder</strong> to make the third segmented-control button and the inspector <code>⤳</code> links appear.</p></div>
+      </div>
+      <div class="guide-card">
+        <h4>How to use it</h4>
+        <p>Once enabled, click <strong>Path Finder</strong> in the view-mode segmented control at the top.</p>
+        <p>The left sidebar replaces the table list with the Path Finder inputs:</p>
+        <div class="guide-kv"><span class="guide-key">Mode</span><span class="guide-val"><strong>→ Table</strong> finds a path from a source table to a target table. <strong>→ Field</strong> finds a path from a source table to a specific field on any reachable table.</span></div>
+        <div class="guide-kv"><span class="guide-key">From</span><span class="guide-val">Source table. Type to autocomplete from the loaded dataset.</span></div>
+        <div class="guide-kv"><span class="guide-key">To</span><span class="guide-val">Either a target table (in Table mode) or a field name (in Field mode). Dot-walks like <code>incident.company.sys_id</code> work — the autocomplete resolves each segment.</span></div>
+        <div class="guide-kv"><span class="guide-key">Find</span><span class="guide-val">Runs the search. The DAG view appears on the canvas, and the dot-walk result with a copy button shows in the sidebar.</span></div>
+      </div>
+      <div class="guide-card">
+        <h4>How paths are ranked</h4>
+        <p><strong>Inheritance is free.</strong> Hopping from a child table up to a parent (via <code>extends</code>) costs nothing because parent fields are directly accessible on the child. Reference hops each cost one step.</p>
+        <p>Paths through M2M, named-relationship, and DB-view edges are excluded — they're not legitimate dot-walks at the script/ACL level.</p>
+        <p>The primary path is the cheapest result; alternatives are ranked by total cost, then by segment count. Use alternatives when the primary path goes through a field that's typically empty in your data and you need a fallback.</p>
+        <div class="guide-tip">
+          <p><strong>Under the hood.</strong> The primary path is computed with <strong>Dijkstra's algorithm</strong> on the directed weighted graph (edges: <code>extends</code> outbound with cost&nbsp;0, <code>reference</code> outbound with cost&nbsp;1; M2M, rel, and view edges removed). Alternatives are then enumerated with <strong>Yen's K-shortest paths algorithm</strong> (K&nbsp;=&nbsp;5), which repeatedly runs Dijkstra on graphs with selected edges/nodes blocked, then merges and ranks the candidate paths by total cost, breaking ties by segment count.</p>
+        </div>
+      </div>
+      <div class="guide-card">
+        <h4>Reading the DAG view</h4>
+        <p>The canvas shows a left-to-right directed acyclic graph. The source is on the left (tagged <strong>FROM</strong>), the target on the right (tagged <strong>TO</strong>).</p>
+        <p>The primary path is drawn in solid wasabi-green. Alternative paths are dimmed; expanding any alternative in the sidebar highlights it in cyan on the canvas.</p>
+        <p>Click any node in the DAG to open the Inspector with that table's details, without leaving Path Finder.</p>
+      </div>
+      <div class="guide-card">
+        <h4>Copying a dot-walk</h4>
+        <p>Every result has a copy button (<code>⧉</code>) next to the dot-walk text. Click it to copy the path to your clipboard — paste it into a script, an ACL condition, an email template, or wherever you need a working reference chain.</p>
+      </div>
+    </div>

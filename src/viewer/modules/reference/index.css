@@ -1,0 +1,219 @@
+  /* ══════════════════════════════════════════
+     DATA MODEL REFERENCE MODAL
+  ══════════════════════════════════════════ */
+  #ref-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(2,20,30,.92);
+    z-index: 200;
+    overflow: hidden;
+    flex-direction: column;
+  }
+  #ref-modal.visible { display: flex; }
+
+  .ref-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--sn-infinite);
+    border-bottom: 1px solid var(--sn-border);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  .ref-modal-title {
+    font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--sn-wasabi); letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .ref-modal-close {
+    background: rgba(255,255,255,.07); border: 1px solid var(--sn-border);
+    border-radius: 6px; color: var(--muted); cursor: pointer;
+    font-size: 16px; width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .ref-modal-close:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+
+  .ref-modal-body {
+    flex: 1; overflow-y: auto;
+    padding: 0 20px 32px;
+    background: var(--sn-deep);
+  }
+  .ref-modal-body::-webkit-scrollbar { width: 6px; }
+  .ref-modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+
+  /* Scoped reference content styles */
+  .ref-modal-body .tabs {
+    display: flex; gap: .375rem;
+    margin: 16px 0 12px;
+    border-bottom: 2px solid rgba(255,255,255,.1);
+    overflow-x: auto; scrollbar-width: none;
+    position: sticky; top: 0;
+    background: var(--sn-deep); z-index: 2;
+    padding-bottom: 0;
+  }
+  .ref-modal-body .tabs::-webkit-scrollbar { display: none; }
+  .ref-modal-body .tab {
+    padding: .55rem 1rem;
+    background: transparent; border: none;
+    color: rgba(255,255,255,.45);
+    font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px; font-weight: 450;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .ref-modal-body .tab:hover { color: #fff; }
+  .ref-modal-body .tab.active { color: var(--sn-wasabi); border-bottom-color: var(--sn-wasabi); }
+  .ref-modal-body .panel { display: none; }
+  .ref-modal-body .panel.active { display: block; animation: refFadeIn .2s ease-out; }
+  @keyframes refFadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Scoped content typography */
+  .ref-modal-body h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .6rem; color: #fff; font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .ref-modal-body h4 { font-size: .9rem; font-weight: 700; margin: 0 0 .4rem; color: #fff; font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .ref-modal-body p { margin: 0 0 .75rem; font-weight: 300; font-size: .875rem; line-height: 1.6; color: rgba(255,255,255,.65); font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .ref-modal-body a { color: var(--sn-wasabi); text-decoration: none; }
+  .ref-modal-body a:hover { text-decoration: underline; }
+  .ref-modal-body code {
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    background: rgba(99,223,78,.1); color: var(--sn-wasabi);
+    padding: .1rem .35rem; border-radius: .25rem; font-size: .8em;
+  }
+  .ref-modal-body table {
+    width: 100%; border-collapse: collapse;
+    margin: .75rem 0 1.25rem; font-size: .8125rem;
+  }
+  .ref-modal-body th {
+    text-align: left; padding: .6rem .875rem;
+    background: rgba(99,223,78,.08); color: var(--sn-wasabi);
+    font-weight: 500; font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .625rem; text-transform: uppercase; letter-spacing: .05em;
+    border-bottom: 2px solid rgba(99,223,78,.2);
+  }
+  .ref-modal-body td {
+    padding: .6rem .875rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    vertical-align: top; font-weight: 300; font-size: .8125rem;
+    color: rgba(255,255,255,.75); font-family: 'ServiceNow Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .ref-modal-body tr:last-child td { border-bottom: none; }
+  .ref-modal-body .glass {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+    border-radius: .875rem; padding: 1.25rem; margin-bottom: 1.25rem;
+  }
+  .ref-modal-body .callout {
+    border-left: 3px solid var(--sn-wasabi); padding: .875rem 1rem;
+    background: rgba(99,223,78,.05); border-radius: .5rem; margin: 1rem 0;
+  }
+  .ref-modal-body .callout-warn { border-left-color: #FBBF24; background: rgba(251,191,36,.05); }
+  .ref-modal-body .callout h4 { color: var(--sn-wasabi); }
+  .ref-modal-body .callout-warn h4 { color: #FBBF24; }
+  .ref-modal-body .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 1.25rem; }
+  .ref-modal-body .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+  .ref-modal-body .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: .875rem; }
+  .ref-modal-body .diagram-frame {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+    border-radius: .875rem; padding: 1rem; margin: .875rem 0; overflow-x: auto;
+  }
+  .ref-modal-body .diagram-frame svg { display: block; width: 100%; height: auto; max-width: 100%; }
+  .ref-modal-body .stat-label {
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: .625rem;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: rgba(255,255,255,.45); margin-bottom: .25rem;
+  }
+  .ref-modal-body .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--sn-wasabi); line-height: 1; }
+  .ref-modal-body .tag {
+    display: inline-block; padding: .15rem .55rem; border-radius: 9999px;
+    font-size: .625rem; font-weight: 500; font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    letter-spacing: .03em; margin-right: .3rem;
+  }
+  .ref-modal-body .tag-itsm { background:rgba(82,184,255,.15); color:#52B8FF; }
+  .ref-modal-body .tag-itom { background:rgba(118,97,255,.15); color:#7661FF; }
+  .ref-modal-body .tag-sam  { background:rgba(191,113,242,.15); color:#BF71F2; }
+  .ref-modal-body .tag-ham  { background:rgba(251,191,36,.18);  color:#FBBF24; }
+  .ref-modal-body .tag-secops { background:rgba(248,113,113,.15); color:#F87171; }
+  .ref-modal-body .tag-grc { background:rgba(99,223,78,.15); color:var(--sn-wasabi); }
+  .ref-modal-body .tag-foundation { background:rgba(255,255,255,.1); color:#fff; }
+  .ref-modal-body .legend { display:flex; flex-wrap:wrap; gap:.875rem; margin-top:.875rem; font-size:.75rem; color:rgba(255,255,255,.5); }
+  .ref-modal-body .legend-item { display:flex; align-items:center; gap:.4rem; }
+  .ref-modal-body .legend-swatch { width:12px; height:12px; border-radius:.25rem; }
+  .ref-modal-body ul.clean, .ref-modal-body ol.clean { padding-left:1.1rem; margin:.4rem 0 .875rem; }
+  .ref-modal-body ul.clean li, .ref-modal-body ol.clean li { margin-bottom:.4rem; font-weight:300; line-height:1.5; font-size:.875rem; color:rgba(255,255,255,.7); }
+  .ref-modal-body .source-list { list-style:none; padding:0; margin:0; }
+  .ref-modal-body .source-list li { padding:.6rem 0; border-bottom:1px solid rgba(255,255,255,.07); font-size:.875rem; }
+  .ref-modal-body .source-list li:last-child { border:none; }
+  .ref-modal-body .src-label { display:inline-block; font-family:'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size:.6rem; color:var(--sn-wasabi); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.2rem; }
+  .ref-modal-body .icon-box { width:34px; height:34px; background:#2A4F62; border-radius:.5rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ref-modal-body .card-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+  .ref-modal-body .pill { background:var(--sn-wasabi); color:var(--sn-infinite); padding:.3rem .875rem; border-radius:9999px; font-size:.7rem; font-weight:500; }
+  .ref-modal-body .eyebrow { font-family:'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em; color:var(--sn-wasabi); margin-bottom:.75rem; }
+
+  /* ── Interactive table links ─────────────────────────────────────────────── */
+  .ref-tbl {
+    display: inline-flex; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .75em;
+    background: rgba(255,255,255,.07); color: rgba(255,255,255,.45);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: .3rem; padding: .1rem .45rem;
+    cursor: default; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .ref-tbl.available {
+    background: rgba(99,223,78,.08); color: var(--sn-wasabi);
+    border-color: rgba(99,223,78,.3);
+    cursor: pointer;
+  }
+  .ref-tbl.available::after {
+    content: '↗';
+    margin-left: .3em; font-size: .85em; opacity: .7;
+  }
+  .ref-tbl.available:hover {
+    background: rgba(99,223,78,.18); border-color: rgba(99,223,78,.55);
+    color: #fff;
+  }
+
+  /* ── Table chip row ──────────────────────────────────────────────────────── */
+  .ref-tbl-row {
+    display: flex; flex-wrap: wrap; gap: .4rem .5rem;
+    margin: .5rem 0 .875rem;
+  }
+
+  /* ── Hint banner ─────────────────────────────────────────────────────────── */
+  .ref-hint {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .75rem; color: rgba(255,255,255,.45);
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: .5rem; padding: .55rem .875rem; margin: .75rem 0 1rem;
+  }
+  .ref-hint-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--sn-wasabi); flex-shrink: 0;
+    box-shadow: 0 0 0 0 rgba(99,223,78,.5);
+    animation: refHintPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes refHintPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(99,223,78,.45); }
+    50%      { box-shadow: 0 0 0 5px rgba(99,223,78,0); }
+  }
+
+  /* ── Adoption maturity stages ────────────────────────────────────────────── */
+  .adoption-stage {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+    border-radius: .875rem; padding: 1.125rem 1.25rem 1.125rem 1.5rem; margin-bottom: 1rem;
+    position: relative;
+  }
+  .adoption-stage::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--sn-wasabi); opacity: .5;
+    border-radius: 3px 0 0 3px;
+  }
+  .adoption-badge {
+    display: inline-flex; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 9999px; padding: .2rem .65rem; margin-bottom: .65rem;
+  }

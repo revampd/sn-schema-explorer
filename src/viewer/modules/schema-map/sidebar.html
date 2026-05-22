@@ -1,0 +1,63 @@
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="resize-handle" id="sidebar-resize" title="Drag to resize"></div>
+  <div class="panel-title">
+    <span class="panel-title-text" id="sidebar-title">Tables</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button class="panel-toggle" id="btn-sidebar-collapse" title="Collapse sidebar">‹</button>
+      <button class="panel-close" id="btn-sidebar-close">×</button>
+    </div>
+  </div>
+
+  <!-- Density / visibility controls -->
+  <div class="density-group" id="density-group" style="display:none">
+    <div class="filter-section-label">Density Controls</div>
+    <div class="density-row">
+      <label>Max nodes</label>
+      <input type="range" class="density-slider" id="sl-max-nodes" min="1" max="500" step="1" value="10">
+      <span class="density-val" id="val-max-nodes">10</span>
+    </div>
+    <div class="density-row">
+      <label>Hop depth</label>
+      <input type="range" class="density-slider" id="sl-hop-depth" min="1" max="5" step="1" value="1">
+      <span class="density-val" id="val-hop-depth">1</span>
+    </div>
+    <div class="density-info" id="density-info">Select a table to explore its neighbourhood, or adjust sliders to control how many tables are shown.</div>
+  </div>
+
+  <!-- Saved views — populated from localStorage when data loads -->
+  <div class="filter-group" id="views-group">
+    <div class="filter-section-label">
+      <span>Saved Views</span>
+      <button class="views-add-btn" id="btn-save-view" title="Save current view">+</button>
+    </div>
+    <div id="views-list">
+      <div class="views-empty">No saved views yet.</div>
+    </div>
+  </div>
+
+  <!-- Scope filter — populated dynamically when data loads -->
+  <div class="filter-group" id="scope-filter-group">
+    <div class="filter-section-label">Application Scope</div>
+    <div id="scope-list">
+      <div class="scope-empty">Load data to see scopes</div>
+    </div>
+  </div>
+
+  <!-- Sort bar (shown once data is loaded) -->
+  <div class="sort-bar" id="sort-bar" style="display:none">
+    <span class="sort-label">Sort</span>
+    <button class="sort-btn active" id="sort-btn-name">Name ↑</button>
+    <button class="sort-btn"        id="sort-btn-edge">Edges</button>
+  </div>
+
+  <!-- Virtual-scrolled table list. The wrapper provides scroll height via
+       #table-list-spacer; only visible rows are rendered in #table-list-viewport. -->
+  <div id="table-list" style="position:relative">
+    <div id="table-list-spacer"></div>
+    <div id="table-list-viewport"></div>
+  </div>
+<!--INJECT:pf-sidebar-->
+<!--INJECT:diff-sidebar-->
+
+</aside>

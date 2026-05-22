@@ -1,0 +1,41 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="inspector">Inspector</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-inspector">
+  <div class="guide-card">
+    <h3>The Inspector panel</h3>
+    <p>The Inspector opens on the right side whenever a table is selected. It shows detailed metadata about the selected table and all its relationships.</p>
+    <h4>Properties</h4>
+    <div class="guide-kv"><span class="guide-key">scope</span><span class="guide-val">The application scope this table belongs to</span></div>
+    <div class="guide-kv"><span class="guide-key">core</span><span class="guide-val">Whether the table is a core platform table (not from a scoped app)</span></div>
+    <div class="guide-kv"><span class="guide-key">extends</span><span class="guide-val">The parent table this table inherits from (if any). Click to navigate to the parent.</span></div>
+    <div class="guide-kv"><span class="guide-key">children</span><span class="guide-val">Number of tables that directly extend this table</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Inheritance-aware fields</h4>
+    <p>The Inspector handles both export modes automatically:</p>
+    <p><strong>Flattened mode</strong> — each table's field list already includes inherited fields. Inherited fields are tagged with a small badge showing the ancestor that introduced them. Click the badge to navigate to that ancestor.</p>
+    <p><strong>Delta mode</strong> — each table lists only its own fields. A separate <em>Inherited fields</em> section appears, grouping ancestor fields by source ancestor, sorted closest-first.</p>
+  </div>
+  <div class="guide-card">
+    <h4>Collapsible sections</h4>
+    <p>All sections except Properties start collapsed. Click a header to expand or collapse. Open/closed state is remembered per table as you navigate.</p>
+    <div class="guide-kv"><span class="guide-key">Fields (N)</span><span class="guide-val">All own fields, sorted A→Z by display label. Shows technical name, display label, and field type colour-coded by data type.</span></div>
+    <div class="guide-kv"><span class="guide-key">References out</span><span class="guide-val">Tables this table has reference fields pointing to, with the field name</span></div>
+    <div class="guide-kv"><span class="guide-key">Referenced by</span><span class="guide-val">Tables that have reference fields pointing to this table</span></div>
+    <div class="guide-kv"><span class="guide-key">Child tables</span><span class="guide-val">Tables that directly extend this table (immediate children in the inheritance hierarchy)</span></div>
+    <div class="guide-kv"><span class="guide-key">M2M relationships</span><span class="guide-val">Many-to-many relationships via junction tables</span></div>
+    <div class="guide-kv"><span class="guide-key">Named relationships</span><span class="guide-val">Explicitly defined relationship entries</span></div>
+    <div class="guide-kv"><span class="guide-key">DB views</span><span class="guide-val">Database views this table participates in</span></div>
+    <div class="guide-kv"><span class="guide-key">CI topology</span><span class="guide-val">Suggested CMDB CI relationships sourced from <code>cmdb_rel_type_suggest</code>. Labels are perspective-aware: when the inspected table is the <em>parent</em> in a relationship the label shows the parent verb (e.g. "Contains"); when it is the <em>child</em>, the child verb (e.g. "Contained by"). Click any entry to navigate to that table. Only present for tables that appear in the CMDB relationship catalog; absent on older instances without CMDB.</span></div>
+    <div class="guide-tip"><p>Clicking any table entry in the Inspector (References out, Referenced by, Child tables, etc.) immediately selects and navigates to that table in the graph.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Path Finder shortcut <em>(when Path Finder is enabled)</em></h4>
+    <p>Hover any field row in the Inspector and a small <code>⤳</code> button appears on the right. Click it to jump to Path Finder with the current table pre-filled as the source and that field as the target — the search runs automatically.</p>
+  </div>
+  <div class="guide-card">
+    <h4>Diff mode inspector <em>(when Schema Diff is active)</em></h4>
+    <p>When a compare schema is loaded, selecting a changed table shows a side-by-side field comparison. Added fields are highlighted in green, removed fields in red, changed fields in amber. Fields that are identical in both schemas are shown without highlighting.</p>
+  </div>
+</div>

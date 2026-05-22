@@ -1,0 +1,63 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="tips">Tips &amp; Tricks</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-tips">
+  <div class="guide-card">
+    <h3>Tips &amp; Tricks</h3>
+    <h4>Common workflows</h4>
+    <div class="guide-kv"><span class="guide-key">Impact analysis</span><span class="guide-val">Select a table → enable <strong>Referenced by</strong> → Hop Depth 2. Shows all tables that depend on this one, and their dependents.</span></div>
+    <div class="guide-kv"><span class="guide-key">Data lineage</span><span class="guide-val">Select a table → enable <strong>Reference to</strong> → Hop Depth 2–3. Traces the full chain of data dependencies.</span></div>
+    <div class="guide-kv"><span class="guide-key">Find child tables</span><span class="guide-val">Select a table → enable <strong>Inheritance</strong> only. Reveals the full extension hierarchy below the selected table.</span></div>
+    <div class="guide-kv"><span class="guide-key">CMDB CI hierarchy</span><span class="guide-val">Select <code>cmdb_ci</code> → enable Inheritance → Hop Depth 3–4. Reveals the full CI class tree.</span></div>
+    <div class="guide-kv"><span class="guide-key">"Which tables have this field?"</span><span class="guide-val">Switch the search box to <strong>Fld</strong> mode and type the field name. The sidebar narrows to matching tables; the canvas dims the rest.</span></div>
+    <div class="guide-kv"><span class="guide-key">Snapshot a useful view</span><span class="guide-val">Use <strong>Saved Views</strong> in the sidebar to capture the current state. Restores selection, filters, hop depth, scope, and view mode.</span></div>
+    <div class="guide-kv"><span class="guide-key">Dot-walk path</span><span class="guide-val">Enable <strong>Path Finder</strong> (Settings → Features) and switch to the Path Finder view. Enter source and target, click Find. Copy the result dot-walk directly into your script or ACL.</span></div>
+    <div class="guide-kv"><span class="guide-key">Upgrade impact</span><span class="guide-val">Export schema before and after an upgrade. Load the pre-upgrade JSON, switch to <strong>Schema Diff</strong> (Settings → Features), drop the post-upgrade JSON. See exactly which tables and fields changed.</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Exporting data &amp; views</h4>
+    <p>The <strong>Export ▾</strong> menu in the header offers several options:</p>
+    <div class="guide-kv"><span class="guide-key">Schema as JSON</span><span class="guide-val">The full loaded dataset. Share with a colleague — they load it via the Load File tab to see exactly what you see.</span></div>
+    <div class="guide-kv"><span class="guide-key">Neighbourhood as JSON</span><span class="guide-val">Just the selected table and its currently-visible neighbours (respects scope, edge-type toggles, hop depth, and hidden tables). Great for a focused ticket or doc attachment.</span></div>
+    <div class="guide-kv"><span class="guide-key">Current view as PNG/SVG</span><span class="guide-val">Exports only what is visible in the current viewport. PNG resolution is set with a slider (1× to the configured max; default 50×, raise up to 200× in Settings → Export). An amber warning appears when the chosen scale would be capped by the browser's canvas size limit (16 MP on iOS Safari; significantly higher on desktop browsers). SVG is a scalable vector with inlined styles, editable in Illustrator, Inkscape, or Figma.</span></div>
+    <div class="guide-kv"><span class="guide-key">Full canvas as PNG/SVG</span><span class="guide-val">Exports the entire diagram regardless of your current scroll or zoom position — every visible node is included. Useful when you have panned away from part of the graph. The same PNG resolution slider applies as for the current-view export.</span></div>
+    <div class="guide-kv"><span class="guide-key">Background colour</span><span class="guide-val">Below the scale slider: a colour swatch, a hex input (<code>#rrggbb</code>), and an opacity slider (0–100%). Applies to all PNG and SVG exports. Drag the opacity to 0% for a fully transparent background (useful for overlaying on dark slides or documents) or any value between for a semi-transparent fill.</span></div>
+    <div class="guide-tip"><p>Neighbourhood JSON is only available when a table is selected — there is no neighbourhood without a selection. Schema and view exports work any time data is loaded.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Performance tips</h4>
+    <p>For large datasets (5 000+ tables), keep Max Nodes below 50 and Hop Depth at 1 or 2. The force simulation is heavier with more nodes.</p>
+    <p>Use the <strong>Scope filter</strong> to narrow the dataset before selecting tables. This keeps neighbourhoods focused and reduces rendering time significantly.</p>
+    <p>Turn off <strong>Expanded field view</strong> when working with large flattened-schema tables — tables like <code>cmdb_ci_service</code> can have hundreds of fields and expand node sizes dramatically.</p>
+    <div class="guide-tip"><p>Use <strong>⏹ Freeze layout</strong> (appears during simulation) to stop the physics engine early once the layout looks good enough.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>Keyboard &amp; interaction shortcuts</h4>
+    <div class="guide-kv"><span class="guide-key">Alt+← / Alt+→</span><span class="guide-val">Navigate back / forward through the last 10 states (same as the ◀ ▶ header buttons)</span></div>
+    <div class="guide-kv"><span class="guide-key">Esc</span><span class="guide-val">Close the Reference guide, User guide, or Settings modal</span></div>
+    <div class="guide-kv"><span class="guide-key">Click canvas</span><span class="guide-val">Deselect and return to full view (preserves Max Nodes)</span></div>
+    <div class="guide-kv"><span class="guide-key">Click selected in list</span><span class="guide-val">Deselect the table (same as clicking empty canvas)</span></div>
+    <div class="guide-kv"><span class="guide-key">Right-click node</span><span class="guide-val">Context menu: Focus · Deselect · Copy name · Open in ServiceNow</span></div>
+    <div class="guide-kv"><span class="guide-key">Drag node</span><span class="guide-val">Manually reposition a node — restarts physics briefly</span></div>
+    <div class="guide-kv"><span class="guide-key">Minimap drag</span><span class="guide-val">Drag inside the minimap to pan the main viewport</span></div>
+  </div>
+  <div class="guide-card">
+    <h4>Understanding the data</h4>
+    <p>The schema is extracted from eight ServiceNow tables:</p>
+    <div class="guide-kv"><span class="guide-key">sys_db_object</span><span class="guide-val">All tables — name, label, scope, and the <code>super_class</code> reference that drives the inheritance graph. The <strong>tables</strong> stat counts only these <code>sys_db_object</code> entries; DB views (from <code>sys_db_view</code>) are counted separately in the DB views row. No active filter — every row is included. (The admin UI at <code>sys_db_object_list.do</code> applies a display filter that hides some internal system tables; the exporter bypasses it and fetches all rows.)</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_dictionary</span><span class="guide-val">Every active field — element name, column label, data type, reference target, and key attributes (mandatory, primary, virtual). Qualification: <code>element</code> must be non-empty (table-level metadata rows have a blank element and are always excluded) and the field must not be explicitly inactive. Encoded query (Node.js / Table API): <code>elementISNOTEMPTY^active!=false</code> — matches both <code>active=1</code> (explicitly active) and <code>active=NULL</code> (never written, the default for the vast majority of field definitions). The Background Script uses <code>addQuery('active', true)</code>, which behaves identically via GlideRecord's truthy-null matching.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_glide_object</span><span class="guide-val">Extended field-type definitions — scalar type, display label, class name, and custom attributes. Powers the colour-coded type badges shown in the Inspector and expanded field view. No filter — all rows are included.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_m2m</span><span class="guide-val">Many-to-many junction table definitions (from/to tables, junction table, field names). No filter — all rows are included.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_db_view + sys_db_view_table</span><span class="guide-val">Database view definitions and the member tables that participate in each view. No filter on either table — all rows are included.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_relationship</span><span class="guide-val">Named relationship definitions between tables. No filter — all rows are included.</span></div>
+    <div class="guide-kv"><span class="guide-key">cmdb_rel_type_suggest</span><span class="guide-val">Permitted CI-class topology relationships (e.g. "Computer Hosts Application"). Rendered as the CI topology edge type. Absent on older instances without CMDB. No query filter — all rows are fetched — but two post-fetch rules apply: (1) rows whose relationship type label cannot be resolved are dropped; (2) each logical relationship produces two raw rows (one with <code>parent=true</code>, one with <code>parent=false</code>) — SchemaBuilder deduplicates these mirror pairs into a single canonical entry, so the final CI topology count is roughly half the raw row count in ServiceNow.</span></div>
+    <p>Five additional data sources are queried for the instance metadata block shown in the footer pill and Instance Info modal:</p>
+    <div class="guide-kv"><span class="guide-key">sys_properties</span><span class="guide-val">Build metadata — platform version name, build tag, and build date. The Background Script reads <code>glide.buildname</code>, <code>glide.buildtag</code>, and <code>glide.builddate</code> via <code>gs.getProperty()</code>. The Node.js extractor queries <code>sys_properties</code> via the Table API but must use different keys — <code>com.glide.embedded_help.version</code>, <code>glide.buildtag.last</code>, and <code>glide.builddate.last</code> — because the original BG-script properties are not accessible through the Table API.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_cluster_state</span><span class="guide-val">Node count (number of active application nodes in the cluster). No filter — <code>COUNT(*)</code> of all rows.</span></div>
+    <div class="guide-kv"><span class="guide-key">v_plugin</span><span class="guide-val">Count of active plugins installed on the instance. Filter: <code>active=active</code> — the <code>active</code> column on this table is a string, not a boolean; active plugins carry the literal value <code>'active'</code>.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_package</span><span class="guide-val">Count of active application packages. Filter: <code>active=true</code>. <strong>Background Script only</strong> — <code>sys_package</code> is excluded from the Table API (and the Stats API), so the Node.js extractor cannot query it and will show <em>null</em> for this stat.</span></div>
+    <div class="guide-kv"><span class="guide-key">sys_language</span><span class="guide-val">Count of active languages. Filter: <code>active=true</code>.</span></div>
+    <p>The edge count in the sidebar counts all relationship types combined.</p>
+    <div class="guide-warn"><p>The data model reflects your instance at extraction time. Re-export after deploying new applications or upgrades to get a current snapshot.</p></div>
+  </div>
+</div>

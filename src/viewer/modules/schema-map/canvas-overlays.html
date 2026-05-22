@@ -1,0 +1,48 @@
+  <!-- Layout progress bar -->
+  <div id="layout-progress"><div id="layout-progress-fill"></div></div>
+
+  <!-- Simulation controls (stop / toggle LOD) -->
+  <div id="sim-controls">
+    <button class="sim-ctrl-btn" id="btn-stop-sim">⏹ Freeze layout</button>
+    <button class="sim-ctrl-btn" id="btn-lod">◑ Compact view</button>
+  </div>
+
+  <div id="zoom-controls">
+    <div class="zoom-btn" id="z-in">+</div>
+    <div class="zoom-btn" id="z-fit">⊡</div>
+    <div class="zoom-btn" id="z-out">−</div>
+  </div>
+
+  <canvas id="minimap"></canvas>
+
+  <!-- Off-screen node indicators for domain view -->
+  <div id="dom-indicators"></div>
+
+  <!-- Active filter panel: shows neighbourhood nodes as toggleable rows -->
+  <div id="active-filter">
+    <div id="active-filter-header">
+      <span class="af-title">Active Tables</span>
+    </div>
+    <div id="active-filter-body"></div>
+  </div>
+
+  <!-- Edge type legend (always visible once data is loaded) -->
+  <div class="field-legend" id="edge-legend" style="display:none">
+    <div style="color:var(--muted);letter-spacing:.1em;font-size:8px;margin-bottom:6px;font-family:'Syne',sans-serif">EDGE TYPES</div>
+    <div class="fl-row" data-etype="ref-to"   title="Toggle outgoing references"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--edge-ref-to)" stroke-width="1.5"/></svg><span style="color:#00c896">Reference to</span></div>
+    <div class="fl-row" data-etype="ref-from" title="Toggle incoming references"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--edge-ref-from)" stroke-width="1.5"/></svg><span style="color:#c46aff">Referenced by</span></div>
+    <div class="fl-row" data-etype="ext"  title="Toggle inheritance edges"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#2a6496" stroke-width="1.5" stroke-dasharray="4 2"/></svg><span style="color:#7090b0">Inheritance</span></div>
+    <div class="fl-row" data-etype="m2m"  title="Toggle M2M edges"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#06d6a0" stroke-width="1.5" stroke-dasharray="2 3"/></svg><span style="color:#06d6a0">M2M junction</span></div>
+    <div class="fl-row" data-etype="rel"  title="Toggle relationship edges"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#ff9f5a" stroke-width="1.5" stroke-dasharray="5 2 2 2"/></svg><span style="color:#ff9f5a">Named relationship</span></div>
+    <div class="fl-row" data-etype="view" title="Toggle DB view edges"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#ffd166" stroke-width="1.5" stroke-dasharray="7 2"/></svg><span style="color:#ffd166">DB view member</span></div>
+    <div class="fl-row" data-etype="cmdbrel" title="Toggle CI topology edges (cmdb_rel_type_suggest — runtime, not dot-walkable)"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#4dd0e1" stroke-width="1.5" stroke-dasharray="2 2 6 2"/></svg><span style="color:#4dd0e1">CI topology</span></div>
+  </div>
+  <!-- Field type legend (shown when Fields mode active) -->
+  <div class="field-legend" id="field-legend" style="display:none;bottom:16px">
+    <div style="color:var(--muted);letter-spacing:.1em;font-size:8px;margin-bottom:5px;font-family:'Syne',sans-serif">FIELD TYPES</div>
+    <div class="fl-row"><div class="fl-dot" style="background:#cdd9e5"></div><span style="color:#cdd9e5">string / html</span></div>
+    <div class="fl-row"><div class="fl-dot" style="background:#ffd166"></div><span style="color:#ffd166">integer / currency</span></div>
+    <div class="fl-row"><div class="fl-dot" style="background:#06d6a0"></div><span style="color:#06d6a0">boolean</span></div>
+    <div class="fl-row"><div class="fl-dot" style="background:#a090ff"></div><span style="color:#a090ff">reference</span></div>
+    <div class="fl-row"><div class="fl-dot" style="background:#ff9f5a"></div><span style="color:#ff9f5a">date / datetime</span></div>
+  </div>

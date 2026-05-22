@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title><!--INJECT:title--></title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style><!--INJECT:css--></style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <!-- Mobile sidebar toggle -->
+  <button class="btn btn-icon mob-only" id="btn-sidebar-toggle" title="Tables">☰</button>
+
+  <div class="logo">
+    <span class="logo-tag" style="font-size:15px;font-weight:700;color:var(--text)">Schema Explorer</span>
+  </div>
+  <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
+  <div class="search-wrap">
+    <input id="search-box" type="text" placeholder="search tables…" autocomplete="off" spellcheck="false">
+    <div class="search-mode-toggle" id="search-mode-seg" role="group" aria-label="Search mode" title="Click to switch between table-name and field-name search">
+      <button class="smt-btn active" data-sm="tables" id="sms-tables" title="Search by table name">Tbl</button>
+      <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
+    </div>
+  </div>
+  <div class="header-sep desk-only" style="width:1px;height:22px;align-self:center;background:var(--border);flex-shrink:0;opacity:.6"></div>
+
+  <div class="header-btns">
+    <!-- View mode — segmented control: Schema Map | Domain Map | Path Finder -->
+    <div class="view-mode-seg desk-only" id="view-mode-seg" role="group" aria-label="View mode">
+      <button class="vms-btn active btn-nav-disabled" data-vm="force"  id="vms-force"  disabled title="Schema Map: physics-based graph view">Schema Map</button>
+      <!--INJECT:toolbar-extras-->
+    </div>
+    <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
+    <!-- History back / forward -->
+    <button class="btn desk-only btn-nav-disabled" id="btn-hist-back"
+            title="Go back (Alt+←)" disabled>◀</button>
+    <button class="btn desk-only btn-nav-disabled" id="btn-hist-fwd"
+            title="Go forward (Alt+→)" disabled>▶</button>
+    <!-- Desktop text buttons -->
+    <button class="btn desk-only btn-nav-disabled" id="btn-refresh" title="Re-render preserving selection and filters" disabled>Refresh</button>
+    <button class="btn desk-only btn-nav-disabled" id="btn-reset" disabled>Fit</button>
+<!--INJECT:export-toolbar-->
+    <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
+    <!-- Reference, Guide, Settings — icon-only -->
+    <button class="btn desk-only" id="btn-ref-guide" title="Data Model Reference">Reference</button>
+    <button class="btn desk-only" id="btn-user-guide" title="User Guide">Guide</button>
+    <button class="btn desk-only" id="btn-settings" title="Settings">Settings</button>
+    <!-- Mobile icon buttons -->
+    <button class="btn btn-icon mob-only" id="btn-fit-m" title="Fit view">⊡</button>
+    <button class="btn btn-icon mob-only" id="btn-inspector-toggle" title="Inspector">ℹ</button>
+  </div>
+
+  <div class="header-stats">
+    <span><span class="stat-val" id="stat-nodes">0</span> nds</span>
+    <span><span class="stat-val" id="stat-edges">0</span> edg</span>
+    <span class="hide-tablet"><span class="stat-val" id="stat-rendered">0</span> vis</span>
+    <span class="hide-tablet"><span class="stat-val" id="stat-focus">—</span></span>
+  </div>
+</header>
+
+<!--INJECT:schema-map-sidebar-->
+
+<!-- CANVAS -->
+<div id="canvas">
+  <svg id="graph" touch-action="none">
+    <defs>
+      <marker id="arrow-ref"      markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref)" opacity=".7"/></marker>
+      <marker id="arrow-ref-to"   markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref-to)" opacity=".9"/></marker>
+      <marker id="arrow-ref-from" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref-from)" opacity=".9"/></marker>
+      <marker id="arrow-ext"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ext)" opacity=".8"/></marker>
+      <marker id="arrow-m2m"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-m2m)" opacity=".8"/></marker>
+      <marker id="arrow-rel"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-rel)" opacity=".8"/></marker>
+      <marker id="arrow-view" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-view)" opacity=".8"/></marker>
+      <marker id="arrow-cmdbrel" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-cmdbrel)" opacity=".85"/></marker>
+    </defs>
+    <g id="graph-root"></g>
+  </svg>
+
+<!--INJECT:load-overlay-->
+
+<!--INJECT:schema-map-overlays-->
+</div><!-- /#canvas -->
+
+<!-- INSPECTOR -->
+<div id="inspector">
+  <div class="resize-handle" id="inspector-resize" title="Drag to resize"></div>
+  <div class="sheet-handle"><div class="sheet-handle-bar"></div></div>
+  <div class="panel-title">
+    <button class="panel-toggle" id="btn-inspector-collapse" title="Collapse inspector">‹</button>
+    <span class="panel-title-text">Inspector</span>
+    <button class="panel-close" id="btn-inspector-close">×</button>
+  </div>
+  <div class="inspector-empty" id="inspector-empty">
+    Tap a table node to inspect its fields, references &amp; dependencies.
+  </div>
+  <div id="inspector-content"></div>
+</div>
+
+<!-- SCRIM -->
+<div id="scrim"></div>
+
+<!--INJECT:context-menu-->
+
+<!--INJECT:reference-modal-->
+
+<!--INJECT:settings-modal-->
+
+<!--INJECT:guide-modal-->
+
+<footer>
+  <span class="footer-instance" id="footer-instance" title="Click to view full instance details">
+    <span class="footer-instance-dot">●</span>
+    <span class="footer-instance-name" id="footer-instance-name"></span>
+    <span class="footer-instance-build" id="footer-instance-build"></span>
+  </span>
+  <!--INJECT:footer-disclaimer-->
+  <span class="footer-credits">
+    <a href="https://github.com/revampd/sn-schema-explorer" target="_blank" rel="noopener" class="footer-gh">GitHub</a>
+    <span class="footer-sep">·</span>
+    <span>Made with <span class="footer-powered">Claude</span></span>
+    <span class="footer-sep">·</span>
+    <!--INJECT:build-version-->
+  </span>
+</footer>
+
+<!-- Instance info modal — shows full _instance + coverage stats when the
+     footer pill is clicked. Hidden by default; populated in showInstanceInfo(). -->
+<div class="insti-overlay" id="insti-overlay">
+  <div class="insti-modal" role="dialog" aria-modal="true" aria-labelledby="insti-title">
+    <div class="insti-head">
+      <h2 id="insti-title">Instance</h2>
+      <button class="insti-close" id="insti-close" aria-label="Close">✕</button>
+    </div>
+    <div class="insti-body" id="insti-body"></div>
+  </div>
+</div>
+
+<!--INJECT:js-->
+</body>
+</html>
