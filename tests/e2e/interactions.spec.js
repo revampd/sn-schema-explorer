@@ -86,9 +86,14 @@ test('reducing hop-depth to 1 shows a lower or equal node count than hop-depth 3
 // ── Max nodes slider ──────────────────────────────────────────────────────────
 test('changing max-nodes slider updates the displayed value', async ({ page }) => {
   await loadAndInject(page);
-  const slider = page.locator('#sl-max-nodes');
-  const valEl  = page.locator('#val-max-nodes');
-  await slider.fill('25');
-  await slider.dispatchEvent('input');
-  await expect(valEl).toHaveText('25', { timeout: 3_000 });
+  // The slider max is dynamically clamped to the node count after load,
+  // so we use evaluate() to pick a valid value rather than hard-coding one.
+  const newVal = await page.evaluate(() => {
+    const el = document.getElementById('sl-max-nodes');
+    const v = String(Math.max(1, parseInt(el.max, 10) - 1 || 1));
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return v;
+  });
+  await expect(page.locator('#val-max-nodes')).toHaveText(newVal, { timeout: 3_000 });
 });
