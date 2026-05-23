@@ -50,6 +50,10 @@ const BASE_CSS = [
   'src/viewer/modules/settings/index.css',
 ];
 
+const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
+    Not affiliated with or endorsed by ServiceNow, Inc. ServiceNow is a registered trademark of ServiceNow, Inc.
+  </span>`;
+
 const VIEWER_TARGETS = {
   app: {
     entry:    rel('src/viewer/entries/full.js'),
@@ -195,6 +199,7 @@ async function buildViewer(targetName) {
     .replace('<!--INJECT:setup-instructions-->',    inj(setupInstr))
     .replace('<!--INJECT:guide-tabs-->',            inj(guideTabs))
     .replace('<!--INJECT:guide-panels-->',          inj(guidePanels))
+    .replace('<!--INJECT:footer-disclaimer-->',     inj(FOOTER_DISCLAIMER))
     .replace('<!--INJECT:build-version-->',         inj(BUILD_VERSION_HTML))
     .replace('<!--INJECT:js-->',                    inj(`<script>\n${bundledJS}\n</script>`));
 

@@ -6,9 +6,10 @@
  *   1. App loads without JS errors
  *   2. Core UI structure is present
  *   3. Load overlay visible before schema is loaded
- *   4. Footer shows build version stamp
- *   5. Schema can be loaded programmatically and graph renders
- *   6. Search filters the sidebar
+ *   4. Footer disclaimer present
+ *   5. Footer shows build version stamp
+ *   6. Schema can be loaded programmatically and graph renders
+ *   7. Search filters the sidebar
  */
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'url';
@@ -59,6 +60,12 @@ test('load overlay is visible before a schema is loaded', async ({ page }) => {
   // The load overlay should be visible on first open
   const overlay = page.locator('#load-overlay, .load-overlay, #drop-zone');
   await expect(overlay.first()).toBeVisible();
+});
+
+test('footer shows disclaimer text', async ({ page }) => {
+  await loadApp(page);
+  const footer = page.locator('footer');
+  await expect(footer).toContainText('ServiceNow');
 });
 
 test('footer shows build version stamp', async ({ page }) => {

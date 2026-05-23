@@ -426,6 +426,16 @@
   footer .footer-instance-name { color: var(--text); font-weight: 600; }
   footer .footer-instance-build { opacity: .7; }
   footer .footer-instance-dot { color: var(--sn-wasabi); }
+  footer .footer-disclaimer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--muted);
+    opacity: .7;
+    white-space: nowrap;
+    pointer-events: none;
+  }
   footer .footer-gh   { color: var(--text); font-weight: 600; }
   footer .footer-name { color: var(--text); font-weight: 600; }
   footer .footer-sep  { opacity: .4; }
