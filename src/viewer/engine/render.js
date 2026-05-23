@@ -549,17 +549,34 @@ export function renderGraph() {
     simEdges, Config.geomForce.fanStep, Config.geomForce.maxFan
   );
 
-  const edgeSel = edgeG.selectAll('path').data(simEdges).join('path')
-    .attr('class',      d => edgeClass(d))
-    .attr('id',         (_,i) => `ep-${i}`)
-    .style('display',   'none');
-  edgeSel.append('title').text(d => {
+  // Shared tooltip text builder — used by both the visible path and the hit overlay.
+  const edgeTitleText = d => {
     if (d._count <= 1) return d.label || d.field || '';
     const labels = d._fieldLabels || [];
     const names  = d._fields || [];
     const pairs  = labels.map((lbl, i) => names[i] ? `${lbl} (${names[i]})` : lbl);
     return `${d._count} fields:\n${pairs.map(p => `• ${p}`).join('\n')}`;
-  });
+  };
+
+  const edgeSel = edgeG.selectAll('path').data(simEdges).join('path')
+    .attr('class',      d => edgeClass(d))
+    .attr('id',         (_,i) => `ep-${i}`)
+    .style('display',   'none');
+  edgeSel.append('title').text(edgeTitleText);
+
+  // Transparent wide-stroke overlay paths — extend the pointer-events hit area for
+  // edge tooltips from 1 px to EDGE_HIT_WIDTH px so edges are easy to hover over.
+  // Rendered between edgeG and nodeG so nodes still receive events normally.
+  const EDGE_HIT_WIDTH = 10;
+  const edgeHitG   = root.append('g').attr('class', 'edge-hits');
+  const edgeHitSel = edgeHitG.selectAll('path').data(simEdges).join('path')
+    .style('fill',           'none')
+    .style('stroke',         'white')
+    .style('stroke-opacity', '0')
+    .style('stroke-width',   `${EDGE_HIT_WIDTH}px`)
+    .style('pointer-events', 'stroke')
+    .style('display',        'none');
+  edgeHitSel.append('title').text(edgeTitleText);
 
   const nodeG = root.append('g').attr('class','nodes');
 
@@ -657,6 +674,13 @@ export function renderGraph() {
         .attr('d', p)
         .attr('marker-end', arrowId(d))
         .style('stroke-width', w);
+    });
+    edgeHitSel.each(function(d, i) {
+      const el = d3.select(this);
+      if (!fanVisible[i]) { el.style('display', 'none'); return; }
+      const p = edgePath(d, fanOffset[i]);
+      if (!p)              { el.style('display', 'none'); return; }
+      el.style('display', null).attr('d', p);
     });
     if (labelSel) {
       labelSel.each(function(d,i) {
