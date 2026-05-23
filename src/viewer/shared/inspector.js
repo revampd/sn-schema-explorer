@@ -262,6 +262,7 @@ export function fillInspector(d) {
       const src   = isFlattened ? fieldSourceMap.get(f.name) : null;
       if (src) inheritedCount++;
       const row   = el('div','insp-field-row' + (src ? ' insp-field-inherited' : ''));
+      row.dataset.field = f.name;
       const names = el('div','insp-field-names');
       const fname = el('span','insp-field-name');  setText(fname, f.name);
       const flabel= el('span','insp-field-label'); setText(flabel, f.label);
@@ -317,6 +318,7 @@ export function fillInspector(d) {
       for (const f of sortedGroupFields) {
         const col   = typeBadgeColor(f.type);
         const row   = el('div', 'insp-field-row insp-field-inherited');
+        row.dataset.field = f.name;
         const names = el('div', 'insp-field-names');
         const fname = el('span','insp-field-name');  setText(fname, f.name);
         const flabel= el('span','insp-field-label'); setText(flabel, f.label);

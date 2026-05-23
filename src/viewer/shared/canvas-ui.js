@@ -159,10 +159,21 @@ export function initCanvasUI() {
   Dom.tableList.addEventListener('scroll', tlOnScroll, { passive: true });
 
   Dom.inspectorContent.addEventListener('click', e => {
+    // Edge-list navigation (table links, source badges)
     const item = e.target.closest('.edge-list-item[data-table]');
-    if (!item || !Dom.inspectorContent.contains(item)) return;
-    focusTable(item.dataset.table);
-    if (isMobile()) closePanel('inspector');
+    if (item && Dom.inspectorContent.contains(item)) {
+      focusTable(item.dataset.table);
+      if (isMobile()) closePanel('inspector');
+      return;
+    }
+    // Field row: copy technical name to clipboard
+    const fieldRow = e.target.closest('.insp-field-row[data-field]');
+    if (fieldRow && Dom.inspectorContent.contains(fieldRow)) {
+      if (e.target.closest('.insp-field-pflink, .edge-list-item')) return;
+      const fieldName = fieldRow.dataset.field;
+      navigator.clipboard.writeText(fieldName).catch(() => {});
+      showCopyToast(fieldName);
+    }
   });
 
   // ── Sort buttons ──────────────────────────────────────────────────────────
@@ -211,4 +222,22 @@ export function initCanvasUI() {
       applySort();
     });
   })();
+}
+
+// ── Copy-field toast ──────────────────────────────────────────────────────────
+let _copyToastTimer = null;
+function showCopyToast(fieldName) {
+  let toast = document.getElementById('insp-copy-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'insp-copy-toast';
+    toast.className = 'insp-copy-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '✓ ' + fieldName;
+  toast.classList.add('insp-copy-toast--visible');
+  if (_copyToastTimer) clearTimeout(_copyToastTimer);
+  _copyToastTimer = setTimeout(() => {
+    toast.classList.remove('insp-copy-toast--visible');
+  }, 1400);
 }
