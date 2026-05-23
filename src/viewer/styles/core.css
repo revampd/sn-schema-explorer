@@ -9,10 +9,11 @@
      stacks below in case anyone installs the font locally — the browser
      simply falls through to the system fonts otherwise.
 
-     JetBrains Mono is loaded from Google Fonts for monospace contexts
-     (table IDs, field names, dot-walks). It degrades to system monospace
-     if the import fails (e.g. offline). */
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+     Monospace contexts (table IDs, field names, dot-walks) use the system
+     monospace stack (ui-monospace → Cascadia Code / SF Mono / Consolas /
+     Menlo / DejaVu Sans Mono). 'JetBrains Mono' is listed first as a
+     courtesy for users who have it installed locally; no network request
+     is made for it. */
 
   :root {
     /* ServiceNow Infinite Blue palette */

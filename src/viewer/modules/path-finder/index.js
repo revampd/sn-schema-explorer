@@ -857,5 +857,5 @@ pfSyncVisibility();
 Settings.onChange('pathFinding',        pfSyncVisibility);
 Settings.onChange('advancedPathFinder', pfConfigSyncVisibility);
 
-// Inject the path-link factory into the inspector (full build only).
+// Inject the path-link factory into the inspector.
 initInspectorDeps({ makePathLink: makeInspectorPathLink });

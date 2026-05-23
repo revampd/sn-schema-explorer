@@ -276,7 +276,7 @@ export function initLoadOverlay() {
     });
   });
 
-  // Setup guide toggle + code copy (only present in fullsetup build for file tab)
+  // Setup guide toggle + code copy (file tab)
   document.getElementById('sg-toggle-file')
     ?.addEventListener('click', e => toggleSetupGuide(e.currentTarget));
   document.querySelectorAll('.code-copy-btn')

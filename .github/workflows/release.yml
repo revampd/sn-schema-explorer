@@ -34,14 +34,14 @@ jobs:
 
             | File | Description |
             |---|---|
-            | `sn_schema_explorer_lite.html` | Schema Map · Inspector · Export · Settings · Guide |
-            | `sn_schema_explorer.html` | Full build — adds Path Finder and Schema Diff |
-            | `sn_schema_explorer_setup.html` | Full build + embedded exporter scripts for self-service onboarding |
+            | `sn_schema_explorer.html` | Schema Map · Inspector · Path Finder · Schema Diff · Export · Settings · Guide · Setup Instructions |
+            | `sn-schema-export.bg.js` | ServiceNow Background Script — paste into Scripts - Background to export your schema |
+            | `sn-schema-export.node.standalone.js` | Node.js extractor — zero external dependencies, run locally to export your schema |
 
-            Open any `.html` file directly in your browser — no installation or server needed.
+            Open `sn_schema_explorer.html` directly in your browser — no installation or server needed.
 
             ---
           files: |
-            dist/sn_schema_explorer_lite.html
             dist/sn_schema_explorer.html
-            dist/sn_schema_explorer_setup.html
+            dist/exporter/sn-schema-export.bg.js
+            dist/exporter/sn-schema-export.node.standalone.js

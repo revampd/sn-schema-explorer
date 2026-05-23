@@ -5,9 +5,11 @@
  * Tests cover the critical happy paths a user exercises on first open:
  *   1. App loads without JS errors
  *   2. Core UI structure is present
- *   3. Schema can be loaded programmatically and graph renders
- *   4. Clicking a table node opens the inspector
- *   5. Search filters the sidebar
+ *   3. Load overlay visible before schema is loaded
+ *   4. Footer disclaimer present
+ *   5. Footer shows build version stamp
+ *   6. Schema can be loaded programmatically and graph renders
+ *   7. Search filters the sidebar
  */
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'url';
