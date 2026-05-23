@@ -428,7 +428,7 @@ export function renderGraph() {
 
   const { nodes, edges } = graphState.graphData;
 
-  const { visNodeIds, visEdges } = computeNeighbourhood();
+  const { visNodeIds, visEdges, hopDist } = computeNeighbourhood();
   const visNodes = nodes.filter(n => visNodeIds.has(n.id));
 
   const N = visNodes.length;
@@ -457,6 +457,7 @@ export function renderGraph() {
       clone.x = cx + Math.cos(angle) * dist;
       clone.y = cy + Math.sin(angle) * dist;
     }
+    clone._hopDist = (hopDist && hopDist.get(n.id)) ?? 0;
     return clone;
   });
   const simEdges = visEdges.map(e => ({...e}));
@@ -518,6 +519,16 @@ export function renderGraph() {
     .alphaDecay(fastDecay)
     .alphaMin(SETTLE_ALPHA)
     .velocityDecay(large ? Config.sim.velocityDecay.large : Config.sim.velocityDecay.small);
+
+  // Radial force — only when a node is selected. Gently pushes nodes outward
+  // in concentric rings by hop distance so deeper nodes stay visually outside
+  // shallower ones. strength(0.15) is soft enough not to override link/charge forces.
+  const R_HOP = 150; // px per hop ring
+  if (uiState.selectedNode) {
+    graphState.simulation.force('radial',
+      d3.forceRadial(d => (d._hopDist ?? 0) * R_HOP, 0, 0).strength(0.15)
+    );
+  }
 
   if (!mostlyPositioned) {
     const preWarm = large
