@@ -550,12 +550,21 @@ export function renderGraph() {
   );
 
   // Shared tooltip text builder — used by both the visible path and the hit overlay.
+  // By this point D3 forceLink has replaced source/target strings with node objects.
   const edgeTitleText = d => {
-    if (d._count <= 1) return d.label || d.field || '';
-    const labels = d._fieldLabels || [];
-    const names  = d._fields || [];
-    const pairs  = labels.map((lbl, i) => names[i] ? `${lbl} (${names[i]})` : lbl);
-    return `${d._count} fields:\n${pairs.map(p => `• ${p}`).join('\n')}`;
+    const tgtNode = typeof d.target === 'object' ? d.target : null;
+    const tgtId   = tgtNode ? tgtNode.id : (d.target || '');
+    const tgtLbl  = tgtNode && tgtNode.label && tgtNode.label !== tgtId
+      ? `${tgtNode.label} (${tgtId})` : tgtId;
+
+    if (d._count > 1) {
+      const labels = d._fieldLabels || [];
+      const names  = d._fields || [];
+      const pairs  = labels.map((lbl, i) => names[i] ? `${lbl} (${names[i]})` : lbl);
+      return `${d._count} fields → ${tgtLbl}:\n${pairs.map(p => `• ${p}`).join('\n')}`;
+    }
+    const rel = d.label || d.field || '';
+    return rel ? `${rel}\n→ ${tgtLbl}` : `→ ${tgtLbl}`;
   };
 
   const edgeSel = edgeG.selectAll('path').data(simEdges).join('path')
