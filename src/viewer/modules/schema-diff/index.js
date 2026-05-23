@@ -114,6 +114,11 @@ function loadDiffSchema(compareData) {
   diffState._diffData._compareVersion      = compareData._schema_version || null;
   diffState._diffShowAll = false;
   diffState._diffFilter  = 'all';
+  diffState._diffSearch  = '';
+  const searchInput = document.getElementById('diff-search-input');
+  const searchClear = document.getElementById('diff-search-clear');
+  if (searchInput) searchInput.value = '';
+  if (searchClear) searchClear.style.display = 'none';
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   diffUpdateSummary();
@@ -205,6 +210,8 @@ function diffUpdateSummary() {
   const hasDiff = !!diffState._diffData;
   summary.classList.toggle('visible', hasDiff);
   if (toggleRow) toggleRow.classList.toggle('visible', hasDiff);
+  const searchWrap = document.getElementById('diff-search-wrap');
+  if (searchWrap) searchWrap.style.display = hasDiff ? '' : 'none';
   if (!hasDiff) return;
   if (nAdded)   nAdded.textContent   = diffState._diffData.added.size;
   if (nRemoved) nRemoved.textContent = diffState._diffData.removed.size;
@@ -297,6 +304,15 @@ function diffBuildList() {
         );
         if (!items.length) return;
       }
+    }
+    // Apply inline sidebar filter (diff-search-input)
+    const search = (diffState._diffSearch || '').toLowerCase().trim();
+    if (search) {
+      items = items.filter(({ id, nodeLabel }) =>
+        id.toLowerCase().includes(search) ||
+        (nodeLabel && nodeLabel.toLowerCase().includes(search))
+      );
+      if (!items.length) return;
     }
     const header = document.createElement('div');
     header.className = 'diff-group-header dgh-' + kind;
@@ -818,6 +834,25 @@ setFillInspectorHook(diffFillInspector);
       _diffClearCursor();
     }
   });
+
+  // Inline sidebar filter wiring
+  const searchInput = document.getElementById('diff-search-input');
+  const searchClear = document.getElementById('diff-search-clear');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      diffState._diffSearch = searchInput.value;
+      if (searchClear) searchClear.style.display = searchInput.value ? '' : 'none';
+      diffBuildList();
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      diffState._diffSearch = '';
+      if (searchInput) searchInput.value = '';
+      searchClear.style.display = 'none';
+      diffBuildList();
+    });
+  }
 })();
 
 // ── Register with path-finder + settings ─────────────────────────────────────
