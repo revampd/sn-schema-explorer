@@ -238,7 +238,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
   }
   const collapsedEdges = [...collapsed.values()];
 
-  return { visNodeIds, connectedNodes: uiState.connectedNodes, visEdges: collapsedEdges };
+  return { visNodeIds, connectedNodes: uiState.connectedNodes, visEdges: collapsedEdges, hopDist };
 }
 
 export const Neighbourhood = Object.freeze({ compute: computeNeighbourhood });

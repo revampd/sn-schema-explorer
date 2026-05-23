@@ -428,7 +428,7 @@ export function renderGraph() {
 
   const { nodes, edges } = graphState.graphData;
 
-  const { visNodeIds, visEdges } = computeNeighbourhood();
+  const { visNodeIds, visEdges, hopDist } = computeNeighbourhood();
   const visNodes = nodes.filter(n => visNodeIds.has(n.id));
 
   const N = visNodes.length;
@@ -449,13 +449,20 @@ export function renderGraph() {
   const cy = positionedCount > 0 ? cySum / positionedCount : 0;
   const mostlyPositioned = positionedCount >= Math.ceil(visNodes.length * 0.5);
 
+  // R_HOP defined here so it can seed initial node positions as well as the radial force.
+  const R_HOP = 200; // px per hop ring
+
   const simNodes = visNodes.map(n => {
     const clone = {...n};
+    clone._hopDist = (hopDist && hopDist[n.id]) ?? 0;
     if (typeof clone.x !== 'number' || typeof clone.y !== 'number') {
-      const angle = Math.random() * 2 * Math.PI;
-      const dist  = 80 + Math.random() * 120;
-      clone.x = cx + Math.cos(angle) * dist;
-      clone.y = cy + Math.sin(angle) * dist;
+      const angle  = Math.random() * 2 * Math.PI;
+      // Seed unpositioned nodes at their target ring radius so the simulation
+      // starts close to the desired layout and the radial force has less work to do.
+      const ring   = clone._hopDist > 0 ? clone._hopDist * R_HOP : 80 + Math.random() * 120;
+      const jitter = (Math.random() - 0.5) * 60;
+      clone.x = cx + Math.cos(angle) * (ring + jitter);
+      clone.y = cy + Math.sin(angle) * (ring + jitter);
     }
     return clone;
   });
@@ -519,6 +526,15 @@ export function renderGraph() {
     .alphaMin(SETTLE_ALPHA)
     .velocityDecay(large ? Config.sim.velocityDecay.large : Config.sim.velocityDecay.small);
 
+  // Radial force — only when a node is selected. Pushes nodes to concentric rings
+  // by hop distance so deeper nodes stay visually outside shallower ones.
+  // Nodes are also seeded at their ring radius above, so the force has less work to do.
+  if (uiState.selectedNode) {
+    graphState.simulation.force('radial',
+      d3.forceRadial(d => (d._hopDist ?? 0) * R_HOP, 0, 0).strength(0.35)
+    );
+  }
+
   if (!mostlyPositioned) {
     const preWarm = large
       ? Math.min(60, Math.floor(N / 5))
@@ -533,17 +549,51 @@ export function renderGraph() {
     simEdges, Config.geomForce.fanStep, Config.geomForce.maxFan
   );
 
+  // Shared tooltip text builder — used by both the visible path and the hit overlay.
+  // By this point D3 forceLink has replaced source/target strings with node objects.
+  const edgeTitleText = d => {
+    const fmtNode = n => {
+      if (!n || typeof n !== 'object') return n || '';
+      return n.label && n.label !== n.id ? `${n.label} (${n.id})` : n.id;
+    };
+    const header = `${fmtNode(d.source)} → ${fmtNode(d.target)}`;
+
+    // _fields / _fieldLabels are populated for every collapsed edge (count 1 or more).
+    const labels = d._fieldLabels || [];
+    const names  = d._fields      || [];
+    const count  = Math.max(labels.length, names.length);
+    if (count > 0) {
+      const pairs = Array.from({ length: count }, (_, i) => {
+        const lbl = labels[i] || '', nm = names[i] || '';
+        return lbl && nm && lbl !== nm ? `${lbl} (${nm})` : (lbl || nm);
+      });
+      return `${header}\n${pairs.map(p => `• ${p}`).join('\n')}`;
+    }
+
+    // Non-reference edges (extends, m2m, cmdb_rel…) — append label if present.
+    const rel = d.label || '';
+    return rel ? `${header}\n${rel}` : header;
+  };
+
   const edgeSel = edgeG.selectAll('path').data(simEdges).join('path')
     .attr('class',      d => edgeClass(d))
     .attr('id',         (_,i) => `ep-${i}`)
     .style('display',   'none');
-  edgeSel.append('title').text(d => {
-    if (d._count <= 1) return d.label || d.field || '';
-    const labels = d._fieldLabels || [];
-    const names  = d._fields || [];
-    const pairs  = labels.map((lbl, i) => names[i] ? `${lbl} (${names[i]})` : lbl);
-    return `${d._count} fields:\n${pairs.map(p => `• ${p}`).join('\n')}`;
-  });
+  edgeSel.append('title').text(edgeTitleText);
+
+  // Transparent wide-stroke overlay paths — extend the pointer-events hit area for
+  // edge tooltips from 1 px to EDGE_HIT_WIDTH px so edges are easy to hover over.
+  // Rendered between edgeG and nodeG so nodes still receive events normally.
+  const EDGE_HIT_WIDTH = 10;
+  const edgeHitG   = root.append('g').attr('class', 'edge-hits');
+  const edgeHitSel = edgeHitG.selectAll('path').data(simEdges).join('path')
+    .style('fill',           'none')
+    .style('stroke',         'white')
+    .style('stroke-opacity', '0')
+    .style('stroke-width',   `${EDGE_HIT_WIDTH}px`)
+    .style('pointer-events', 'stroke')
+    .style('display',        'none');
+  edgeHitSel.append('title').text(edgeTitleText);
 
   const nodeG = root.append('g').attr('class','nodes');
 
@@ -641,6 +691,13 @@ export function renderGraph() {
         .attr('d', p)
         .attr('marker-end', arrowId(d))
         .style('stroke-width', w);
+    });
+    edgeHitSel.each(function(d, i) {
+      const el = d3.select(this);
+      if (!fanVisible[i]) { el.style('display', 'none'); return; }
+      const p = edgePath(d, fanOffset[i]);
+      if (!p)              { el.style('display', 'none'); return; }
+      el.style('display', null).attr('d', p);
     });
     if (labelSel) {
       labelSel.each(function(d,i) {

@@ -278,11 +278,68 @@ describe('self-loops', () => {
 
 // ── 8. countOnly ──────────────────────────────────────────────────────────────
 describe('countOnly mode', () => {
-  it('returns visNodeIds and connectedNodes but no visEdges property', () => {
+  it('returns visNodeIds and connectedNodes but no visEdges or hopDist', () => {
     const result = computeNeighbourhood({ countOnly: true });
     expect(result.visNodeIds).toBeDefined();
     expect(result.connectedNodes).toBeDefined();
     expect(result.visEdges).toBeUndefined();
+    expect(result.hopDist).toBeUndefined();
+  });
+});
+
+// ── 9. hopDist return value ────────────────────────────────────────────────────
+describe('hopDist', () => {
+  it('is an empty object when no node is selected', () => {
+    const { hopDist } = computeNeighbourhood();
+    expect(hopDist).toBeDefined();
+    expect(Object.keys(hopDist)).toHaveLength(0);
+  });
+
+  it('assigns hopDist 0 to the selected node', () => {
+    uiState.selectedNode = 'task';
+    const { hopDist } = computeNeighbourhood();
+    expect(hopDist['task']).toBe(0);
+  });
+
+  it('assigns hopDist 1 to direct neighbours', () => {
+    uiState.selectedNode = 'task';
+    uiState.hopDepth     = 1;
+    const { hopDist } = computeNeighbourhood();
+    // task → sys_user (reference), incident → task and change_request → task (extends)
+    expect(hopDist['sys_user']).toBe(1);
+    expect(hopDist['incident']).toBe(1);
+    expect(hopDist['change_request']).toBe(1);
+  });
+
+  it('assigns hopDist 2 to two-hop neighbours', () => {
+    uiState.selectedNode = 'incident';
+    uiState.hopDepth     = 2;
+    const { hopDist } = computeNeighbourhood();
+    expect(hopDist['incident']).toBe(0);
+    expect(hopDist['task']).toBe(1);       // incident → task (extends)
+    expect(hopDist['sys_user']).toBe(2);   // task → sys_user (reference, hop 2)
+    expect(hopDist['change_request']).toBe(2); // change_request → task (hop 2 via task)
+  });
+
+  it('respects hopDepth — nodes beyond the limit have no hopDist entry', () => {
+    uiState.selectedNode = 'incident';
+    uiState.hopDepth     = 1;
+    const { hopDist } = computeNeighbourhood();
+    expect(hopDist['task']).toBe(1);
+    expect(hopDist['sys_user']).toBeUndefined(); // hop 2, beyond depth 1
+  });
+
+  it('showRefTo only — sys_user reachable from task with correct hop', () => {
+    uiState.selectedNode = 'task';
+    uiState.showRefTo    = true;
+    uiState.showRefFrom  = false;
+    uiState.showExt      = false;
+    uiState.hopDepth     = 1;
+    const { hopDist } = computeNeighbourhood();
+    expect(hopDist['task']).toBe(0);
+    expect(hopDist['sys_user']).toBe(1);   // task → sys_user
+    expect(hopDist['incident']).toBeUndefined();       // not reachable without extends
+    expect(hopDist['change_request']).toBeUndefined(); // not reachable without extends
   });
 });
 
