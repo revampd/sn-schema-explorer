@@ -13,6 +13,9 @@ export function setSearchData(nodeById, fieldSearchIndex) {
 }
 
 let _searchMode = 'tables';
+const _searchChangeListeners = [];
+export function onSearchChange(fn) { _searchChangeListeners.push(fn); }
+export function getSearchMode()    { return _searchMode; }
 
 function debounce(fn, ms) {
   let t;
@@ -109,6 +112,7 @@ export function initSearchListeners() {
     const q = Dom.searchBox.value.toLowerCase().trim();
     applyTableFilter(q);
     _debouncedGraphDim(q);
+    _searchChangeListeners.forEach(fn => fn(q, _searchMode));
   });
 
   document.querySelectorAll('#search-mode-seg .smt-btn').forEach(btn => {

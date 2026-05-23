@@ -10,6 +10,7 @@ import { setViewMode, onViewModeChange, registerModeValidator } from '../../engi
 import { registerHistoryExtractor, registerHistoryRestorer, pushHistory } from '../history/index.js';
 import { injectCiRelEdges } from '../load/index.js';
 import { computeDiff } from './compute-diff.js';
+import { onSearchChange, getSearchMode } from '../search/index.js';
 
 // ── Settings registration ─────────────────────────────────────────────────────
 
@@ -255,6 +256,16 @@ function diffBuildList() {
 
   function makeGroup(label, items, kind) {
     if (!items.length) return;
+    // Apply header search bar filter (Tbl mode only) when in diff view
+    if (Dom.searchBox && getSearchMode() === 'tables') {
+      const q = Dom.searchBox.value.toLowerCase().trim();
+      if (q) {
+        items = items.filter(({ id, nodeLabel }) =>
+          id.toLowerCase().includes(q) || (nodeLabel && nodeLabel.toLowerCase().includes(q))
+        );
+        if (!items.length) return;
+      }
+    }
     const header = document.createElement('div');
     header.className = 'diff-group-header dgh-' + kind;
     header.textContent = label + ' (' + items.length + ')';
@@ -769,3 +780,8 @@ onViewModeChange((mode, prevMode) => {
 
 Settings.onChange('schemaDiff', diffSyncVisibility);
 diffSyncVisibility();
+
+// Rebuild diff list when the header search changes while in diff view
+onSearchChange(() => {
+  if (uiState.viewMode === 'diff') diffBuildList();
+});
