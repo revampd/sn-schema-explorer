@@ -457,7 +457,7 @@ export function renderGraph() {
       clone.x = cx + Math.cos(angle) * dist;
       clone.y = cy + Math.sin(angle) * dist;
     }
-    clone._hopDist = (hopDist && hopDist.get(n.id)) ?? 0;
+    clone._hopDist = (hopDist && hopDist[n.id]) ?? 0;
     return clone;
   });
   const simEdges = visEdges.map(e => ({...e}));
