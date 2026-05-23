@@ -285,3 +285,110 @@ describe('countOnly mode', () => {
     expect(result.visEdges).toBeUndefined();
   });
 });
+
+// ── 9. Re-insertion direction guard (issue #18) ────────────────────────────────
+//
+// Graph for this section:
+//
+//   task →(ref)→ A →(ref)→ B        ← valid showRefTo chain
+//   task →(ref)→ D                   ← unrelated depth-1 node
+//   B →(ref)→ D                      ← BACK-EDGE: deep(2)→shallow(1)
+//
+// With showRefTo only, _edgeCnt = {B:10, D:1}, maxNodes=2:
+//   Sorted reached: [task, B(10), D(1), A(0)]
+//   visNodeIds = {task, B}  — A and D are cut
+//
+// Without the fix: re-insertion iterates edges in order [B→D, task→A, A→B, task→D].
+//   For id=B (depth=2): B→D fires first (s===id, hopDist[D]=1=depth-1=1, D not in visNodeIds)
+//   → adds D to toAdd, breaks. A is never found. visNodeIds = {task,B,D}.
+//   Edge A→B not shown (A absent), edge B→D not shown (direction wrong).
+//   B has no visible edge — it is an orphaned dot.
+//
+// With the fix: outgoing back-edge B→D skipped (showRefFrom=false).
+//   A→B (in-edge) found next → adds A. visNodeIds = {task,B,A}.
+//   Edges task→A and A→B both shown. B is correctly connected.
+
+describe('re-insertion direction guard', () => {
+  function setupBackEdgeGraph() {
+    graphState.graphData.nodes = [
+      { id: 'task', scope: 'Global' },
+      { id: 'A',    scope: 'Global' },
+      { id: 'B',    scope: 'Global' },
+      { id: 'D',    scope: 'Global' },
+    ];
+    // B→D is listed FIRST so the fallback path encounters it before A→B
+    graphState.graphData.edges = [
+      { source: 'B',    target: 'D',    type: 'reference', field: 'back', label: 'Back'  },
+      { source: 'task', target: 'A',    type: 'reference', field: 'f1',   label: 'F1'    },
+      { source: 'A',    target: 'B',    type: 'reference', field: 'f2',   label: 'F2'    },
+      { source: 'task', target: 'D',    type: 'reference', field: 'f3',   label: 'F3'    },
+    ];
+    graphState.graphData._edgeCnt = { B: 10, D: 1 };
+    graphState.graphData._adj     = null;
+    graphState.graphData._nodeById = null;
+    uiState.selectedNode = 'task';
+    uiState.showRefTo    = true;
+    uiState.showRefFrom  = false;
+    uiState.showExt      = false;
+    uiState.hopDepth     = 2;
+    uiState.maxNodes     = 2;   // {task, B} — A and D cut
+  }
+
+  it('re-inserts the valid connector (A), not the back-edge target (D)', () => {
+    setupBackEdgeGraph();
+    const { visNodeIds } = computeNeighbourhood();
+    expect(visNodeIds.has('B')).toBe(true);
+    expect(visNodeIds.has('A')).toBe(true);   // correctly re-inserted via A→B in-edge
+    expect(visNodeIds.has('D')).toBe(false);  // must NOT be re-inserted via B→D back-edge
+  });
+
+  it('re-inserted connector gives B a visible edge (not orphaned)', () => {
+    setupBackEdgeGraph();
+    const { visEdges } = computeNeighbourhood();
+    const bEdges = visEdges.filter(e => {
+      const s = typeof e.source === 'object' ? e.source.id : e.source;
+      const t = typeof e.target === 'object' ? e.target.id : e.target;
+      return s === 'B' || t === 'B';
+    });
+    expect(bEdges.length).toBeGreaterThan(0);
+  });
+
+  it('showRefFrom only: re-inserts via outgoing edge, not incoming', () => {
+    // Flip the scenario: showRefFrom traverses deep←shallow (target←source).
+    // task ←(ref)← A ←(ref)← B  means B references A references task.
+    // sys_user ←(ref)← task is a pre-existing edge in EDGES; here we use a custom graph.
+    // We verify the mirror of the showRefTo case.
+    graphState.graphData.nodes = [
+      { id: 'task', scope: 'Global' },
+      { id: 'A',    scope: 'Global' },
+      { id: 'B',    scope: 'Global' },
+      { id: 'D',    scope: 'Global' },
+    ];
+    // A→task (A references task), B→A (B references A), D→task (D references task)
+    // back-edge: A→B (incoming to B, i.e., shallow→deep — wrong for showRefFrom)
+    graphState.graphData.edges = [
+      { source: 'A', target: 'B',    type: 'reference', field: 'bad',  label: 'Bad'  },
+      { source: 'A', target: 'task', type: 'reference', field: 'f1',   label: 'F1'   },
+      { source: 'B', target: 'A',    type: 'reference', field: 'f2',   label: 'F2'   },
+      { source: 'D', target: 'task', type: 'reference', field: 'f3',   label: 'F3'   },
+    ];
+    // BFS showRefFrom from task: follows na.in (edges where task is target)
+    //   hop1: A (A→task), D (D→task)
+    //   hop2: B (B→A)
+    // _edgeCnt: B=10 → sorted [task, B(10), D(1), A(0)], maxNodes=2 → {task, B}
+    graphState.graphData._edgeCnt = { B: 10, D: 1 };
+    graphState.graphData._adj     = null;
+    graphState.graphData._nodeById = null;
+    uiState.selectedNode = 'task';
+    uiState.showRefTo    = false;
+    uiState.showRefFrom  = true;
+    uiState.showExt      = false;
+    uiState.hopDepth     = 2;
+    uiState.maxNodes     = 2;
+
+    const { visNodeIds } = computeNeighbourhood();
+    expect(visNodeIds.has('B')).toBe(true);
+    expect(visNodeIds.has('A')).toBe(true);   // A is B's connector: B→A (outgoing from B, valid for showRefFrom)
+    expect(visNodeIds.has('D')).toBe(false);  // D must not be added via bad incoming edge A→B
+  });
+});

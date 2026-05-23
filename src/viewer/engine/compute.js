@@ -127,8 +127,14 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           for (const e of [...na.out, ...na.in]) {
             if (!edgeTypeOk(e)) continue;
             const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-            const parentId = (t === id && hopDist[s] === depth - 1) ? s
-                           : (s === id && hopDist[t] === depth - 1) ? t : null;
+            let parentId = null;
+            if (t === id && hopDist[s] === depth - 1) {
+              // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
+              if (e.type !== 'reference' || uiState.showRefTo) parentId = s;
+            } else if (s === id && hopDist[t] === depth - 1) {
+              // outgoing edge id→t: valid ref direction is showRefFrom (deep→shallow)
+              if (e.type !== 'reference' || uiState.showRefFrom) parentId = t;
+            }
             if (parentId && !visNodeIds.has(parentId)) {
               toAdd.add(parentId);
               break;
@@ -142,8 +148,14 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           for (const e of edges) {
             if (!edgeTypeOk(e)) continue;
             const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-            const parentId = (t === id && hopDist[s] === depth - 1) ? s
-                           : (s === id && hopDist[t] === depth - 1) ? t : null;
+            let parentId = null;
+            if (t === id && hopDist[s] === depth - 1) {
+              // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
+              if (e.type !== 'reference' || uiState.showRefTo) parentId = s;
+            } else if (s === id && hopDist[t] === depth - 1) {
+              // outgoing edge id→t: valid ref direction is showRefFrom (deep→shallow)
+              if (e.type !== 'reference' || uiState.showRefFrom) parentId = t;
+            }
             if (parentId && !visNodeIds.has(parentId)) {
               toAdd.add(parentId);
               break;
