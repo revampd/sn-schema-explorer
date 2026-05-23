@@ -3,9 +3,7 @@
  * Unified build script
  * ============================================================================
  * Usage:
- *   node build.js lite          → dist/sn_schema_explorer_lite.html
- *   node build.js full          → dist/sn_schema_explorer.html
- *   node build.js fullsetup     → dist/sn_schema_explorer_setup.html
+ *   node build.js app           → dist/sn_schema_explorer.html
  *   node build.js exporter      → dist/exporter/*
  *   node build.js all           → all of the above
  * ============================================================================ */
@@ -52,34 +50,13 @@ const BASE_CSS = [
   'src/viewer/modules/settings/index.css',
 ];
 
-const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
-    Not affiliated with or endorsed by ServiceNow, Inc. ServiceNow is a registered trademark of ServiceNow, Inc.
-  </span>`;
-
 const VIEWER_TARGETS = {
-  lite: {
-    entry:    rel('src/viewer/entries/lite.js'),
-    css:      BASE_CSS,
-    features: [],
-    title:    'Schema Explorer',
-    disclaimer: FOOTER_DISCLAIMER,
-    output:   rel('dist/sn_schema_explorer_lite.html'),
-  },
-  full: {
-    entry:    rel('src/viewer/entries/full.js'),
-    css:      [...BASE_CSS, 'src/viewer/modules/path-finder/index.css', 'src/viewer/modules/schema-diff/index.css'],
-    features: ['path-finder', 'schema-diff'],
-    title:    'Schema Explorer',
-    disclaimer: FOOTER_DISCLAIMER,
-    output:   rel('dist/sn_schema_explorer.html'),
-  },
-  fullsetup: {
+  app: {
     entry:    rel('src/viewer/entries/full.js'),
     css:      [...BASE_CSS, 'src/viewer/modules/path-finder/index.css', 'src/viewer/modules/schema-diff/index.css'],
     features: ['path-finder', 'schema-diff', 'setup'],
     title:    'Schema Explorer',
-    disclaimer: FOOTER_DISCLAIMER,
-    output:   rel('dist/sn_schema_explorer_setup.html'),
+    output:   rel('dist/sn_schema_explorer.html'),
   },
 };
 
@@ -218,11 +195,10 @@ async function buildViewer(targetName) {
     .replace('<!--INJECT:setup-instructions-->',    inj(setupInstr))
     .replace('<!--INJECT:guide-tabs-->',            inj(guideTabs))
     .replace('<!--INJECT:guide-panels-->',          inj(guidePanels))
-    .replace('<!--INJECT:footer-disclaimer-->',     inj(t.disclaimer))
     .replace('<!--INJECT:build-version-->',         inj(BUILD_VERSION_HTML))
     .replace('<!--INJECT:js-->',                    inj(`<script>\n${bundledJS}\n</script>`));
 
-  // 6. Inject exporter scripts into <pre> blocks (fullsetup only)
+  // 6. Inject exporter scripts into <pre> blocks in the Setup Instructions tab
   if (t.features.includes('setup')) {
     const bgSrc   = readFileSync(rel('dist/exporter/sn-schema-export.bg.js'), 'utf8');
     const nodeSrc = readFileSync(rel('dist/exporter/sn-schema-export.node.standalone.js'), 'utf8');
@@ -324,16 +300,16 @@ function buildExporter() {
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error('Usage: node build.js <lite|full|fullsetup|exporter|all>');
+  console.error('Usage: node build.js <app|exporter|all>');
   process.exit(1);
 }
 
 const targets = args.includes('all')
-  ? ['exporter', 'lite', 'full', 'fullsetup']
+  ? ['exporter', 'app']
   : args;
 
-// fullsetup reads dist/exporter/* — ensure exporter is built first.
-if (targets.includes('fullsetup') && !targets.includes('exporter')) {
+// app reads dist/exporter/* for the Setup Instructions tab — build exporter first.
+if (targets.includes('app') && !targets.includes('exporter')) {
   buildExporter();
 }
 

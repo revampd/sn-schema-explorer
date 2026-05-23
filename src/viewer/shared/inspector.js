@@ -12,9 +12,9 @@ import { highlightListItem } from './table-list.js';
 import { updateDensityInfo } from './density-controls.js';
 import { pushHistory } from '../modules/history/index.js';
 
-// _fillInspectorHook: optional override injected by path-finder (full build only)
+// _fillInspectorHook: optional override injected by path-finder
 let _fillInspectorHook = null;
-// _makePathLink: injected by path-finder (full build only); absent in lite
+// _makePathLink: injected by path-finder when the feature is enabled
 let _makePathLink = null;
 
 export function setFillInspectorHook(fn) {
