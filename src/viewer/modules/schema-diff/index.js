@@ -305,14 +305,22 @@ function diffBuildList() {
       item.dataset.id   = id;
       item.dataset.kind = kind;
       if (uiState.selectedNode === id) item.classList.add('selected');
-      item.innerHTML = `
-        <div class="diff-item-pill dp-${kind}"></div>
-        <div class="diff-item-names">
-          <div class="diff-item-label">${nodeLabel || id}</div>
-          <div class="diff-item-id">${id}</div>
-        </div>
-        ${count !== undefined ? `<div class="diff-item-count">${count > 0 ? '+' : ''}${count}</div>` : ''}
-      `;
+      const pill  = document.createElement('div'); pill.className = `diff-item-pill dp-${kind}`;
+      const names = document.createElement('div'); names.className = 'diff-item-names';
+      const lbl   = document.createElement('div'); lbl.className = 'diff-item-label';
+      lbl.textContent = nodeLabel || id;
+      if (Settings.isEnabled('customHighlight') && Settings.isCustomName(id)) {
+        const badge = document.createElement('span'); badge.className = 'ti-custom-badge'; badge.textContent = 'custom';
+        lbl.appendChild(badge);
+      }
+      const tid = document.createElement('div'); tid.className = 'diff-item-id'; tid.textContent = id;
+      names.appendChild(lbl); names.appendChild(tid);
+      item.appendChild(pill); item.appendChild(names);
+      if (count !== undefined) {
+        const cnt = document.createElement('div'); cnt.className = 'diff-item-count';
+        cnt.textContent = (count > 0 ? '+' : '') + count;
+        item.appendChild(cnt);
+      }
       frag.appendChild(item);
       if (addedEdges || removedEdges) {
         appendEdgeSubgroup(id, addedEdges || [], removedEdges || []);
@@ -470,6 +478,9 @@ function diffFillInspector(d) {
         const row  = el('div', isAdded ? 'diff-field-row dfr-added' : 'diff-field-row dfr-removed');
         const wrap = el('div', 'diff-field-text');
         const name = el('div','diff-field-name'); setText(name, f.name);
+        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
+          const badge = el('span','insp-custom-badge'); badge.textContent = 'custom'; name.appendChild(badge);
+        }
         wrap.appendChild(name);
         if (f.label && f.label !== f.name) {
           const lbl = el('div','diff-field-label'); setText(lbl, f.label);
@@ -524,31 +535,27 @@ function diffFillInspector(d) {
 
     // Colour only the cell that has content — the absent (—) cell gets no highlight
     // so green/red never lands on a dash.
-    const bCell = el('div', `diff-field-row${bf ? ' ' + rowCls : ''}`);
-    if (bf) {
-      const wrap = el('div', 'diff-field-text');
-      const n = el('div','diff-field-name'); setText(n, bf.name); wrap.appendChild(n);
-      if (bf.label && bf.label !== bf.name) {
-        const lbl = el('div','diff-field-label'); setText(lbl, bf.label); wrap.appendChild(lbl);
+    const _diffFieldCell = (f, cls) => {
+      const cell = el('div', cls);
+      if (f) {
+        const wrap = el('div', 'diff-field-text');
+        const n = el('div','diff-field-name'); setText(n, f.name);
+        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
+          const badge = el('span','insp-custom-badge'); badge.textContent = 'custom'; n.appendChild(badge);
+        }
+        wrap.appendChild(n);
+        if (f.label && f.label !== f.name) {
+          const lbl = el('div','diff-field-label'); setText(lbl, f.label); wrap.appendChild(lbl);
+        }
+        const t = el('span','diff-field-type'); setText(t, typeLabel(f.type));
+        cell.appendChild(wrap); cell.appendChild(t);
+      } else {
+        cell.appendChild(el('div','diff-field-absent')).textContent = '—';
       }
-      const t = el('span','diff-field-type'); setText(t, typeLabel(bf.type));
-      bCell.appendChild(wrap); bCell.appendChild(t);
-    } else {
-      bCell.appendChild(el('div','diff-field-absent')).textContent = '—';
-    }
-
-    const cCell = el('div', `diff-field-row${cf ? ' ' + rowCls : ''}`);
-    if (cf) {
-      const wrap = el('div', 'diff-field-text');
-      const n = el('div','diff-field-name'); setText(n, cf.name); wrap.appendChild(n);
-      if (cf.label && cf.label !== cf.name) {
-        const lbl = el('div','diff-field-label'); setText(lbl, cf.label); wrap.appendChild(lbl);
-      }
-      const t = el('span','diff-field-type'); setText(t, typeLabel(cf.type));
-      cCell.appendChild(wrap); cCell.appendChild(t);
-    } else {
-      cCell.appendChild(el('div','diff-field-absent')).textContent = '—';
-    }
+      return cell;
+    };
+    const bCell = _diffFieldCell(bf, `diff-field-row${bf ? ' ' + rowCls : ''}`);
+    const cCell = _diffFieldCell(cf, `diff-field-row${cf ? ' ' + rowCls : ''}`);
 
     row.appendChild(bCell); row.appendChild(cCell);
     ic.appendChild(row);

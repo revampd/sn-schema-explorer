@@ -2,9 +2,11 @@ import { Dom } from '../../core/dom.js';
 import { h } from '../../core/template.js';
 
 export const Settings = (() => {
-  const STORAGE_KEY       = 'snse:settings:v1';
-  const FONT_SCALE_KEY    = 'snse:fontScale:v1';
-  const MAX_PNG_SCALE_KEY = 'snse:maxPngScale:v1';
+  const STORAGE_KEY          = 'snse:settings:v1';
+  const FONT_SCALE_KEY       = 'snse:fontScale:v1';
+  const MAX_PNG_SCALE_KEY    = 'snse:maxPngScale:v1';
+  const CUSTOM_PREFIXES_KEY  = 'snse:customPrefixes:v1';
+  const DEFAULT_PREFIXES     = 'u_, x_';
   const features = new Map();
   const subscribers = new Map();
   const anySubscribers = new Set();
@@ -98,8 +100,23 @@ export const Settings = (() => {
     return n;
   }
 
+  function getCustomPrefixes() {
+    try { return localStorage.getItem(CUSTOM_PREFIXES_KEY) || DEFAULT_PREFIXES; } catch { return DEFAULT_PREFIXES; }
+  }
+  function setCustomPrefixes(val) {
+    try { localStorage.setItem(CUSTOM_PREFIXES_KEY, val || DEFAULT_PREFIXES); } catch {}
+  }
+  function isCustomName(name) {
+    if (!name) return false;
+    const prefixes = getCustomPrefixes().split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    const n = name.toLowerCase();
+    return prefixes.some(p => p && n.startsWith(p));
+  }
+
   return { get, set, isEnabled, registerFeature, getFeatures, onChange, onAnyChange,
-           getFontScale, setFontScale, getMaxPngScale, setMaxPngScale, initMaxPngScale };
+           notify,
+           getFontScale, setFontScale, getMaxPngScale, setMaxPngScale, initMaxPngScale,
+           getCustomPrefixes, setCustomPrefixes, isCustomName, DEFAULT_PREFIXES };
 })();
 
 // Apply persisted font scale before first render
@@ -111,6 +128,14 @@ Settings.registerFeature({
   description: 'Save and restore named view configurations from the sidebar.',
   default:     true,
   category:    'features'
+});
+
+Settings.registerFeature({
+  key:         'customHighlight',
+  label:       'Highlight custom tables & fields',
+  description: 'Mark tables and fields whose names start with a configured prefix with a coloured border on the canvas, a badge in the inspector, and an indicator in the sidebar list. Configure prefixes below. Off by default.',
+  default:     false,
+  category:    'display'
 });
 
 Settings.registerFeature({
@@ -276,6 +301,31 @@ export function renderSettingsModal() {
       );
     }
 
+    // Custom prefix input — injected at the bottom of the Display section
+    if (cat === 'display') {
+      const prefixInput = h('input', {
+        type:        'text',
+        class:       'setting-prefix-input',
+        value:       Settings.getCustomPrefixes(),
+        placeholder: Settings.DEFAULT_PREFIXES,
+        title:       'Comma-separated prefixes for "Highlight custom tables & fields"',
+        onBlur:      e => {
+          Settings.setCustomPrefixes(e.target.value.trim());
+          Settings.notify('customHighlight', Settings.isEnabled('customHighlight'));
+        },
+        onKeydown:   e => { if (e.key === 'Enter') e.target.blur(); }
+      });
+      section.appendChild(
+        h('div', { class: 'setting-row' },
+          h('div', { class: 'setting-row-text' },
+            h('div', { class: 'setting-row-label' }, 'Custom prefixes'),
+            h('div', { class: 'setting-row-desc' }, 'Comma-separated name prefixes used by "Highlight custom tables & fields". Any table or field starting with one of these is marked as custom. Default: ' + Settings.DEFAULT_PREFIXES)
+          ),
+          prefixInput
+        )
+      );
+    }
+
     for (const f of items) {
       const enabled = Settings.isEnabled(f.key);
       const toggle = h('div', {
@@ -319,6 +369,7 @@ export function renderSettingsModal() {
             localStorage.removeItem('snse:settings:v1');
             localStorage.removeItem('snse:fontScale:v1');
             localStorage.removeItem('snse:maxPngScale:v1');
+            localStorage.removeItem('snse:customPrefixes:v1');
             localStorage.removeItem('snse:pngExportScale');
             localStorage.removeItem('snse:exportBgColor');
             localStorage.removeItem('snse:pfConfig:v1');

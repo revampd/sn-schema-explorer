@@ -31,6 +31,14 @@
     <div class="guide-tip"><p>Clicking any table entry in the Inspector (References out, Referenced by, Child tables, etc.) immediately selects and navigates to that table in the graph.</p></div>
   </div>
   <div class="guide-card">
+    <h4>Custom tables &amp; fields <em>(when "Highlight custom tables &amp; fields" is enabled)</em></h4>
+    <p>When the <strong>Highlight custom tables &amp; fields</strong> setting is on (Settings → Display), tables and fields whose names match the configured prefixes (default: <code>u_</code>, <code>x_</code>) are visually distinguished:</p>
+    <div class="guide-kv"><span class="guide-key">Canvas</span><span class="guide-val">Custom table nodes get a purple dashed border and purple label.</span></div>
+    <div class="guide-kv"><span class="guide-key">Inspector field list</span><span class="guide-val">Custom fields show a purple <strong>custom</strong> badge next to the field name. The Fields section title also shows the count of custom fields (e.g. <em>Fields (42, 7 custom)</em>).</span></div>
+    <div class="guide-kv"><span class="guide-key">Sidebar table list</span><span class="guide-val">Custom tables show a small <strong>custom</strong> badge next to their label.</span></div>
+    <div class="guide-tip"><p>Configure the prefix list in Settings → Display → Custom prefixes to match your organisation's naming conventions.</p></div>
+  </div>
+  <div class="guide-card">
     <h4>Copying field names</h4>
     <p>Click any field row in the Fields (or Inherited fields) section to copy its technical name to the clipboard. A small toast confirms the copy. Useful when writing encoded queries, business rules, or ACL conditions.</p>
     <div class="guide-tip"><p>The row highlights on hover to indicate it is clickable. Clicking the ancestor badge or the Path Finder button on a row still navigates / opens Path Finder — the copy only fires when clicking the row itself.</p></div>

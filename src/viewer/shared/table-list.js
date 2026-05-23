@@ -1,6 +1,7 @@
 import { graphState, uiState, nodeColor } from '../core/state.js';
 import { Dom } from '../core/dom.js';
 import { h } from '../core/template.js';
+import { Settings } from '../modules/settings/index.js';
 
 const TL_ROW_HEIGHT = (typeof matchMedia === 'function'
   && matchMedia('(pointer: coarse)').matches) ? 42 : 36;
@@ -59,7 +60,10 @@ export function tlRenderVisible() {
     },
       h('div', { class: 'ti-dot', style: { background: nodeColor(n) } }),
       h('div', { class: 'ti-names' },
-        h('div', { class: 'ti-name', title: n.label }, n.label),
+        h('div', { class: 'ti-name', title: n.label }, n.label,
+          Settings.isEnabled('customHighlight') && Settings.isCustomName(n.id)
+            ? h('span', { class: 'ti-custom-badge' }, 'custom') : null
+        ),
         h('div', { class: 'ti-id' }, n.id),
         h('div', { class: 'ti-fields', style: { display: hint ? '' : 'none' } }, hint)
       ),

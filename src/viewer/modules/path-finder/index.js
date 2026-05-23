@@ -805,9 +805,13 @@ function pfRenderResult(container, result, sourceId, fieldName, compact = false)
           title: `Click to focus ${s.to}`,
           onClick: () => focusTable(s.to)
         },
-          h('span', { class: 'pf-step-from' }, s.from),
+          h('span', { class: 'pf-step-from' }, s.from,
+            Settings.isEnabled('customHighlight') && Settings.isCustomName(s.from)
+              ? h('span', { class: 'ti-custom-badge' }, 'custom') : null),
           h('span', { class: 'pf-step-arrow' }, '→'),
-          h('span', { class: 'pf-step-to' },   s.to),
+          h('span', { class: 'pf-step-to' }, s.to,
+            Settings.isEnabled('customHighlight') && Settings.isCustomName(s.to)
+              ? h('span', { class: 'ti-custom-badge' }, 'custom') : null),
           s.fieldName ? h('span', { class: 'pf-step-field' }, `.${s.fieldName}`) : null,
           h('span', { class: 'pf-step-tag' }, tag)
         )
@@ -820,7 +824,9 @@ function pfRenderResult(container, result, sourceId, fieldName, compact = false)
     const lastTable = result.path[result.path.length - 1];
     container.appendChild(
       h('div', { class: 'pf-step', style: { borderLeftColor: 'var(--sn-wasabi)' } },
-        h('span', { class: 'pf-step-from' },  lastTable),
+        h('span', { class: 'pf-step-from' }, lastTable,
+          Settings.isEnabled('customHighlight') && Settings.isCustomName(lastTable)
+            ? h('span', { class: 'ti-custom-badge' }, 'custom') : null),
         h('span', { class: 'pf-step-arrow' }, '→'),
         h('span', { class: 'pf-step-field' }, `.${fieldName}`),
         h('span', { class: 'pf-step-tag' },   'field')

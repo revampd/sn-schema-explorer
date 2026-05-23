@@ -710,7 +710,11 @@ export function renderGraph() {
   }
 
   const nodeSel = nodeG.selectAll('g.node-group').data(simNodes).join('g')
-    .attr('class', d => `node-group${d.core?' core':''}`)
+    .attr('class', d => {
+      let cls = `node-group${d.core ? ' core' : ''}`;
+      if (Settings.isEnabled('customHighlight') && Settings.isCustomName(d.id)) cls += ' node-custom';
+      return cls;
+    })
     .call(d3.drag()
       .on('start',(e,d)=>{ if(!e.active) graphState.simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
       .on('drag', (e,d)=>{ d.fx=e.x; d.fy=e.y; })

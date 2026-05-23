@@ -2,6 +2,7 @@ import { graphState } from '../../core/state.js';
 import { h } from '../../core/template.js';
 import { Pathfinding } from './pathfinding.js';
 import { pfValidate, pfRunSearch, pfSetMode, onPfSetMode } from './index.js';
+import { Settings } from '../settings/index.js';
 
 // ── Autocomplete engine ───────────────────────────────────────────────────────
 
@@ -28,7 +29,8 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
           accept(idx);
         }
       },
-        h('span', { class: 'pf-ac-item-id' }, item.value),
+        h('span', { class: 'pf-ac-item-id' }, item.value,
+          item.custom ? h('span', { class: 'ti-custom-badge' }, 'custom') : null),
         item.subtitle ? h('span', { class: 'pf-ac-item-label' }, item.subtitle) : null,
         item.tag      ? h('span', { class: 'pf-ac-item-tag' },   item.tag)      : null
       );
@@ -98,7 +100,8 @@ function tableSuggestions(query) {
   const out = [];
   for (const n of graphState.graphData.nodes) {
     if (q && !n.id.toLowerCase().includes(q) && !(n.label || '').toLowerCase().includes(q)) continue;
-    out.push({ value: n.id, subtitle: n.label && n.label !== n.id ? n.label : null, kind: 'table' });
+    out.push({ value: n.id, subtitle: n.label && n.label !== n.id ? n.label : null, kind: 'table',
+      custom: Settings.isEnabled('customHighlight') && Settings.isCustomName(n.id) });
     if (out.length >= 50) break;
   }
   out.sort((a, b) => {
@@ -155,6 +158,7 @@ function fieldSuggestions(query) {
         tag:      isRef ? `${meta.type} →` : meta.type,
         kind:     'field',
         continue: isRef,
+        custom:   Settings.isEnabled('customHighlight') && Settings.isCustomName(fname),
       });
       if (out.length >= 80) break;
     }
@@ -183,6 +187,7 @@ function fieldSuggestions(query) {
         subtitle: f.label && f.label !== f.name ? f.label : null,
         tag:      f.type,
         kind:     'field',
+        custom:   Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name),
       });
       if (out.length >= 50) break;
     }

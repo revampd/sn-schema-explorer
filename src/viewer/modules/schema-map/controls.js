@@ -52,6 +52,13 @@ export function initControlsListeners() {
     if (graphState.graphData) { render(); pushHistory(); }
   });
   Settings.onChange('dimOnHover', () => {});
+  Settings.onChange('customHighlight', () => {
+    if (graphState.graphData) render();
+    if (graphState.graphData && uiState.selectedNode) {
+      const node = graphState.graphData.nodes.find(n => n.id === uiState.selectedNode);
+      if (node) fillInspector(node);
+    }
+  });
   Settings.onChange('inheritedRefsInspector', () => {
     if (graphState.graphData && uiState.selectedNode) {
       const node = graphState.graphData.nodes.find(n => n.id === uiState.selectedNode);
