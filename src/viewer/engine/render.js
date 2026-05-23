@@ -549,6 +549,28 @@ export function renderGraph() {
     simEdges, Config.geomForce.fanStep, Config.geomForce.maxFan
   );
 
+  // Pre-build ancestor lookup maps for inherited tooltip refs (rebuilt each render).
+  // _extendsMap: child id → parent id (one hop up)
+  // _refBySourceTarget: source id → Map(target id → { fields: string[], fieldLabels: string[] })
+  const _extendsMap        = new Map();
+  const _refBySourceTarget = new Map();
+  if (graphState.graphData) {
+    for (const e of graphState.graphData.edges) {
+      const s = e.source?.id ?? e.source;
+      const t = e.target?.id ?? e.target;
+      if (e.type === 'extends') {
+        _extendsMap.set(s, t);
+      } else if (e.type === 'reference') {
+        if (!_refBySourceTarget.has(s)) _refBySourceTarget.set(s, new Map());
+        const tm = _refBySourceTarget.get(s);
+        if (!tm.has(t)) tm.set(t, { fields: [], fieldLabels: [] });
+        const entry = tm.get(t);
+        if (e.field)  entry.fields.push(e.field);
+        if (e.label)  entry.fieldLabels.push(e.label);
+      }
+    }
+  }
+
   // Shared tooltip text builder — used by both the visible path and the hit overlay.
   // By this point D3 forceLink has replaced source/target strings with node objects.
   const edgeTitleText = d => {
@@ -562,12 +584,47 @@ export function renderGraph() {
     const labels = d._fieldLabels || [];
     const names  = d._fields      || [];
     const count  = Math.max(labels.length, names.length);
+
+    let directSection = '';
     if (count > 0) {
       const pairs = Array.from({ length: count }, (_, i) => {
         const lbl = labels[i] || '', nm = names[i] || '';
         return lbl && nm && lbl !== nm ? `${lbl} (${nm})` : (lbl || nm);
       });
-      return `${header}\n${pairs.map(p => `• ${p}`).join('\n')}`;
+      directSection = pairs.map(p => `• ${p}`).join('\n');
+    }
+
+    // Inherited reference fields — walk full ancestor chain when feature is on.
+    let inheritedSection = '';
+    if (d.type === 'reference' && Settings.isEnabled('tooltipInheritedRefs')) {
+      const targetId = d.target?.id ?? d.target;
+      let   current  = d.source?.id ?? d.source;
+      const CAP      = 5;
+      const sections = [];
+      while (true) {
+        const parentId = _extendsMap.get(current);
+        if (!parentId) break;
+        const refs = _refBySourceTarget.get(parentId)?.get(targetId);
+        if (refs && refs.fields.length > 0) {
+          const ancestorNode  = graphState.graphData.nodes.find(n => n.id === parentId);
+          const ancestorLabel = ancestorNode?.label || parentId;
+          const pairs = refs.fieldLabels.map((lbl, i) => {
+            const nm = refs.fields[i] || '';
+            return lbl && nm && lbl !== nm ? `${lbl} (${nm})` : (lbl || nm);
+          });
+          const visible  = pairs.slice(0, CAP);
+          const overflow = pairs.length - CAP;
+          let block = `↳ inherited from ${ancestorLabel}:\n${visible.map(p => `  • ${p}`).join('\n')}`;
+          if (overflow > 0) block += `\n  … +${overflow} more`;
+          sections.push(block);
+        }
+        current = parentId;
+      }
+      if (sections.length) inheritedSection = '\n' + sections.join('\n');
+    }
+
+    if (directSection || inheritedSection) {
+      return `${header}\n${directSection}${inheritedSection}`;
     }
 
     // Non-reference edges (extends, m2m, cmdb_rel…) — append label if present.

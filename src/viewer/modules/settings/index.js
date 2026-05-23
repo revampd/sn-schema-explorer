@@ -188,6 +188,14 @@ Settings.registerFeature({
 });
 
 Settings.registerFeature({
+  key:         'tooltipInheritedRefs',
+  label:       'Show inherited refs in edge tooltip',
+  description: 'When hovering a reference edge on the canvas, also show inherited reference fields from ancestor tables in the tooltip. Each ancestor that contributes fields to the same target is grouped under a "↳ inherited from …" label. Off by default.',
+  default:     false,
+  category:    'behaviour'
+});
+
+Settings.registerFeature({
   key:         'expandedFields',
   label:       'Expanded field view',
   description: 'Show each selected table\'s fields inline inside its node rectangle in Schema Map. Useful for at-a-glance schema inspection, but expands nodes vertically and can clutter the canvas — especially on tables with hundreds of fields like cmdb_ci_service. Off by default.',

@@ -9,7 +9,7 @@ import { openPanel, closePanel } from '../engine/canvas.js';
 import { applyTableFilter } from '../modules/search/index.js';
 import { fitGraph } from '../modules/export/index.js';
 import { highlightListItem } from './table-list.js';
-import { updateDensityInfo } from './density-controls.js';
+import { updateDensityInfo, updateHopDepthSlider } from './density-controls.js';
 import { pushHistory } from '../modules/history/index.js';
 
 // _fillInspectorHook: optional override injected by path-finder
@@ -69,6 +69,7 @@ export function clearSelection() {
   Dom.slMaxNodes.value = uiState.maxNodes;
   Dom.valMaxNodes.textContent = uiState.maxNodes;
   updateDensityInfo();
+  updateHopDepthSlider();
   render();
   pushHistory();
 }
@@ -508,6 +509,7 @@ export function focusTable(id, clearSearch = true) {
 
   uiState.selectedNode = id;
   Dom.statFocus.textContent = id;
+  updateHopDepthSlider();
   render();
   fillInspector(node);
   highlightListItem(id);
