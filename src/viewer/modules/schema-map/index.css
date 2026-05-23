@@ -44,6 +44,93 @@
     display: flex; align-items: center; justify-content: space-between;
   }
 
+  /* ── Scope info (read-only) ── */
+  .scope-info-row { display:flex; align-items:center; gap:6px; padding:2px 0; font-size:11px; }
+  .scope-filter-btn {
+    margin-left:auto; background:none; border:1px solid var(--border);
+    border-radius:10px; color:var(--muted); cursor:pointer; font-size:10px; padding:1px 7px;
+  }
+  .scope-filter-btn:hover { border-color:var(--sn-wasabi); color:var(--sn-wasabi); }
+
+  /* ── Dynamic filter panel ── */
+  .filter-panel-header { cursor:pointer; user-select:none; }
+  .filter-badge {
+    background:var(--sn-wasabi); color:#000; border-radius:10px;
+    font-size:10px; min-width:16px; height:16px; padding:0 4px;
+    display:inline-flex; align-items:center; justify-content:center;
+    margin-left:auto;
+  }
+  .filter-panel-toggle {
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    font-size:11px; padding:0 2px;
+  }
+  .filter-body { padding:4px 0 2px; }
+  .fc-row { display:flex; align-items:flex-start; gap:6px; margin-bottom:6px; }
+  .fc-remove-btn {
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    font-size:14px; padding:0; flex-shrink:0; line-height:1;
+  }
+  .fc-remove-btn:hover { color:#e06c75; }
+  .fc-content { flex:1; min-width:0; }
+  .fc-type-label {
+    font-size:10px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.04em; margin-bottom:3px;
+  }
+  .fc-pills { display:flex; flex-wrap:wrap; gap:3px; }
+  .fc-pill {
+    background:rgba(255,255,255,.06); border:1px solid var(--border);
+    border-radius:10px; color:var(--text); cursor:pointer;
+    font-size:10px; padding:2px 7px; transition:all .15s;
+  }
+  .fc-pill:hover:not(.active):not(:disabled) { border-color:var(--sn-wasabi); }
+  .fc-pill.active { background:var(--sn-wasabi); border-color:var(--sn-wasabi); color:#000; }
+  .fc-pill:disabled { opacity:.3; cursor:default; }
+  .fc-text-input, .fc-select {
+    width:100%; box-sizing:border-box; background:rgba(255,255,255,.05);
+    border:1px solid var(--border); border-radius:4px; color:var(--text);
+    font-size:11px; padding:3px 6px;
+  }
+  .fc-text-input:focus, .fc-select:focus { outline:none; border-color:var(--sn-wasabi); }
+  .fc-num {
+    width:55px; background:rgba(255,255,255,.05); border:1px solid var(--border);
+    border-radius:4px; color:var(--text); font-size:11px; padding:3px 5px; text-align:center;
+  }
+  .fc-num:focus { outline:none; border-color:var(--sn-wasabi); }
+  .fc-range { display:flex; align-items:center; gap:5px; }
+  .fc-op-toggle {
+    background:rgba(255,255,255,.06); border:1px solid var(--border);
+    border-radius:4px; color:var(--muted); cursor:pointer;
+    font-size:10px; padding:2px 6px; white-space:nowrap; flex-shrink:0;
+  }
+  .fc-op-toggle:hover { border-color:var(--sn-wasabi); color:var(--sn-wasabi); }
+  .fc-name-row { display:flex; gap:4px; align-items:center; }
+  .fc-add-btn {
+    background:none; border:1px dashed var(--border); border-radius:4px;
+    color:var(--muted); cursor:pointer; font-size:11px;
+    padding:4px 10px; width:100%; margin-top:2px;
+  }
+  .fc-add-btn:hover { border-color:var(--sn-wasabi); color:var(--sn-wasabi); }
+  .fc-picker {
+    background:var(--bg-panel,#1e2230); border:1px solid var(--border);
+    border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,.4);
+    padding:4px 0; position:relative; z-index:10; margin-top:2px;
+  }
+  .fc-picker-item { padding:5px 12px; font-size:11px; cursor:pointer; }
+  .fc-picker-item:hover { background:rgba(255,255,255,.07); }
+  .fc-clear-btn {
+    background:none; border:1px solid var(--border); border-radius:4px;
+    color:var(--muted); cursor:pointer; font-size:10px;
+    padding:3px 8px; width:100%; margin-top:4px;
+  }
+  .fc-clear-btn:hover { border-color:var(--sn-wasabi); color:var(--sn-wasabi); }
+  .fc-scope-pills { display:flex; flex-wrap:wrap; gap:3px; }
+  .fc-scope-pill {
+    display:flex; align-items:center; gap:4px; background:rgba(255,255,255,.06);
+    border:1px solid var(--border); border-radius:10px;
+    cursor:pointer; font-size:10px; padding:2px 7px; transition:all .15s;
+  }
+  .fc-scope-pill.active { border-color:var(--sn-wasabi); background:rgba(196,149,106,.15); }
+
   #table-list {
     flex: 1;
     overflow-y: auto;

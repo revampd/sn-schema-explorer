@@ -23,7 +23,8 @@ export function serializeState() {
     showCmdbRel:    uiState.showCmdbRel,
     showLabels:     uiState.showLabels,
     showFields:     uiState.showFields,
-    selectedScopes: [...uiState.selectedScopes],
+    filterConditions: uiState.filterConditions.map(c =>
+      c.type === 'scope' ? { ...c, values: [...(c.values || [])] } : { ...c }),
     hiddenNodes:    [...uiState.hiddenNodes],
   });
 }
@@ -52,7 +53,19 @@ export function restoreState(json) {
     if (s.maxNodes     !== undefined) uiState.maxNodes     = s.maxNodes;
     if (s.hopDepth     !== undefined) uiState.hopDepth     = s.hopDepth;
     if (s.sortMode     !== undefined) uiState.sortMode     = s.sortMode;
-    if (s.selectedScopes) uiState.selectedScopes = new Set(s.selectedScopes);
+    // filterConditions — new format; fall back to converting old selectedScopes
+    if (s.filterConditions) {
+      uiState.filterConditions = s.filterConditions.map(c =>
+        c.type === 'scope' ? { ...c, values: c.values || [] } : { ...c });
+    } else if (s.selectedScopes && s.selectedScopes.length) {
+      // backward compat: old saved views stored selectedScopes as an array
+      uiState.filterConditions = [{ id: 'fc_compat', type: 'scope', values: s.selectedScopes }];
+    } else {
+      uiState.filterConditions = [];
+    }
+    // Keep selectedScopes in sync for consumers that still read it directly
+    { const sc = uiState.filterConditions.find(c => c.type === 'scope');
+      uiState.selectedScopes = new Set(sc?.values ?? []); }
     uiState.hiddenNodes.clear();
     if (s.hiddenNodes) s.hiddenNodes.forEach(id => uiState.hiddenNodes.add(id));
     _postRestoreCallback(s.selectedNode);

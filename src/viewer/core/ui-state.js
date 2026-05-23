@@ -13,6 +13,7 @@ export const uiState = {
   showCmdbRel:         false,
   showFields:          false,
   selectedScopes:      new Set(),
+  filterConditions:    [],
   connectedNodes:      new Set(),
   _lastInheritedSeeds: new Set(),
   compactMode:         false,

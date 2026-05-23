@@ -160,27 +160,30 @@ function diffSyncVisibility() {
 // ── Sidebar sync ──────────────────────────────────────────────────────────────
 
 function diffSyncSidebar() {
-  const diffSidebar = document.getElementById('diff-sidebar');
-  const tableList   = document.getElementById('table-list');
-  const sortBar     = document.getElementById('sort-bar');
-  const scopeGroup  = document.getElementById('scope-filter-group');
-  const densityG    = document.getElementById('density-group') || Dom.densityGroup;
+  const diffSidebar  = document.getElementById('diff-sidebar');
+  const tableList    = document.getElementById('table-list');
+  const sortBar      = document.getElementById('sort-bar');
+  const scopeGroup   = document.getElementById('scope-info-group');
+  const filterPanel  = document.getElementById('filter-panel');
+  const densityG     = document.getElementById('density-group') || Dom.densityGroup;
   if (!diffSidebar) return;
   if (uiState.viewMode === 'diff') {
     diffSidebar.style.display = 'flex';
-    if (tableList)  tableList.style.display  = 'none';
-    if (sortBar)    sortBar.style.display    = 'none';
-    if (scopeGroup) scopeGroup.style.display = 'none';
-    if (densityG)   densityG.style.display   = '';
+    if (tableList)   tableList.style.display   = 'none';
+    if (sortBar)     sortBar.style.display     = 'none';
+    if (scopeGroup)  scopeGroup.style.display  = 'none';
+    if (filterPanel) filterPanel.style.display = 'none';
+    if (densityG)    densityG.style.display    = '';
     diffUpdateSummary();
     diffBuildList();
   } else {
     diffSidebar.style.display = 'none';
     if (uiState.viewMode !== 'path') {
-      if (tableList)  tableList.style.display  = '';
-      if (sortBar)    sortBar.style.display    = '';
-      if (scopeGroup) scopeGroup.style.display = '';
-      if (densityG)   densityG.style.display   = '';
+      if (tableList)   tableList.style.display   = '';
+      if (sortBar)     sortBar.style.display     = '';
+      if (scopeGroup)  scopeGroup.style.display  = '';
+      if (filterPanel) filterPanel.style.display = '';
+      if (densityG)    densityG.style.display    = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
         tlRenderVisible();

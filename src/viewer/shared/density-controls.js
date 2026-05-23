@@ -1,6 +1,7 @@
 import { graphState, uiState } from '../core/state.js';
 import { Dom } from '../core/dom.js';
 import { computeNeighbourhood } from '../engine/compute.js';
+import { filterOk } from './advanced-filter.js';
 
 // ── Pure DOM updaters (no render.js import — render.js can import these directly) ──
 
@@ -21,9 +22,7 @@ export function updateDensityInfo() {
       el.innerHTML = `Showing <strong>${shown}</strong> of <strong>${total}</strong> neighbours for <strong>${uiState.selectedNode}</strong>.`;
     }
   } else {
-    const scopePassing = uiState.selectedScopes.size === 0
-      ? graphState.graphData.nodes.length
-      : graphState.graphData.nodes.filter(n => uiState.selectedScopes.has(n.scope)).length;
+    const scopePassing = graphState.graphData.nodes.filter(filterOk).length;
     const shown = Math.min(uiState.maxNodes, scopePassing);
     el.innerHTML = `Showing <strong>${shown}</strong> of <strong>${scopePassing}</strong> tables (most connected first). Select a table to explore its neighbourhood.`;
   }

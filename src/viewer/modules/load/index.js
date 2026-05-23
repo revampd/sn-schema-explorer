@@ -5,7 +5,7 @@ import { render, updateInstancePill, updateStats } from '../../engine/render.js'
 import { SavedViews } from '../saved-views/index.js';
 import { DEMO_DATA } from '../../core/constants.js';
 import { applyFilters } from '../schema-map/controls.js';
-import { buildScopeFilter } from '../../shared/scope-filter.js';
+import { buildScopeDisplay, buildFilterPanel } from '../../shared/advanced-filter.js';
 import { updateMaxNodesSlider, updateHopDepthSlider } from '../../shared/density-controls.js';
 import { syncLegendRows } from '../graph-view/controls.js';
 import { buildTableList } from '../../shared/table-list.js';
@@ -89,7 +89,6 @@ export function loadGraph(data) {
 
   updateStats();
   buildScopeColorMap(data.nodes);
-  buildScopeFilter(Dom.scopeList, { onApply: applyFilters });
   buildTableList();
 
   const _nodeById = new Map();
@@ -118,6 +117,88 @@ export function loadGraph(data) {
     if (_adj.has(t)) _adj.get(t).in.push(e);
   });
   data._adj = _adj;
+
+  // Pre-compute edge-membership sets for the dynamic filter
+  const _refOutIds = new Set(), _refInIds = new Set();
+  const _extOutIds = new Set(), _extInIds = new Set();
+  const _m2mIds = new Set(), _relIds = new Set();
+  const _viewIds = new Set(), _cmdbRelIds = new Set();
+  const _childrenOf = new Map();
+
+  for (const e of data.edges) {
+    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
+    if (e.type === 'reference') { _refOutIds.add(s); _refInIds.add(t); }
+    if (e.type === 'extends')   {
+      _extOutIds.add(s); _extInIds.add(t);
+      if (!_childrenOf.has(t)) _childrenOf.set(t, []);
+      _childrenOf.get(t).push(s);
+    }
+    if (e.type === 'm2m')       { _m2mIds.add(s);    _m2mIds.add(t); }
+    if (e.type === 'rel')       { _relIds.add(s);     _relIds.add(t); }
+    if (e.type === 'view')      { _viewIds.add(s);    _viewIds.add(t); }
+    if (e.type === 'cmdb_rel')  { _cmdbRelIds.add(s); _cmdbRelIds.add(t); }
+  }
+  // BFS from cmdb_ci to collect the full CI hierarchy (for tableType:'cmdb' filter)
+  const _cmdbCiIds = new Set();
+  if (data._nodeById.has('cmdb_ci')) {
+    const q = ['cmdb_ci'], seen = new Set(q);
+    while (q.length) {
+      const id = q.shift(); _cmdbCiIds.add(id);
+      (_childrenOf.get(id) || []).forEach(c => { if (!seen.has(c)) { seen.add(c); q.push(c); } });
+    }
+  }
+  Object.assign(data, { _refOutIds, _refInIds, _extOutIds, _extInIds,
+                        _m2mIds, _relIds, _viewIds, _cmdbRelIds, _cmdbCiIds });
+
+  // Scope display + filter panel
+  buildScopeDisplay(Dom.scopeInfoList);
+  if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
+
+  // Show the two new sidebar groups
+  const scopeInfoGroup = document.getElementById('scope-info-group');
+  const filterPanelEl  = document.getElementById('filter-panel');
+  if (scopeInfoGroup) scopeInfoGroup.style.display = '';
+  if (filterPanelEl)  filterPanelEl.style.display  = '';
+
+  // Wire collapse toggle for the filter panel header
+  const filterPanelHeader = document.getElementById('filter-panel-header');
+  const filterBody        = Dom.filterBody;
+  const filterToggle      = document.getElementById('filter-panel-toggle');
+  if (filterPanelHeader && filterBody) {
+    filterPanelHeader.addEventListener('click', e => {
+      if (e.target.closest('.filter-panel-toggle') || e.target === filterPanelHeader ||
+          e.target.closest('.filter-panel-header')) {
+        const expanded = filterBody.style.display !== 'none';
+        filterBody.style.display = expanded ? 'none' : 'block';
+        if (filterToggle) {
+          filterToggle.textContent = expanded ? '▸' : '▾';
+          filterToggle.setAttribute('aria-expanded', String(!expanded));
+        }
+      }
+    });
+  }
+
+  // Wire "Filter +" shortcut: adds scope condition, expands filter panel, fires applyFilters
+  const scopeFilterBtn = document.getElementById('scope-filter-btn');
+  if (scopeFilterBtn) {
+    scopeFilterBtn.addEventListener('click', () => {
+      const alreadyHasScope = uiState.filterConditions.some(c => c.type === 'scope');
+      if (!alreadyHasScope) {
+        uiState.filterConditions = [...uiState.filterConditions,
+          { id: 'fc_scope_shortcut', type: 'scope', values: [] }];
+      }
+      // Expand the filter panel
+      if (filterBody) filterBody.style.display = 'block';
+      if (filterToggle) {
+        filterToggle.textContent = '▾';
+        filterToggle.setAttribute('aria-expanded', 'true');
+      }
+      // Re-render the filter panel
+      if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
+      applyFilters();
+    });
+  }
+
   updateMaxNodesSlider();
   updateHopDepthSlider();
   render();

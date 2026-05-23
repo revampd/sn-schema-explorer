@@ -1,4 +1,5 @@
 import { graphState, uiState } from '../../core/state.js';
+import { filterOk } from '../../shared/advanced-filter.js';
 import { Dom } from '../../core/dom.js';
 import { tlSetSpacerHeight, tlRenderVisible, setTableData, getTableDataAll, setHintMode } from '../../shared/table-list.js';
 import { root } from '../../engine/canvas.js';
@@ -73,14 +74,12 @@ const _debouncedGraphDim = debounce(q => {
 export function applyTableFilter(q) {
   if (!graphState.graphData) return;
   const queryRaw = q ?? Dom.searchBox.value.toLowerCase().trim();
-  const hasScope = uiState.selectedScopes.size > 0;
   let hits = null;
   if (_searchMode === 'fields' && queryRaw) hits = fieldSearchMatches(queryRaw);
 
   const tableDataAll = getTableDataAll();
   const filtered = tableDataAll.filter(n => {
-    const scopeOk = !hasScope || uiState.selectedScopes.has(n.scope);
-    if (!scopeOk) return false;
+    if (!filterOk(n)) return false;
     if (!queryRaw) return true;
     if (_searchMode === 'fields') return !!(hits && hits.has(n.id));
     return n.id.includes(queryRaw) || (n.label||'').toLowerCase().includes(queryRaw);

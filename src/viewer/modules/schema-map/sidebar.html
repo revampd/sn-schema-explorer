@@ -36,12 +36,23 @@
     </div>
   </div>
 
-  <!-- Scope filter — populated dynamically when data loads -->
-  <div class="filter-group" id="scope-filter-group">
-    <div class="filter-section-label">Application Scope</div>
-    <div id="scope-list">
-      <div class="scope-empty">Load data to see scopes</div>
+  <!-- Scope info — read-only, shown when data loads -->
+  <div class="filter-group" id="scope-info-group" style="display:none">
+    <div class="filter-section-label">
+      <span>Application Scopes</span>
+      <button class="scope-filter-btn" id="scope-filter-btn" title="Add scope filter">Filter +</button>
     </div>
+    <div id="scope-info-list"><div class="scope-empty">Load data to see scopes</div></div>
+  </div>
+
+  <!-- Dynamic filter builder -->
+  <div class="filter-group" id="filter-panel" style="display:none">
+    <div class="filter-section-label filter-panel-header" id="filter-panel-header">
+      <span>Filters</span>
+      <span class="filter-badge" id="filter-badge" style="display:none">0</span>
+      <button class="filter-panel-toggle" id="filter-panel-toggle" aria-expanded="false">▸</button>
+    </div>
+    <div id="filter-body" class="filter-body" style="display:none"></div>
   </div>
 
   <!-- Sort bar (shown once data is loaded) -->
