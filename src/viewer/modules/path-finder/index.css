@@ -242,6 +242,9 @@
   .pf-dotwalk-copy:hover {
     background: rgba(99,223,78,.18);
   }
+  .pf-dotwalk-label-eq { margin-top: 8px; }
+  /* Encoded-query variant — muted colour to distinguish from the dot-walk */
+  .pf-dotwalk-eq { color: var(--text); opacity: .85; }
   .pf-steps {
     display: flex; flex-direction: column; gap: 3px;
   }

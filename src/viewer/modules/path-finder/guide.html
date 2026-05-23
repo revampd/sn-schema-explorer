@@ -33,7 +33,9 @@
         <p>Click any node in the DAG to open the Inspector with that table's details, without leaving Path Finder.</p>
       </div>
       <div class="guide-card">
-        <h4>Copying a dot-walk</h4>
-        <p>Every result has a copy button (<code>⧉</code>) next to the dot-walk text. Click it to copy the path to your clipboard — paste it into a script, an ACL condition, an email template, or wherever you need a working reference chain.</p>
+        <h4>Copying the result</h4>
+        <p>Every result shows two copy-ready strings, each with its own <code>⧉</code> button:</p>
+        <div class="guide-kv"><span class="guide-key">Dot-walk</span><span class="guide-val">The plain reference chain — e.g. <code>assigned_to.department</code>. Paste into scripts, ACL conditions, email templates, or UI policies.</span></div>
+        <div class="guide-kv"><span class="guide-key">Encoded query</span><span class="guide-val">The same path formatted as a ServiceNow encoded query fragment — e.g. <code>assigned_to.department=&lt;value&gt;</code>. Replace <code>&lt;value&gt;</code> with the desired filter value and paste directly into a GlideRecord query, list filter, or condition builder.</span></div>
       </div>
     </div>

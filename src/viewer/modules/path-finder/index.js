@@ -732,6 +732,32 @@ function pfRenderResult(container, result, sourceId, fieldName, compact = false)
   container.appendChild(summary);
 
   if (steps.length > 0 || fieldName) {
+    const encodedQuery = dotWalk + '=<value>';
+
+    function makeCopyBtn(getText, resetText) {
+      return h('button', {
+        class: 'pf-dotwalk-copy',
+        title: 'Copy to clipboard',
+        onClick: async (e) => {
+          const btn = e.currentTarget;
+          try {
+            await navigator.clipboard.writeText(getText());
+            btn.textContent = '✓';
+            setTimeout(() => { btn.textContent = resetText; }, 1200);
+          } catch {
+            const code = btn.parentElement.querySelector('.pf-dotwalk');
+            if (code) {
+              const range = document.createRange();
+              range.selectNodeContents(code);
+              const sel = window.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+          }
+        }
+      }, resetText);
+    }
+
     const dotwalkBox = h('div', { class: 'pf-dotwalk-wrap' },
       h('div', { class: 'pf-dotwalk-label' }, 'Dot-walk'),
       h('div', { class: 'pf-dotwalk-row' },
@@ -746,27 +772,22 @@ function pfRenderResult(container, result, sourceId, fieldName, compact = false)
             sel.addRange(range);
           }
         }, dotWalk),
-        h('button', {
-          class: 'pf-dotwalk-copy',
-          title: 'Copy to clipboard',
-          onClick: async (e) => {
-            const btn = e.currentTarget;
-            try {
-              await navigator.clipboard.writeText(dotWalk);
-              btn.textContent = '✓';
-              setTimeout(() => { btn.textContent = '⧉'; }, 1200);
-            } catch {
-              const code = btn.parentElement.querySelector('.pf-dotwalk');
-              if (code) {
-                const range = document.createRange();
-                range.selectNodeContents(code);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-              }
-            }
+        makeCopyBtn(() => dotWalk, '⧉')
+      ),
+      h('div', { class: 'pf-dotwalk-label pf-dotwalk-label-eq' }, 'Encoded query'),
+      h('div', { class: 'pf-dotwalk-row' },
+        h('code', {
+          class: 'pf-dotwalk pf-dotwalk-eq',
+          title: 'Click to select all',
+          onClick: function() {
+            const range = document.createRange();
+            range.selectNodeContents(this);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
           }
-        }, '⧉')
+        }, encodedQuery),
+        makeCopyBtn(() => encodedQuery, '⧉')
       )
     );
     container.appendChild(dotwalkBox);
