@@ -5,7 +5,7 @@ import { render } from '../../engine/render.js';
 import { applyTableFilter } from '../search/index.js';
 import { fillInspector } from '../../shared/inspector.js';
 import { syncLegendRows, LEGEND_TYPE_MAP } from '../graph-view/controls.js';
-import { updateMaxNodesSlider, initDensityControls } from '../../shared/density-controls.js';
+import { updateMaxNodesSlider, updateHopDepthSlider, initDensityControls } from '../../shared/density-controls.js';
 import { pushHistory } from '../history/index.js';
 
 export function applyFilters() {
@@ -28,6 +28,7 @@ export function initControlsListeners() {
     def.set(newVal);
     syncLegendRows();
     updateMaxNodesSlider();
+    updateHopDepthSlider();
     render();
     pushHistory();
   });
@@ -52,6 +53,13 @@ export function initControlsListeners() {
     if (graphState.graphData) { render(); pushHistory(); }
   });
   Settings.onChange('dimOnHover', () => {});
+  Settings.onChange('customHighlight', () => {
+    if (graphState.graphData) render();
+    if (graphState.graphData && uiState.selectedNode) {
+      const node = graphState.graphData.nodes.find(n => n.id === uiState.selectedNode);
+      if (node) fillInspector(node);
+    }
+  });
   Settings.onChange('inheritedRefsInspector', () => {
     if (graphState.graphData && uiState.selectedNode) {
       const node = graphState.graphData.nodes.find(n => n.id === uiState.selectedNode);

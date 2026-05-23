@@ -6,7 +6,7 @@ import { SavedViews } from '../saved-views/index.js';
 import { DEMO_DATA } from '../../core/constants.js';
 import { applyFilters } from '../schema-map/controls.js';
 import { buildScopeFilter } from '../../shared/scope-filter.js';
-import { updateMaxNodesSlider } from '../../shared/density-controls.js';
+import { updateMaxNodesSlider, updateHopDepthSlider } from '../../shared/density-controls.js';
 import { syncLegendRows } from '../graph-view/controls.js';
 import { buildTableList } from '../../shared/table-list.js';
 import { focusTable } from '../../shared/inspector.js';
@@ -119,6 +119,7 @@ export function loadGraph(data) {
   });
   data._adj = _adj;
   updateMaxNodesSlider();
+  updateHopDepthSlider();
   render();
   // Enable all view-mode buttons + nav controls now that data is present.
   // Each feature module controls its own button's *visibility*; the load

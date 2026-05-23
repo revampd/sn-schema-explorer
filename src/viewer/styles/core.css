@@ -22,8 +22,9 @@
     --sn-surface:    #042B3E;
     --sn-panel:      #0A3448;
     --sn-border:     rgba(255,255,255,.1);
-    --sn-wasabi:     #63DF4E;
-    --sn-wasabi-dim: rgba(99,223,78,.12);
+    --sn-wasabi:        #63DF4E;
+    --sn-wasabi-dim:    rgba(99,223,78,.12);
+    --custom-highlight: #c4956a;
     --sn-blue:       #0EA5E9;
     --sn-indigo:     #6366F1;
     --sn-purple:     #A855F7;

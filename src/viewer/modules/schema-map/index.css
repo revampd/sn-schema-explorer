@@ -115,6 +115,13 @@
   .table-item.selected { background: rgba(0,229,255,.08); border-left-color: var(--accent); color: var(--accent); }
   .ti-names { flex: 1; min-width: 0; }
   .ti-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  .ti-custom-badge {
+    display: inline-block; margin-left: 5px;
+    font-size: 7px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--custom-highlight); background: rgba(196,149,106,.1);
+    border: 1px solid rgba(196,149,106,.25); border-radius: 2px;
+    padding: 0 3px; vertical-align: middle; line-height: 1.7;
+  }
   .ti-id    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; color: var(--muted); margin-top: 1px; }
   .table-item.selected .ti-id { color: rgba(0,229,255,.6); }
   /* Field-match preview shown beneath a table row when searching by field.
@@ -279,6 +286,8 @@
     filter: drop-shadow(0 0 8px rgba(99,223,78,.35));
   }
   .node-group.core .node-rect { stroke: var(--sn-wasabi); }
+  .node-group.node-custom .node-rect { stroke: var(--custom-highlight); stroke-dasharray: 4 3; }
+  .node-group.node-custom .node-label { fill: var(--custom-highlight); }
   .node-group.dimmed { opacity: .15; }
   /* Hover-dim: lighter dim than search-dim so it's clearly transient.
      Edges don't share a single .edge class — each type has its own —

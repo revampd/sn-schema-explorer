@@ -173,6 +173,19 @@
     border-left-color: rgba(255,255,255,.06);
   }
   .insp-field-inherited .insp-field-name { color: var(--muted); }
+  .insp-field-row--custom { border-left-color: var(--custom-highlight); }
+  .insp-custom-badge {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 7.5px; font-family: inherit; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--custom-highlight);
+    background: rgba(196,149,106,.12);
+    border: 1px solid rgba(196,149,106,.3);
+    border-radius: 3px;
+    padding: 0 4px;
+    vertical-align: middle;
+    line-height: 1.6;
+  }
 
   /* Source ancestor sub-header inside the Inherited Fields section */
   .insp-inherit-source {
