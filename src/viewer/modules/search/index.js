@@ -1,5 +1,5 @@
 import { graphState, uiState } from '../../core/state.js';
-import { filterOk } from '../../shared/advanced-filter.js';
+import { filterOk } from '../../core/advanced-filter.js';
 import { Dom } from '../../core/dom.js';
 import { tlSetSpacerHeight, tlRenderVisible, setTableData, getTableDataAll, setHintMode } from '../../shared/table-list.js';
 import { root } from '../../engine/canvas.js';

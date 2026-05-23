@@ -1,7 +1,7 @@
 import { graphState, uiState } from '../core/state.js';
 import { Dom } from '../core/dom.js';
 import { computeNeighbourhood } from '../engine/compute.js';
-import { filterOk } from './advanced-filter.js';
+import { filterOk } from '../core/advanced-filter.js';
 
 // ── Pure DOM updaters (no render.js import — render.js can import these directly) ──
 

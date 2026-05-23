@@ -1,6 +1,6 @@
 import { graphState, uiState, diffState } from '../core/state.js';
 import { Settings } from '../modules/settings/index.js';
-import { filterOk } from '../shared/advanced-filter.js';
+import { filterOk } from '../core/advanced-filter.js';
 
 export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = false } = {}) {
   const { nodes, edges } = graphState.graphData;

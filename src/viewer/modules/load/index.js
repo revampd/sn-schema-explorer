@@ -5,7 +5,7 @@ import { render, updateInstancePill, updateStats } from '../../engine/render.js'
 import { SavedViews } from '../saved-views/index.js';
 import { DEMO_DATA } from '../../core/constants.js';
 import { applyFilters } from '../schema-map/controls.js';
-import { buildScopeDisplay, buildFilterPanel } from '../../shared/advanced-filter.js';
+import { buildScopeDisplay, buildFilterPanel } from '../../core/advanced-filter.js';
 import { updateMaxNodesSlider, updateHopDepthSlider } from '../../shared/density-controls.js';
 import { syncLegendRows } from '../graph-view/controls.js';
 import { buildTableList } from '../../shared/table-list.js';

@@ -1,6 +1,6 @@
-import { graphState, uiState } from '../core/state.js';
+import { graphState, uiState } from './state.js';
 import { Settings } from '../modules/settings/index.js';
-import { h } from '../core/template.js';
+import { h } from './template.js';
 
 // ── Edge-set accessors keyed by the 8 hasEdge condition types ─────────────────
 
