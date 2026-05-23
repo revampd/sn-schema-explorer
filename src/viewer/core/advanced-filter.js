@@ -156,10 +156,13 @@ export function buildFilterPanel(container, { onApply } = {}) {
 
   function _updateBadge() {
     const badge = document.getElementById('filter-badge');
-    if (!badge) return;
+    const openBtn = document.getElementById('scope-filter-btn');
     const count = uiState.filterConditions.length;
-    badge.textContent = String(count);
-    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+    if (badge) {
+      badge.textContent = String(count);
+      badge.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+    if (openBtn) openBtn.classList.toggle('has-filters', count > 0);
   }
 
   function _render() {

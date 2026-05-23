@@ -26,6 +26,7 @@ export const Dom = (() => {
     filterPanel:     g('filter-panel'),
     filterBadge:     g('filter-badge'),
     filterBody:      g('filter-body'),
+    filterOpenBtn:   g('scope-filter-btn'),
     tableList:       g('table-list'),
     searchBox:       g('search-box'),
     edgeLegend:      g('edge-legend'),

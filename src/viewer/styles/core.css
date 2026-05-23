@@ -285,6 +285,27 @@
     background: var(--sn-wasabi);
     color: #000;
   }
+  /* Filter button — sits to the right of the search-wrap, appears once data loads */
+  .filter-open-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: 2px 8px;
+    white-space: nowrap;
+    margin-left: 4px;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .filter-open-btn:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+  .filter-open-btn.has-filters {
+    border-color: var(--sn-wasabi);
+    color: var(--sn-wasabi);
+  }
 
   #search-box {
     background: var(--panel);

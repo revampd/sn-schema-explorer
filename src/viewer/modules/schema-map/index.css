@@ -45,12 +45,13 @@
   }
 
   /* ── Scope info (read-only) ── */
-  .scope-info-row { display:flex; align-items:center; gap:6px; padding:2px 0; font-size:11px; }
-  .scope-filter-btn {
-    margin-left:auto; background:none; border:1px solid var(--border);
-    border-radius:10px; color:var(--muted); cursor:pointer; font-size:10px; padding:1px 7px;
+  #scope-info-list {
+    max-height: 220px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 1px;
   }
-  .scope-filter-btn:hover { border-color:var(--sn-wasabi); color:var(--sn-wasabi); }
+  #scope-info-list::-webkit-scrollbar { width: 3px; }
+  #scope-info-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .scope-info-row { display:flex; align-items:center; gap:6px; padding:2px 0; font-size:11px; }
 
   /* ── Dynamic filter panel ── */
   .filter-panel-header { cursor:pointer; user-select:none; }
