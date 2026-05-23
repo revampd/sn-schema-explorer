@@ -22,6 +22,12 @@ function escHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Inline D3 — read from node_modules so the output has zero CDN dependencies.
+const _d3Source = readFileSync(
+  rel('node_modules/d3/dist/d3.min.js'), 'utf8'
+);
+const D3_INLINE = `<script>\n${_d3Source}\n</script>`;
+
 // Build version + timestamp — computed once so all targets share the same stamp.
 const _pkg       = JSON.parse(readFileSync(rel('package.json'), 'utf8'));
 const _buildDate = (() => {
@@ -192,6 +198,7 @@ async function buildViewer(targetName) {
   const inj = (content) => () => content;
 
   html = html
+    .replace('<!--INJECT:d3-->',             inj(D3_INLINE))
     .replace('<!--INJECT:title-->',          inj(t.title))
     .replace('<!--INJECT:css-->',            inj('\n' + css + '\n'))
     .replace('<!--INJECT:toolbar-extras-->', inj(toolbarExtras));
