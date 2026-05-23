@@ -124,6 +124,7 @@
   }
   .diff-item:hover { background: rgba(255,255,255,.04); }
   .diff-item.selected { background: rgba(255,255,255,.07); }
+  .diff-item--focused { outline: 1px solid rgba(0,229,255,.3); outline-offset: -1px; background: rgba(0,229,255,.05); }
   .diff-item-pill {
     width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   }

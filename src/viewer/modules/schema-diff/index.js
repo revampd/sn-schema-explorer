@@ -216,7 +216,36 @@ function diffUpdateSummary() {
   });
 }
 
+// ── Keyboard cursor ───────────────────────────────────────────────────────────
+
+let _diffCursor = -1;
+
+function _diffGetItems() {
+  return [...document.querySelectorAll('#diff-list .diff-item')];
+}
+
+function _diffMoveCursor(delta) {
+  const items = _diffGetItems();
+  if (!items.length) return;
+  if (_diffCursor >= 0 && _diffCursor < items.length) {
+    items[_diffCursor].classList.remove('diff-item--focused');
+  }
+  _diffCursor = Math.max(0, Math.min(items.length - 1,
+    _diffCursor < 0 ? (delta > 0 ? 0 : items.length - 1) : _diffCursor + delta
+  ));
+  items[_diffCursor].classList.add('diff-item--focused');
+  items[_diffCursor].scrollIntoView({ block: 'nearest' });
+}
+
+function _diffClearCursor() {
+  _diffGetItems().forEach(el => el.classList.remove('diff-item--focused'));
+  _diffCursor = -1;
+}
+
+// ── diffBuildList ─────────────────────────────────────────────────────────────
+
 function diffBuildList() {
+  _diffClearCursor();
   const list = document.getElementById('diff-list');
   if (!list) return;
   list.classList.toggle('visible', !!diffState._diffData);
@@ -753,6 +782,32 @@ setFillInspectorHook(diffFillInspector);
       pushHistory();
     });
   }
+
+  // Keyboard navigation — only active in diff view with a diff loaded
+  document.addEventListener('keydown', e => {
+    if (uiState.viewMode !== 'diff' || !diffState._diffData) return;
+    // Don't intercept when focus is inside a text input
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _diffMoveCursor(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _diffMoveCursor(-1);
+    } else if (e.key === 'Enter') {
+      if (_diffCursor < 0) return;
+      const items = _diffGetItems();
+      const item = items[_diffCursor];
+      if (!item) return;
+      const id = item.dataset.id;
+      if (id) id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
+    } else if (e.key === 'Escape') {
+      clearSelection();
+      _diffClearCursor();
+    }
+  });
 })();
 
 // ── Register with path-finder + settings ─────────────────────────────────────
@@ -761,6 +816,7 @@ registerModeValidator(mode => mode !== 'diff' || Settings.isEnabled('schemaDiff'
 
 onViewModeChange((mode, prevMode) => {
   if (prevMode === 'diff' && mode !== 'diff') {
+    _diffClearCursor();
     root.selectAll('g.node-group')
       .classed('diff-added', false)
       .classed('diff-removed', false)
