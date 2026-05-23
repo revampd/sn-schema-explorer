@@ -16,10 +16,19 @@ export const EdgeStyle = (() => {
     edgesArr.forEach(e => {
       if (e.type !== 'reference') return;
       const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-      if (!selectedId)             e._rtype = 'reference';
-      else if (s === selectedId)   e._rtype = 'ref-to';
-      else if (t === selectedId)   e._rtype = 'ref-from';
-      else                          e._rtype = 'reference';
+      if (!selectedId)           { e._rtype = 'reference'; return; }
+      if (s === selectedId)      { e._rtype = 'ref-to';   return; }
+      if (t === selectedId)      { e._rtype = 'ref-from'; return; }
+      // Multi-hop edges: use _hopDist (attached to simNode objects by render.js)
+      // to colour by direction — outward = ref-to (green), inward = ref-from (purple).
+      // Falls back to neutral 'reference' if hop data is unavailable (e.g. diff view).
+      const srcHop = typeof e.source === 'object' ? e.source._hopDist : undefined;
+      const tgtHop = typeof e.target === 'object' ? e.target._hopDist : undefined;
+      if (srcHop != null && tgtHop != null && srcHop !== tgtHop) {
+        e._rtype = srcHop < tgtHop ? 'ref-to' : 'ref-from';
+      } else {
+        e._rtype = 'reference';
+      }
     });
   }
 
