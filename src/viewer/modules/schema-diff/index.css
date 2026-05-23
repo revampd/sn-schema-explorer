@@ -87,6 +87,38 @@
   .diff-stat.ds-added   { color: var(--diff-added);   background: var(--diff-added-dim); }
   .diff-stat.ds-removed { color: var(--diff-removed); background: var(--diff-removed-dim); }
   .diff-stat.ds-changed { color: var(--diff-changed); background: var(--diff-changed-dim); }
+  /* ── Diff search / filter input ── */
+  .diff-search-wrap {
+    position: relative;
+    padding: 0 10px 6px;
+    flex-shrink: 0;
+  }
+  .diff-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--sn-border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 5px 26px 5px 8px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .diff-search-input:focus { border-color: var(--accent2); }
+  .diff-search-input::placeholder { color: var(--muted); }
+  .diff-search-clear {
+    position: absolute;
+    right: 16px; top: 50%; transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 12px; padding: 0 2px;
+    line-height: 1;
+    transition: color .1s;
+  }
+  .diff-search-clear:hover { color: var(--text); }
+
   .diff-toggle-row {
     display: none; flex-shrink: 0; align-items: center; justify-content: space-between;
     padding: 0 12px 6px; font-size: 9px; color: var(--muted);
