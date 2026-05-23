@@ -449,15 +449,21 @@ export function renderGraph() {
   const cy = positionedCount > 0 ? cySum / positionedCount : 0;
   const mostlyPositioned = positionedCount >= Math.ceil(visNodes.length * 0.5);
 
+  // R_HOP defined here so it can seed initial node positions as well as the radial force.
+  const R_HOP = 200; // px per hop ring
+
   const simNodes = visNodes.map(n => {
     const clone = {...n};
-    if (typeof clone.x !== 'number' || typeof clone.y !== 'number') {
-      const angle = Math.random() * 2 * Math.PI;
-      const dist  = 80 + Math.random() * 120;
-      clone.x = cx + Math.cos(angle) * dist;
-      clone.y = cy + Math.sin(angle) * dist;
-    }
     clone._hopDist = (hopDist && hopDist[n.id]) ?? 0;
+    if (typeof clone.x !== 'number' || typeof clone.y !== 'number') {
+      const angle  = Math.random() * 2 * Math.PI;
+      // Seed unpositioned nodes at their target ring radius so the simulation
+      // starts close to the desired layout and the radial force has less work to do.
+      const ring   = clone._hopDist > 0 ? clone._hopDist * R_HOP : 80 + Math.random() * 120;
+      const jitter = (Math.random() - 0.5) * 60;
+      clone.x = cx + Math.cos(angle) * (ring + jitter);
+      clone.y = cy + Math.sin(angle) * (ring + jitter);
+    }
     return clone;
   });
   const simEdges = visEdges.map(e => ({...e}));
@@ -520,13 +526,12 @@ export function renderGraph() {
     .alphaMin(SETTLE_ALPHA)
     .velocityDecay(large ? Config.sim.velocityDecay.large : Config.sim.velocityDecay.small);
 
-  // Radial force — only when a node is selected. Gently pushes nodes outward
-  // in concentric rings by hop distance so deeper nodes stay visually outside
-  // shallower ones. strength(0.15) is soft enough not to override link/charge forces.
-  const R_HOP = 150; // px per hop ring
+  // Radial force — only when a node is selected. Pushes nodes to concentric rings
+  // by hop distance so deeper nodes stay visually outside shallower ones.
+  // Nodes are also seeded at their ring radius above, so the force has less work to do.
   if (uiState.selectedNode) {
     graphState.simulation.force('radial',
-      d3.forceRadial(d => (d._hopDist ?? 0) * R_HOP, 0, 0).strength(0.15)
+      d3.forceRadial(d => (d._hopDist ?? 0) * R_HOP, 0, 0).strength(0.35)
     );
   }
 
