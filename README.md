@@ -70,11 +70,15 @@ Key flags:
 | `--instance` | — | Instance URL (required) |
 | `--user` / `--password` | — | Basic Auth credentials |
 | `--apikey` | — | API key auth (alternative to user+password) |
-| `--output` | `schema.json` | Output file path |
+| `--output` | *(format-dependent)* | Output file path |
+| `--format` | `json` | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi` |
+| `--edge-types` | all six | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
 | `--include-record-counts` | off | Add per-table record counts (adds 5–15 min) |
 | `--page-size` | `1000` | Rows per API request |
 
-Environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_PASSWORD`, `SN_APIKEY`, `SN_OUTPUT`, `SN_PAGE_SIZE`.
+When `--output` is omitted the filename is derived from the format: `sn_schema_export.json`, `.md`, `.jsonld`, `.ttl`, or `.yaml`.
+
+Environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_PASSWORD`, `SN_APIKEY`, `SN_OUTPUT`, `SN_FORMAT`, `SN_EDGE_TYPES`, `SN_PAGE_SIZE`.
 
 Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_explorer.html`, or find it in `dist/exporter/` after a build.
 
