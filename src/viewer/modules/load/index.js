@@ -45,26 +45,48 @@ export function injectCiRelEdges(data) {
   }
 }
 
-// Wire the Filter header button once at module load (not per-schema-load) so that
-// multiple loadGraph() calls don't stack duplicate listeners. Also ensures the
-// filter panel container is un-hidden in case a mode change (diff/path) hid it.
-(function wireFilterBtn() {
+// Wire the Filter header button AND filter panel collapse toggle once at module load
+// (not per-schema-load) so that multiple loadGraph() calls don't stack duplicate
+// listeners. Also ensures the filter panel container is un-hidden in case a mode
+// change (diff/path) hid it.
+(function wireFilterControls() {
+  // "Filter" button in header search bar — expands sidebar filter panel + scrolls to it
   const btn = Dom.filterOpenBtn;
-  if (!btn) return;
-  btn.addEventListener('click', () => {
-    const filterPanelEl = document.getElementById('filter-panel');
-    const filterBody    = Dom.filterBody;
-    const filterToggle  = document.getElementById('filter-panel-toggle');
-    // Ensure the panel container itself is visible (may have been hidden by diff/path sync)
-    if (filterPanelEl) filterPanelEl.style.display = '';
-    if (filterBody)    filterBody.style.display = 'block';
-    if (filterToggle) {
-      filterToggle.textContent = '▾';
-      filterToggle.setAttribute('aria-expanded', 'true');
-    }
-    if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
-  });
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const filterPanelEl = document.getElementById('filter-panel');
+      const filterBody    = Dom.filterBody;
+      const filterToggle  = document.getElementById('filter-panel-toggle');
+      // Ensure the panel container itself is visible (may have been hidden by diff/path sync)
+      if (filterPanelEl) filterPanelEl.style.display = '';
+      if (filterBody)    filterBody.style.display = 'block';
+      if (filterToggle) {
+        filterToggle.textContent = '▾';
+        filterToggle.setAttribute('aria-expanded', 'true');
+      }
+      if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
+    });
+  }
+
+  // Collapse toggle on the filter panel header (▸ / ▾)
+  const filterPanelHeader = document.getElementById('filter-panel-header');
+  const filterToggle      = document.getElementById('filter-panel-toggle');
+  if (filterPanelHeader) {
+    filterPanelHeader.addEventListener('click', e => {
+      if (e.target.closest('.filter-panel-toggle') || e.target === filterPanelHeader ||
+          e.target.closest('.filter-panel-header')) {
+        const filterBody = Dom.filterBody;
+        if (!filterBody) return;
+        const expanded = filterBody.style.display !== 'none';
+        filterBody.style.display = expanded ? 'none' : 'block';
+        if (filterToggle) {
+          filterToggle.textContent = expanded ? '▸' : '▾';
+          filterToggle.setAttribute('aria-expanded', String(!expanded));
+        }
+      }
+    });
+  }
 })();
 
 export function loadGraph(data) {
@@ -181,24 +203,6 @@ export function loadGraph(data) {
   const filterPanelEl  = document.getElementById('filter-panel');
   if (scopeInfoGroup) scopeInfoGroup.style.display = '';
   if (filterPanelEl)  filterPanelEl.style.display  = '';
-
-  // Wire collapse toggle for the filter panel header
-  const filterPanelHeader = document.getElementById('filter-panel-header');
-  const filterBody        = Dom.filterBody;
-  const filterToggle      = document.getElementById('filter-panel-toggle');
-  if (filterPanelHeader && filterBody) {
-    filterPanelHeader.addEventListener('click', e => {
-      if (e.target.closest('.filter-panel-toggle') || e.target === filterPanelHeader ||
-          e.target.closest('.filter-panel-header')) {
-        const expanded = filterBody.style.display !== 'none';
-        filterBody.style.display = expanded ? 'none' : 'block';
-        if (filterToggle) {
-          filterToggle.textContent = expanded ? '▸' : '▾';
-          filterToggle.setAttribute('aria-expanded', String(!expanded));
-        }
-      }
-    });
-  }
 
   // Show the "Filter" button in the header search bar (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
