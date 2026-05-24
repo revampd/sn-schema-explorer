@@ -9,6 +9,9 @@ import { buildTableList, tlRenderVisible, tlSetSpacerHeight } from '../../shared
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
 import { registerHistoryExtractor, registerHistoryRestorer, pushHistory } from '../history/index.js';
 import { injectCiRelEdges } from '../load/index.js';
+import { computeDiff } from './compute-diff.js';
+import { onSearchChange, getSearchMode } from '../search/index.js';
+import { onFilterChange, filterOk } from '../../core/advanced-filter.js';
 
 // ── Settings registration ─────────────────────────────────────────────────────
 
@@ -36,110 +39,6 @@ registerHistoryRestorer(snap => {
     diffBuildList();
   }
 });
-
-// ── computeDiff ───────────────────────────────────────────────────────────────
-
-function computeDiff(base, compare) {
-  const baseMap    = new Map(base.nodes.map(n => [n.id, n]));
-  const compareMap = new Map(compare.nodes.map(n => [n.id, n]));
-
-  const added   = new Set();
-  const removed = new Set();
-  const changed = new Map();
-
-  for (const [id] of compareMap) { if (!baseMap.has(id))    added.add(id); }
-  for (const [id] of baseMap)    { if (!compareMap.has(id)) removed.add(id); }
-
-  function edgeDiffKey(e) {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
-    const f = e.type === 'reference' ? (e.field || '') : '';
-    return `${s}||${t}||${e.type}||${f}`;
-  }
-
-  const baseEdgeMap    = new Map((base.edges    || []).map(e => [edgeDiffKey(e), e]));
-  const compareEdgeMap = new Map((compare.edges || []).map(e => [edgeDiffKey(e), e]));
-
-  const allAddedEdges   = [];
-  const allRemovedEdges = [];
-  for (const [key, e] of compareEdgeMap) { if (!baseEdgeMap.has(key))    allAddedEdges.push(e); }
-  for (const [key, e] of baseEdgeMap)    { if (!compareEdgeMap.has(key)) allRemovedEdges.push(e); }
-
-  const tableEdgeChanges = new Map();
-  function getTableEdgeEntry(id) {
-    if (!tableEdgeChanges.has(id)) tableEdgeChanges.set(id, { addedEdges: [], removedEdges: [] });
-    return tableEdgeChanges.get(id);
-  }
-  for (const e of allAddedEdges) {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
-    const owner = baseMap.has(s) || compareMap.has(s) ? s : t;
-    getTableEdgeEntry(owner).addedEdges.push(e);
-  }
-  for (const e of allRemovedEdges) {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
-    const owner = baseMap.has(s) ? s : t;
-    getTableEdgeEntry(owner).removedEdges.push(e);
-  }
-
-  for (const [id, baseNode] of baseMap) {
-    if (!compareMap.has(id)) continue;
-    const cmpNode = compareMap.get(id);
-    const bFields = new Map((baseNode.fields || []).map(f => [f.name, f]));
-    const cFields = new Map((cmpNode.fields  || []).map(f => [f.name, f]));
-
-    const addedFields   = [];
-    const removedFields = [];
-    const changedFields = [];
-    for (const [name, cf] of cFields) {
-      if (!bFields.has(name)) {
-        addedFields.push(cf);
-      } else {
-        const bf = bFields.get(name);
-        if ((bf.type || '') !== (cf.type || '')) {
-          changedFields.push({ name, baseType: bf.type, compareType: cf.type, bf, cf });
-        }
-      }
-    }
-    for (const [name, bf] of bFields) {
-      if (!cFields.has(name)) removedFields.push(bf);
-    }
-
-    const edgeCh = tableEdgeChanges.get(id) || { addedEdges: [], removedEdges: [] };
-    if (addedFields.length || removedFields.length || changedFields.length ||
-        edgeCh.addedEdges.length || edgeCh.removedEdges.length) {
-      changed.set(id, {
-        addedFields, removedFields, changedFields,
-        addedEdges:  edgeCh.addedEdges,
-        removedEdges: edgeCh.removedEdges
-      });
-    }
-  }
-
-  for (const [id, edgeCh] of tableEdgeChanges) {
-    if (changed.has(id)) continue;
-    if (!baseMap.has(id) || !compareMap.has(id)) continue;
-    if (edgeCh.addedEdges.length || edgeCh.removedEdges.length) {
-      changed.set(id, {
-        addedFields: [], removedFields: [], changedFields: [],
-        addedEdges:  edgeCh.addedEdges,
-        removedEdges: edgeCh.removedEdges
-      });
-    }
-  }
-
-  const addedEdgeKeys   = new Set(allAddedEdges.map(e => edgeDiffKey(e)));
-  const removedEdgeKeys = new Set(allRemovedEdges.map(e => edgeDiffKey(e)));
-
-  return {
-    added, removed, changed,
-    baseMap, compareMap,
-    addedEdgeKeys, removedEdgeKeys,
-    allAddedEdges, allRemovedEdges,
-    edgeDiffKey
-  };
-}
 
 // ── Graft helpers ─────────────────────────────────────────────────────────────
 
@@ -216,6 +115,11 @@ function loadDiffSchema(compareData) {
   diffState._diffData._compareVersion      = compareData._schema_version || null;
   diffState._diffShowAll = false;
   diffState._diffFilter  = 'all';
+  diffState._diffSearch  = '';
+  const searchInput = document.getElementById('diff-search-input');
+  const searchClear = document.getElementById('diff-search-clear');
+  if (searchInput) searchInput.value = '';
+  if (searchClear) searchClear.style.display = 'none';
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   diffUpdateSummary();
@@ -262,17 +166,18 @@ function diffSyncVisibility() {
 // ── Sidebar sync ──────────────────────────────────────────────────────────────
 
 function diffSyncSidebar() {
-  const diffSidebar = document.getElementById('diff-sidebar');
-  const tableList   = document.getElementById('table-list');
-  const sortBar     = document.getElementById('sort-bar');
-  const scopeGroup  = document.getElementById('scope-filter-group');
-  const densityG    = document.getElementById('density-group') || Dom.densityGroup;
+  const diffSidebar  = document.getElementById('diff-sidebar');
+  const tableList    = document.getElementById('table-list');
+  const sortBar      = document.getElementById('sort-bar');
+  const scopeGroup = document.getElementById('scope-info-group');
+  const densityG   = document.getElementById('density-group') || Dom.densityGroup;
   if (!diffSidebar) return;
   if (uiState.viewMode === 'diff') {
     diffSidebar.style.display = 'flex';
     if (tableList)  tableList.style.display  = 'none';
     if (sortBar)    sortBar.style.display    = 'none';
     if (scopeGroup) scopeGroup.style.display = 'none';
+    // filter bar and Filter button remain visible — advanced filter applies in diff view too
     if (densityG)   densityG.style.display   = '';
     diffUpdateSummary();
     diffBuildList();
@@ -304,6 +209,8 @@ function diffUpdateSummary() {
   const hasDiff = !!diffState._diffData;
   summary.classList.toggle('visible', hasDiff);
   if (toggleRow) toggleRow.classList.toggle('visible', hasDiff);
+  const searchWrap = document.getElementById('diff-search-wrap');
+  if (searchWrap) searchWrap.style.display = hasDiff ? '' : 'none';
   if (!hasDiff) return;
   if (nAdded)   nAdded.textContent   = diffState._diffData.added.size;
   if (nRemoved) nRemoved.textContent = diffState._diffData.removed.size;
@@ -318,7 +225,36 @@ function diffUpdateSummary() {
   });
 }
 
+// ── Keyboard cursor ───────────────────────────────────────────────────────────
+
+let _diffCursor = -1;
+
+function _diffGetItems() {
+  return [...document.querySelectorAll('#diff-list .diff-item')];
+}
+
+function _diffMoveCursor(delta) {
+  const items = _diffGetItems();
+  if (!items.length) return;
+  if (_diffCursor >= 0 && _diffCursor < items.length) {
+    items[_diffCursor].classList.remove('diff-item--focused');
+  }
+  _diffCursor = Math.max(0, Math.min(items.length - 1,
+    _diffCursor < 0 ? (delta > 0 ? 0 : items.length - 1) : _diffCursor + delta
+  ));
+  items[_diffCursor].classList.add('diff-item--focused');
+  items[_diffCursor].scrollIntoView({ block: 'nearest' });
+}
+
+function _diffClearCursor() {
+  _diffGetItems().forEach(el => el.classList.remove('diff-item--focused'));
+  _diffCursor = -1;
+}
+
+// ── diffBuildList ─────────────────────────────────────────────────────────────
+
 function diffBuildList() {
+  _diffClearCursor();
   const list = document.getElementById('diff-list');
   if (!list) return;
   list.classList.toggle('visible', !!diffState._diffData);
@@ -358,6 +294,36 @@ function diffBuildList() {
 
   function makeGroup(label, items, kind) {
     if (!items.length) return;
+    // Apply advanced filter conditions (same predicate as the schema map)
+    if (uiState.filterConditions?.length) {
+      const nodeMap = kind === 'added'
+        ? diffState._diffData.compareMap
+        : diffState._diffData.baseMap;
+      items = items.filter(({ id }) => {
+        const n = nodeMap?.get(id);
+        return !n || filterOk(n);
+      });
+      if (!items.length) return;
+    }
+    // Apply header search bar filter (Tbl mode only) when in diff view
+    if (Dom.searchBox && getSearchMode() === 'tables') {
+      const q = Dom.searchBox.value.toLowerCase().trim();
+      if (q) {
+        items = items.filter(({ id, nodeLabel }) =>
+          id.toLowerCase().includes(q) || (nodeLabel && nodeLabel.toLowerCase().includes(q))
+        );
+        if (!items.length) return;
+      }
+    }
+    // Apply inline sidebar filter (diff-search-input)
+    const search = (diffState._diffSearch || '').toLowerCase().trim();
+    if (search) {
+      items = items.filter(({ id, nodeLabel }) =>
+        id.toLowerCase().includes(search) ||
+        (nodeLabel && nodeLabel.toLowerCase().includes(search))
+      );
+      if (!items.length) return;
+    }
     const header = document.createElement('div');
     header.className = 'diff-group-header dgh-' + kind;
     header.textContent = label + ' (' + items.length + ')';
@@ -368,14 +334,22 @@ function diffBuildList() {
       item.dataset.id   = id;
       item.dataset.kind = kind;
       if (uiState.selectedNode === id) item.classList.add('selected');
-      item.innerHTML = `
-        <div class="diff-item-pill dp-${kind}"></div>
-        <div class="diff-item-names">
-          <div class="diff-item-label">${nodeLabel || id}</div>
-          <div class="diff-item-id">${id}</div>
-        </div>
-        ${count !== undefined ? `<div class="diff-item-count">${count > 0 ? '+' : ''}${count}</div>` : ''}
-      `;
+      const pill  = document.createElement('div'); pill.className = `diff-item-pill dp-${kind}`;
+      const names = document.createElement('div'); names.className = 'diff-item-names';
+      const lbl   = document.createElement('div'); lbl.className = 'diff-item-label';
+      lbl.textContent = nodeLabel || id;
+      if (Settings.isEnabled('customHighlight') && Settings.isCustomName(id)) {
+        const badge = document.createElement('span'); badge.className = 'ti-custom-badge'; badge.textContent = 'custom';
+        lbl.appendChild(badge);
+      }
+      const tid = document.createElement('div'); tid.className = 'diff-item-id'; tid.textContent = id;
+      names.appendChild(lbl); names.appendChild(tid);
+      item.appendChild(pill); item.appendChild(names);
+      if (count !== undefined) {
+        const cnt = document.createElement('div'); cnt.className = 'diff-item-count';
+        cnt.textContent = (count > 0 ? '+' : '') + count;
+        item.appendChild(cnt);
+      }
       frag.appendChild(item);
       if (addedEdges || removedEdges) {
         appendEdgeSubgroup(id, addedEdges || [], removedEdges || []);
@@ -533,6 +507,9 @@ function diffFillInspector(d) {
         const row  = el('div', isAdded ? 'diff-field-row dfr-added' : 'diff-field-row dfr-removed');
         const wrap = el('div', 'diff-field-text');
         const name = el('div','diff-field-name'); setText(name, f.name);
+        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
+          const badge = el('span','insp-custom-badge'); badge.textContent = 'custom'; name.appendChild(badge);
+        }
         wrap.appendChild(name);
         if (f.label && f.label !== f.name) {
           const lbl = el('div','diff-field-label'); setText(lbl, f.label);
@@ -585,31 +562,29 @@ function diffFillInspector(d) {
     else if (!cf) rowCls = 'dfr-removed';
     else rowCls = 'dfr-changed';
 
-    const bCell = el('div', `diff-field-row ${rowCls}`);
-    if (bf) {
-      const wrap = el('div', 'diff-field-text');
-      const n = el('div','diff-field-name'); setText(n, bf.name); wrap.appendChild(n);
-      if (bf.label && bf.label !== bf.name) {
-        const lbl = el('div','diff-field-label'); setText(lbl, bf.label); wrap.appendChild(lbl);
+    // Colour only the cell that has content — the absent (—) cell gets no highlight
+    // so green/red never lands on a dash.
+    const _diffFieldCell = (f, cls) => {
+      const cell = el('div', cls);
+      if (f) {
+        const wrap = el('div', 'diff-field-text');
+        const n = el('div','diff-field-name'); setText(n, f.name);
+        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
+          const badge = el('span','insp-custom-badge'); badge.textContent = 'custom'; n.appendChild(badge);
+        }
+        wrap.appendChild(n);
+        if (f.label && f.label !== f.name) {
+          const lbl = el('div','diff-field-label'); setText(lbl, f.label); wrap.appendChild(lbl);
+        }
+        const t = el('span','diff-field-type'); setText(t, typeLabel(f.type));
+        cell.appendChild(wrap); cell.appendChild(t);
+      } else {
+        cell.appendChild(el('div','diff-field-absent')).textContent = '—';
       }
-      const t = el('span','diff-field-type'); setText(t, typeLabel(bf.type));
-      bCell.appendChild(wrap); bCell.appendChild(t);
-    } else {
-      bCell.appendChild(el('div','diff-field-absent')).textContent = '—';
-    }
-
-    const cCell = el('div', `diff-field-row ${rowCls}`);
-    if (cf) {
-      const wrap = el('div', 'diff-field-text');
-      const n = el('div','diff-field-name'); setText(n, cf.name); wrap.appendChild(n);
-      if (cf.label && cf.label !== cf.name) {
-        const lbl = el('div','diff-field-label'); setText(lbl, cf.label); wrap.appendChild(lbl);
-      }
-      const t = el('span','diff-field-type'); setText(t, typeLabel(cf.type));
-      cCell.appendChild(wrap); cCell.appendChild(t);
-    } else {
-      cCell.appendChild(el('div','diff-field-absent')).textContent = '—';
-    }
+      return cell;
+    };
+    const bCell = _diffFieldCell(bf, `diff-field-row${bf ? ' ' + rowCls : ''}`);
+    const cCell = _diffFieldCell(cf, `diff-field-row${cf ? ' ' + rowCls : ''}`);
 
     row.appendChild(bCell); row.appendChild(cCell);
     ic.appendChild(row);
@@ -843,6 +818,51 @@ setFillInspectorHook(diffFillInspector);
       pushHistory();
     });
   }
+
+  // Keyboard navigation — only active in diff view with a diff loaded
+  document.addEventListener('keydown', e => {
+    if (uiState.viewMode !== 'diff' || !diffState._diffData) return;
+    // Don't intercept when focus is inside a text input
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _diffMoveCursor(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _diffMoveCursor(-1);
+    } else if (e.key === 'Enter') {
+      if (_diffCursor < 0) return;
+      const items = _diffGetItems();
+      const item = items[_diffCursor];
+      if (!item) return;
+      const id = item.dataset.id;
+      if (id) id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
+    } else if (e.key === 'Escape') {
+      clearSelection();
+      _diffClearCursor();
+    }
+  });
+
+  // Inline sidebar filter wiring
+  const searchInput = document.getElementById('diff-search-input');
+  const searchClear = document.getElementById('diff-search-clear');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      diffState._diffSearch = searchInput.value;
+      if (searchClear) searchClear.style.display = searchInput.value ? '' : 'none';
+      diffBuildList();
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      diffState._diffSearch = '';
+      if (searchInput) searchInput.value = '';
+      searchClear.style.display = 'none';
+      diffBuildList();
+    });
+  }
 })();
 
 // ── Register with path-finder + settings ─────────────────────────────────────
@@ -851,6 +871,7 @@ registerModeValidator(mode => mode !== 'diff' || Settings.isEnabled('schemaDiff'
 
 onViewModeChange((mode, prevMode) => {
   if (prevMode === 'diff' && mode !== 'diff') {
+    _diffClearCursor();
     root.selectAll('g.node-group')
       .classed('diff-added', false)
       .classed('diff-removed', false)
@@ -870,3 +891,13 @@ onViewModeChange((mode, prevMode) => {
 
 Settings.onChange('schemaDiff', diffSyncVisibility);
 diffSyncVisibility();
+
+// Rebuild diff list when the header search changes while in diff view
+onSearchChange(() => {
+  if (uiState.viewMode === 'diff') diffBuildList();
+});
+
+// Rebuild diff list when advanced filter conditions change while in diff view
+onFilterChange(() => {
+  if (uiState.viewMode === 'diff') diffBuildList();
+});

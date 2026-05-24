@@ -1,9 +1,9 @@
 import { graphState, uiState, diffState } from '../core/state.js';
 import { Settings } from '../modules/settings/index.js';
+import { filterOk } from '../core/advanced-filter.js';
 
 export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = false } = {}) {
   const { nodes, edges } = graphState.graphData;
-  const scopeOk = n => uiState.selectedScopes.size === 0 || uiState.selectedScopes.has(n.scope);
 
   const edgeTypeOk = e =>
     (e.type === 'reference' && (uiState.showRefTo || uiState.showRefFrom)) ||
@@ -105,7 +105,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     const reachedFiltered = [...reached]
       .filter(id => {
         const n = _nb ? _nb.get(id) : nodes.find(x => x.id === id);
-        return n && scopeOk(n);
+        return n && filterOk(n);
       })
       .sort((a, b) => {
         if (a === uiState.selectedNode) return -1;
@@ -127,8 +127,14 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           for (const e of [...na.out, ...na.in]) {
             if (!edgeTypeOk(e)) continue;
             const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-            const parentId = (t === id && hopDist[s] === depth - 1) ? s
-                           : (s === id && hopDist[t] === depth - 1) ? t : null;
+            let parentId = null;
+            if (t === id && hopDist[s] === depth - 1) {
+              // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
+              if (e.type !== 'reference' || uiState.showRefTo) parentId = s;
+            } else if (s === id && hopDist[t] === depth - 1) {
+              // outgoing edge id→t: valid ref direction is showRefFrom (deep→shallow)
+              if (e.type !== 'reference' || uiState.showRefFrom) parentId = t;
+            }
             if (parentId && !visNodeIds.has(parentId)) {
               toAdd.add(parentId);
               break;
@@ -142,8 +148,14 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           for (const e of edges) {
             if (!edgeTypeOk(e)) continue;
             const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-            const parentId = (t === id && hopDist[s] === depth - 1) ? s
-                           : (s === id && hopDist[t] === depth - 1) ? t : null;
+            let parentId = null;
+            if (t === id && hopDist[s] === depth - 1) {
+              // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
+              if (e.type !== 'reference' || uiState.showRefTo) parentId = s;
+            } else if (s === id && hopDist[t] === depth - 1) {
+              // outgoing edge id→t: valid ref direction is showRefFrom (deep→shallow)
+              if (e.type !== 'reference' || uiState.showRefFrom) parentId = t;
+            }
             if (parentId && !visNodeIds.has(parentId)) {
               toAdd.add(parentId);
               break;
@@ -155,7 +167,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     }
   } else {
     const edgeCnt = graphState.graphData._edgeCnt || {};
-    const sorted = nodes.filter(scopeOk)
+    const sorted = nodes.filter(filterOk)
       .sort((a, b) => (edgeCnt[b.id] || 0) - (edgeCnt[a.id] || 0));
     const capped = countOnly ? sorted : sorted.slice(0, uiState.maxNodes);
     visNodeIds = new Set(capped.map(n => n.id));
@@ -226,7 +238,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
   }
   const collapsedEdges = [...collapsed.values()];
 
-  return { visNodeIds, connectedNodes: uiState.connectedNodes, visEdges: collapsedEdges };
+  return { visNodeIds, connectedNodes: uiState.connectedNodes, visEdges: collapsedEdges, hopDist };
 }
 
 export const Neighbourhood = Object.freeze({ compute: computeNeighbourhood });

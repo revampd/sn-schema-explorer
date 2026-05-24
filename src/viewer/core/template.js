@@ -16,6 +16,12 @@ const Template = (() => {
         else if (k.startsWith('on') && typeof v === 'function') {
           el.addEventListener(k.slice(2).toLowerCase(), v);
         }
+        // Boolean DOM properties — must be set via property, not setAttribute.
+        // setAttribute('disabled','false') still disables the element because
+        // presence of the attribute is what counts in HTML.
+        else if (k === 'disabled' || k === 'checked' || k === 'selected') {
+          el[k] = !!v;
+        }
         else el.setAttribute(k, v);
       }
     }

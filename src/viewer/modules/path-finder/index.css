@@ -242,6 +242,9 @@
   .pf-dotwalk-copy:hover {
     background: rgba(99,223,78,.18);
   }
+  .pf-dotwalk-label-eq { margin-top: 8px; }
+  /* Encoded-query variant — muted colour to distinguish from the dot-walk */
+  .pf-dotwalk-eq { color: var(--text); opacity: .85; }
   .pf-steps {
     display: flex; flex-direction: column; gap: 3px;
   }
@@ -332,3 +335,54 @@
     border-top: 1px solid var(--sn-border);
   }
   .pf-alt-item.expanded .pf-alt-body { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; }
+
+  /* ── Hop exclusions section ── */
+  .pf-excluded-section {
+    border-top: 1px dashed var(--sn-border);
+    padding-top: 10px;
+    gap: 6px;
+  }
+  .pf-excluded-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pf-excluded-title {
+    font-size: 9px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .pf-excluded-clear {
+    background: none; border: 1px solid var(--sn-border);
+    color: var(--muted); font-family: inherit; font-size: 9px;
+    padding: 2px 6px; border-radius: 3px; cursor: pointer; transition: all .12s;
+  }
+  .pf-excluded-clear:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+  .pf-excluded-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pf-excluded-chip {
+    display: flex; align-items: center; gap: 3px;
+    background: rgba(255,255,255,.06); border: 1px solid var(--sn-border);
+    border-radius: 10px; padding: 2px 6px 2px 8px;
+    font-size: 10px; max-width: 100%;
+  }
+  .pf-excluded-chip-name {
+    color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 160px;
+  }
+  .pf-excluded-chip-remove {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 12px; line-height: 1;
+    padding: 0 1px; flex-shrink: 0; transition: color .1s;
+  }
+  .pf-excluded-chip-remove:hover { color: #e06c75; }
+  /* Field-exclusion chips use the accent colour to distinguish from table chips */
+  .pf-excluded-chip-field .pf-excluded-chip-name { color: var(--accent); }
+  /* Add-table input sits below the chips with a small top gap */
+  .pf-excluded-add { margin-top: 4px; font-size: 10px; padding: 5px 8px; }
+  .pf-excluded-hint {
+    font-size: 9px; color: var(--muted); font-style: italic; line-height: 1.5;
+    margin-top: 4px;
+  }
+  .pf-excluded-hint code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal; font-size: 9px;
+    color: var(--text); background: rgba(255,255,255,.06);
+    padding: 0 3px; border-radius: 2px;
+  }

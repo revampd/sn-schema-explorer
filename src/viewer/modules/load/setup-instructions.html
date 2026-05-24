@@ -29,9 +29,22 @@
               user record and logs the download URL — open it from the result area to
               grab the JSON file. Tune the <code>CONFIG</code> block at the top if you want
               record counts (opt-in, adds ~5–15 min) or direct print-to-output instead.
+              Set <code>format</code> to <code>'markdown'</code> or <code>'jsonld'</code> to export in those formats
+              directly — OWL/Turtle and OpenAPI are not supported in the Background Script
+              (export as JSON, then convert via Export ▾ in the viewer or use the Node.js extractor with
+              <code>--format=owl</code> / <code>--format=openapi</code> instead).
+              Use <code>edgeTypes</code> to control which relationship types appear in the Markdown or JSON-LD output.
               <br><br>
               Expected runtime on a typical instance (~6800 tables):
               <strong>45–90 seconds</strong> without record counts.
+              <br><br>
+              <strong>Background Script UI notes:</strong>
+              <ul style="margin:4px 0 0 16px;padding:0;font-size:10px;line-height:1.7">
+                <li><strong>Application scope picker</strong> — must show <strong>Global</strong> (see warning above)</li>
+                <li><strong>Record for rollback?</strong> — leave checked (default). Creates a rollback context so the script can be rolled back via Script Execution History if something goes wrong.</li>
+                <li><strong>Execute in sandbox?</strong> — leave <strong>unchecked</strong>. Sandbox mode prevents data writes — the script needs to save the JSON as a <code>sys_attachment</code> on your user record, so it will fail silently if this is checked.</li>
+                <li><strong>Cancel after 4 hours?</strong> — leave checked (default). The script completes in under 2 minutes on most instances.</li>
+              </ul>
             </div>
             <div class="setup-notice info" style="margin-bottom:8px">
               <span class="setup-notice-icon">💡</span>
@@ -77,9 +90,25 @@
               or <code>--apikey=&lt;key&gt;</code> for API key auth — the key is sent as the <code>x-sn-apikey</code>
               request header and does not require a username or password.
               <br><br>
+              <strong>Output format:</strong> add <code>--format=&lt;fmt&gt;</code> to control the output format
+              (default: <code>json</code>). The output file extension is set automatically when <code>--output</code>
+              is omitted.
+              <br>
+              <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:10px;display:block;line-height:1.5;white-space:pre">--format=json      → schema JSON  (.json)  — viewer-ready, supports streaming
+--format=markdown  → Markdown doc (.md)   — one ## block per table, for wikis / LLMs
+--format=jsonld    → JSON-LD      (.jsonld)— owl:Class / owl:DatatypeProperty graph
+--format=owl       → OWL/Turtle   (.ttl)  — standard OWL ontology (Protégé, ROBOT)
+--format=openapi   → OpenAPI YAML (.yaml) — component schemas with typed properties</code>
+              <br>
+              Use <code>--edge-types=&lt;list&gt;</code> to control which relationship types appear in Markdown,
+              JSON-LD, OWL, and OpenAPI exports (comma-separated; default: all six).
+              <br>
+              <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:10px;display:block;line-height:1.5;white-space:pre">--edge-types=reference,extends,m2m,rel,view,cmdb_rel</code>
+              <br><br>
               Env-var equivalents are supported:
               <code>SN_INSTANCE</code>, <code>SN_USER</code>, <code>SN_PASSWORD</code>,
-              <code>SN_APIKEY</code>, <code>SN_OUTPUT</code>, <code>SN_PAGE_SIZE</code>.
+              <code>SN_APIKEY</code>, <code>SN_OUTPUT</code>, <code>SN_PAGE_SIZE</code>,
+              <code>SN_FORMAT</code>, <code>SN_EDGE_TYPES</code>.
             </div>
             <div class="code-block">
               <div class="code-block-header">

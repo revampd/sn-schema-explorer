@@ -134,4 +134,19 @@
     font-size: 11px; color: var(--text);
     min-width: 38px; text-align: center;
   }
+  .setting-prefix-input {
+    background: var(--sn-deep);
+    border: 1px solid var(--sn-border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 10px;
+    padding: 4px 7px;
+    width: 110px;
+    flex-shrink: 0;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .setting-prefix-input:focus { border-color: var(--custom-highlight); }
+  .setting-prefix-input::placeholder { color: var(--muted); }
 

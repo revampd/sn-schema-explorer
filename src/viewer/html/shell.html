@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><!--INJECT:title--></title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<!--INJECT:d3-->
 <style><!--INJECT:css--></style>
 </head>
 <body>
@@ -25,6 +25,7 @@
       <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
     </div>
   </div>
+  <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter<span class="filter-badge" id="filter-badge" style="display:none">0</span></button>
   <div class="header-sep desk-only" style="width:1px;height:22px;align-self:center;background:var(--border);flex-shrink:0;opacity:.6"></div>
 
   <div class="header-btns">
@@ -60,6 +61,85 @@
     <span class="hide-tablet"><span class="stat-val" id="stat-focus">—</span></span>
   </div>
 </header>
+
+<!-- Export bar — grid row below the header, toggled by the Export button -->
+<div id="export-bar">
+  <div class="export-bar-inner">
+    <!-- Row 1: data exports — JSON and Markdown with schema/neighbourhood scope -->
+    <div class="export-row">
+      <div class="export-scope-seg" role="group" aria-label="Data export scope">
+        <button class="export-scope-btn active" id="export-data-scope-full"
+                data-scope="full"          data-cat="data"
+                title="Export the entire loaded schema">Full schema</button>
+        <button class="export-scope-btn"         id="export-data-scope-nbhd"
+                data-scope="neighbourhood" data-cat="data"
+                title="Export only the selected table and its visible neighbours">Neighbourhood</button>
+      </div>
+      <div class="export-fmts" role="group" aria-label="Data export format">
+        <button class="export-fmt-btn" id="epb-json"     data-fmt="json"    data-cat="data">↓ JSON</button>
+        <button class="export-fmt-btn" id="epb-markdown" data-fmt="markdown" data-cat="data">↓ Markdown</button>
+        <button class="export-fmt-btn" id="epb-jsonld"   data-fmt="jsonld"  data-cat="data">↓ JSON-LD</button>
+        <button class="export-fmt-btn" id="epb-turtle"   data-fmt="turtle"  data-cat="data">↓ OWL/Turtle</button>
+        <button class="export-fmt-btn" id="epb-openapi"  data-fmt="openapi" data-cat="data">↓ OpenAPI</button>
+      </div>
+      <span id="export-nbhd-hint" class="export-nbhd-hint" hidden>Select a table first</span>
+    </div>
+    <!-- Separator -->
+    <div class="export-row-sep"></div>
+    <!-- Row 2: image exports — PNG and SVG with viewport/full-canvas scope -->
+    <div class="export-row">
+      <div class="export-scope-seg" role="group" aria-label="Image export scope">
+        <button class="export-scope-btn active" id="export-img-scope-view"
+                data-scope="view" data-cat="image"
+                title="Export only what is currently visible in the viewport">Current view</button>
+        <button class="export-scope-btn"         id="export-img-scope-full"
+                data-scope="full" data-cat="image"
+                title="Export the entire canvas — all nodes, regardless of scroll position">Full canvas</button>
+      </div>
+      <div class="export-fmts" role="group" aria-label="Image export format">
+        <button class="export-fmt-btn" id="epb-png" data-fmt="png" data-cat="image">↓ PNG</button>
+        <button class="export-fmt-btn" id="epb-svg" data-fmt="svg" data-cat="image">↓ SVG</button>
+      </div>
+    </div>
+    <!-- Row 2: PNG resolution + background colour -->
+    <div class="export-settings-row">
+      <div class="export-scale-inner" title="PNG output scale — higher means sharper text on slides, larger file">
+        <span class="export-scale-label">PNG resolution</span>
+        <div class="export-scale-slider-wrap">
+          <input type="range" id="export-scale-slider" class="export-scale-slider"
+                 min="1" max="50" step="1" value="2" title="PNG export scale">
+          <span id="export-scale-val" class="export-scale-val">2×</span>
+        </div>
+        <span id="export-scale-info" class="export-scale-info"></span>
+      </div>
+      <div class="export-bg-inner" title="Background fill for PNG and SVG exports">
+        <span class="export-scale-label">Background</span>
+        <div class="export-bg-controls">
+          <button id="export-bg-swatch-btn" class="export-bg-swatch"
+                  title="Pick export background color" aria-expanded="false"></button>
+          <input type="text" id="export-bg-hex" class="export-bg-hex"
+                 placeholder="#rrggbb" maxlength="7" spellcheck="false"
+                 title="Hex color value — type #rrggbb or paste any 3/6-digit hex">
+        </div>
+      </div>
+    </div>
+    <!-- Color picker — expands inline when swatch is clicked -->
+    <div id="export-color-picker" class="export-color-picker" hidden>
+      <canvas id="export-cp-sv" class="export-cp-sv" width="240" height="130"></canvas>
+      <input type="range" id="export-cp-hue" class="export-cp-hue"
+             min="0" max="359" value="0" title="Hue">
+      <div class="export-cp-alpha-wrap">
+        <input type="range" id="export-cp-alpha" class="export-cp-alpha"
+               min="0" max="100" step="1" value="100" title="Opacity">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar — grid row below the export bar, toggled by the Filter button -->
+<div id="filter-bar">
+  <div id="filter-body" class="filter-body"></div>
+</div>
 
 <!--INJECT:schema-map-sidebar-->
 

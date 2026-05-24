@@ -13,6 +13,7 @@ export const uiState = {
   showCmdbRel:         false,
   showFields:          false,
   selectedScopes:      new Set(),
+  filterConditions:    [],
   connectedNodes:      new Set(),
   _lastInheritedSeeds: new Set(),
   compactMode:         false,
@@ -22,6 +23,7 @@ export const uiState = {
   maxNodes:            null,
   hopDepth:            null,
   _viewPositionCache:  { force: null, diff: null },
+  pfExcludedHops:      new Set(),
 };
 
 uiState.maxNodes = Config.render.maxNodesDefault;

@@ -33,7 +33,18 @@
         <p>Click any node in the DAG to open the Inspector with that table's details, without leaving Path Finder.</p>
       </div>
       <div class="guide-card">
-        <h4>Copying a dot-walk</h4>
-        <p>Every result has a copy button (<code>⧉</code>) next to the dot-walk text. Click it to copy the path to your clipboard — paste it into a script, an ACL condition, an email template, or wherever you need a working reference chain.</p>
+        <h4>Copying the result</h4>
+        <p>Every result shows two copy-ready strings, each with its own <code>⧉</code> button:</p>
+        <div class="guide-kv"><span class="guide-key">Dot-walk</span><span class="guide-val">The plain reference chain — e.g. <code>assigned_to.department</code>. Paste into scripts, ACL conditions, email templates, or UI policies.</span></div>
+        <div class="guide-kv"><span class="guide-key">Encoded query</span><span class="guide-val">The same path formatted as a ServiceNow encoded query fragment — e.g. <code>assigned_to.department=&lt;value&gt;</code>. Replace <code>&lt;value&gt;</code> with the desired filter value and paste directly into a GlideRecord query, list filter, or condition builder.</span></div>
+      </div>
+      <div class="guide-card">
+        <h4>Hop exclusions</h4>
+        <p>Some tables act as hubs — <code>sys_user</code>, <code>cmdb_ci</code>, <code>sys_choice</code> — with hundreds of reference edges. The pathfinding algorithm routes through them as cheap intermediates, which can produce noisy results where nearly every path passes through the same hub table.</p>
+        <p>Two exclusion granularities are supported:</p>
+        <p><strong>Table exclusion</strong> — type a bare table name (e.g. <code>sys_user</code>) and select from the autocomplete. The entire table is skipped as an intermediate waypoint but can still be used as the start or end of a path.</p>
+        <p><strong>Field exclusion</strong> — type in dot-walk notation (e.g. <code>task.assigned_to</code>) to exclude a single reference field while leaving the target table reachable via other fields. The autocomplete switches to field mode once you type a dot, listing reference fields on the table before the dot (including inherited fields). Field exclusion chips appear in cyan to distinguish them from table chips.</p>
+        <p>Active exclusions appear as chips above the add input. Click <strong>×</strong> on any chip to re-include it, or use <strong>Clear all</strong> to remove all exclusions at once. The search result updates automatically whenever an exclusion changes.</p>
+        <p>Exclusions persist across reloads (stored in <code>localStorage</code>).</p>
       </div>
     </div>

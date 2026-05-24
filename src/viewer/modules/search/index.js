@@ -1,4 +1,5 @@
 import { graphState, uiState } from '../../core/state.js';
+import { filterOk } from '../../core/advanced-filter.js';
 import { Dom } from '../../core/dom.js';
 import { tlSetSpacerHeight, tlRenderVisible, setTableData, getTableDataAll, setHintMode } from '../../shared/table-list.js';
 import { root } from '../../engine/canvas.js';
@@ -13,6 +14,9 @@ export function setSearchData(nodeById, fieldSearchIndex) {
 }
 
 let _searchMode = 'tables';
+const _searchChangeListeners = [];
+export function onSearchChange(fn) { _searchChangeListeners.push(fn); }
+export function getSearchMode()    { return _searchMode; }
 
 function debounce(fn, ms) {
   let t;
@@ -70,14 +74,12 @@ const _debouncedGraphDim = debounce(q => {
 export function applyTableFilter(q) {
   if (!graphState.graphData) return;
   const queryRaw = q ?? Dom.searchBox.value.toLowerCase().trim();
-  const hasScope = uiState.selectedScopes.size > 0;
   let hits = null;
   if (_searchMode === 'fields' && queryRaw) hits = fieldSearchMatches(queryRaw);
 
   const tableDataAll = getTableDataAll();
   const filtered = tableDataAll.filter(n => {
-    const scopeOk = !hasScope || uiState.selectedScopes.has(n.scope);
-    if (!scopeOk) return false;
+    if (!filterOk(n)) return false;
     if (!queryRaw) return true;
     if (_searchMode === 'fields') return !!(hits && hits.has(n.id));
     return n.id.includes(queryRaw) || (n.label||'').toLowerCase().includes(queryRaw);
@@ -101,6 +103,16 @@ export function applyTableFilter(q) {
   Dom.tableList.scrollTop = 0;
   tlRenderVisible();
   setHintMode(_searchMode === 'fields' && !!queryRaw);
+
+  // Update result count indicator in sort bar
+  if (Dom.tableCount) {
+    const total = getTableDataAll().length;
+    const hasActiveFilter = uiState.filterConditions.length > 0 || !!queryRaw;
+    Dom.tableCount.textContent = hasActiveFilter
+      ? `${filtered.length} / ${total}`
+      : String(total);
+    Dom.tableCount.classList.toggle('table-count--filtered', hasActiveFilter && filtered.length < total);
+  }
 }
 
 export function initSearchListeners() {
@@ -109,6 +121,7 @@ export function initSearchListeners() {
     const q = Dom.searchBox.value.toLowerCase().trim();
     applyTableFilter(q);
     _debouncedGraphDim(q);
+    _searchChangeListeners.forEach(fn => fn(q, _searchMode));
   });
 
   document.querySelectorAll('#search-mode-seg .smt-btn').forEach(btn => {

@@ -9,12 +9,13 @@ import { openPanel, closePanel } from '../engine/canvas.js';
 import { applyTableFilter } from '../modules/search/index.js';
 import { fitGraph } from '../modules/export/index.js';
 import { highlightListItem } from './table-list.js';
-import { updateDensityInfo } from './density-controls.js';
+import { updateDensityInfo, updateHopDepthSlider } from './density-controls.js';
+import { filterOk } from '../core/advanced-filter.js';
 import { pushHistory } from '../modules/history/index.js';
 
-// _fillInspectorHook: optional override injected by path-finder (full build only)
+// _fillInspectorHook: optional override injected by path-finder
 let _fillInspectorHook = null;
-// _makePathLink: injected by path-finder (full build only); absent in lite
+// _makePathLink: injected by path-finder when the feature is enabled
 let _makePathLink = null;
 
 export function setFillInspectorHook(fn) {
@@ -60,15 +61,16 @@ export function clearSelection() {
   Dom.inspectorContent.style.display = 'none';
   Dom.activeFilter.style.display = 'none';
   document.querySelectorAll('.table-item').forEach(el=>el.classList.remove('selected'));
-  const totalAvailable = uiState.selectedScopes.size === 0
+  const totalAvailable = uiState.filterConditions.length === 0
     ? graphState.graphData.nodes.length
-    : graphState.graphData.nodes.filter(n => uiState.selectedScopes.has(n.scope)).length;
+    : graphState.graphData.nodes.filter(filterOk).length;
   const newCeiling = Math.max(1, totalAvailable);
   Dom.slMaxNodes.max = newCeiling;
   if (uiState.maxNodes > newCeiling) uiState.maxNodes = newCeiling;
   Dom.slMaxNodes.value = uiState.maxNodes;
   Dom.valMaxNodes.textContent = uiState.maxNodes;
   updateDensityInfo();
+  updateHopDepthSlider();
   render();
   pushHistory();
 }
@@ -261,9 +263,15 @@ export function fillInspector(d) {
       const col   = typeBadgeColor(f.type);
       const src   = isFlattened ? fieldSourceMap.get(f.name) : null;
       if (src) inheritedCount++;
-      const row   = el('div','insp-field-row' + (src ? ' insp-field-inherited' : ''));
+      const isCustomField = Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name);
+      const row   = el('div','insp-field-row' + (src ? ' insp-field-inherited' : '') + (isCustomField ? ' insp-field-row--custom' : ''));
+      row.dataset.field = f.name;
       const names = el('div','insp-field-names');
       const fname = el('span','insp-field-name');  setText(fname, f.name);
+      if (isCustomField) {
+        const badge = el('span', 'insp-custom-badge'); badge.textContent = 'custom';
+        fname.appendChild(badge);
+      }
       const flabel= el('span','insp-field-label'); setText(flabel, f.label);
       names.appendChild(fname); names.appendChild(flabel);
       const meta  = el('div','insp-field-meta');
@@ -284,9 +292,12 @@ export function fillInspector(d) {
       grid.appendChild(row);
     });
     const ownCount = sortedFields.length - inheritedCount;
+    const customCount = Settings.isEnabled('customHighlight')
+      ? sortedFields.filter(f => Settings.isCustomName(f.name)).length : 0;
+    const customSuffix = customCount > 0 ? `, ${customCount} custom` : '';
     const titleStr = isFlattened && inheritedCount > 0
-      ? `Fields (${sortedFields.length}: ${ownCount} own, ${inheritedCount} inherited)`
-      : `Fields (${sortedFields.length})`;
+      ? `Fields (${sortedFields.length}: ${ownCount} own, ${inheritedCount} inherited${customSuffix})`
+      : `Fields (${sortedFields.length}${customSuffix})`;
     const sec = makeSection('fields', titleStr, [grid]);
     if (sec) ic.appendChild(sec);
   }
@@ -317,6 +328,7 @@ export function fillInspector(d) {
       for (const f of sortedGroupFields) {
         const col   = typeBadgeColor(f.type);
         const row   = el('div', 'insp-field-row insp-field-inherited');
+        row.dataset.field = f.name;
         const names = el('div', 'insp-field-names');
         const fname = el('span','insp-field-name');  setText(fname, f.name);
         const flabel= el('span','insp-field-label'); setText(flabel, f.label);
@@ -498,6 +510,7 @@ export function focusTable(id, clearSearch = true) {
 
   uiState.selectedNode = id;
   Dom.statFocus.textContent = id;
+  updateHopDepthSlider();
   render();
   fillInspector(node);
   highlightListItem(id);

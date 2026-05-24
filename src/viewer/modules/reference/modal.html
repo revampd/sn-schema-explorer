@@ -26,7 +26,7 @@
         <p>CSDM is ServiceNow's prescriptive framework defining <em>which</em> tables to use, <em>how</em> to relate records across the platform, and <em>where</em> the boundary between business and technical concerns sits. Version 5 restructures the model around a five-phase <strong>service lifecycle</strong> — adding a new Ideation &amp; Strategy domain and introducing a cleaner separation between portfolio management and service delivery.</p>
         <div class="callout">
           <h4>CSDM 4 → 5: What changed</h4>
-          <p style="margin:0">The four classic domains (Design, Build, Manage Technical, Manage Business) are superseded by seven purpose-built domains organised along the service lifecycle. <strong>Ideation &amp; Strategy</strong> is entirely new. Manage Portfolio is now a distinct top-level domain. Foundation is unchanged.</p>
+          <p style="margin:0">The four classic domains (Design, Build, Manage Technical, Manage Business) are superseded by seven purpose-built domains organised along the service lifecycle. <strong>Ideation &amp; Strategy</strong> is entirely new — powered by SPM tables (<code>sn_align_core_product_idea</code>, <code>sn_align_core_planning_item</code>). Manage Portfolio is now a distinct top-level domain. Two key table renames: <em>Application Service</em> is now <strong>Service Instance</strong> (<code>cmdb_ci_service_auto</code>); <em>Technical Service</em> is now <strong>Technology Management Service</strong> (<code>cmdb_ci_service_technical</code>). Foundation is unchanged.</p>
         </div>
       </div>
 
@@ -64,9 +64,8 @@
           <text x="84" y="48" text-anchor="middle" class="dtext dlabel">Ideation &amp;</text>
           <text x="84" y="61" text-anchor="middle" class="dtext dlabel">Strategy</text>
           <text x="84" y="82" text-anchor="middle" class="dtext dsub">Product ideas, plans</text>
-          <text x="84" y="98" text-anchor="middle" class="dtext dtbl">pm_idea</text>
-          <text x="84" y="112" text-anchor="middle" class="dtext dtbl">pm_planning_item</text>
-          <text x="84" y="126" text-anchor="middle" class="dtext dtbl">pm_project</text>
+          <text x="84" y="98" text-anchor="middle" class="dtext dtbl">sn_align_core_product_idea</text>
+          <text x="84" y="112" text-anchor="middle" class="dtext dtbl">sn_align_core_planning_item</text>
 
           <!-- Design & Planning -->
           <rect x="168" y="12" width="145" height="193" rx="8" fill="url(#gGreen)" stroke="rgba(99,223,78,.3)" stroke-width="1.2"/>
@@ -91,18 +90,18 @@
           <text x="550" y="48" text-anchor="middle" class="dtext dlabel">Service</text>
           <text x="550" y="61" text-anchor="middle" class="dtext dlabel">Delivery</text>
           <text x="550" y="82" text-anchor="middle" class="dtext dsub">Run &amp; operate services</text>
-          <text x="550" y="98" text-anchor="middle" class="dtext dtbl">cmdb_ci_service</text>
-          <text x="550" y="112" text-anchor="middle" class="dtext dtbl">cmdb_ci_service_instance</text>
-          <text x="550" y="126" text-anchor="middle" class="dtext dtbl">cmdb_ci_service_technical</text>
+          <text x="550" y="98" text-anchor="middle" class="dtext dtbl">cmdb_ci_service_technical</text>
+          <text x="550" y="112" text-anchor="middle" class="dtext dtbl">cmdb_ci_service_auto</text>
+          <text x="550" y="126" text-anchor="middle" class="dtext dtbl">cmdb_ci_query_based_service</text>
 
           <!-- Service Consumption -->
           <rect x="633" y="12" width="137" height="193" rx="8" fill="url(#gGreen)" stroke="rgba(99,223,78,.3)" stroke-width="1.2"/>
           <text x="701" y="48" text-anchor="middle" class="dtext dlabel">Service</text>
           <text x="701" y="61" text-anchor="middle" class="dtext dlabel">Consumption</text>
           <text x="701" y="82" text-anchor="middle" class="dtext dsub">Catalog &amp; fulfillment</text>
-          <text x="701" y="98" text-anchor="middle" class="dtext dtbl">service_offering</text>
-          <text x="701" y="112" text-anchor="middle" class="dtext dtbl">sc_cat_item</text>
-          <text x="701" y="126" text-anchor="middle" class="dtext dtbl">sc_request</text>
+          <text x="701" y="98" text-anchor="middle" class="dtext dtbl">cmdb_ci_service_business</text>
+          <text x="701" y="112" text-anchor="middle" class="dtext dtbl">service_offering</text>
+          <text x="701" y="126" text-anchor="middle" class="dtext dtbl">sc_cat_item</text>
 
           <!-- Lifecycle arrows -->
           <path d="M158,105 L165,105" stroke="rgba(99,223,78,.5)" stroke-width="1.5" marker-end="url(#arr)"/>
@@ -127,20 +126,20 @@
       <div class="grid-2">
         <div class="glass" style="padding:.875rem">
           <ul class="clean" style="margin:0">
-            <li><strong>Simplified Concepts</strong> — fewer, well-defined entities over sprawling custom tables</li>
-            <li><strong>Reporting &amp; Analytics ready</strong> — data shaped for dashboards from the start</li>
-            <li><strong>Prescriptive Relationships</strong> — explicit FK patterns, not ad-hoc links</li>
-            <li><strong>Shared Collaboration</strong> — model co-developed with product teams &amp; customers</li>
-            <li><strong>Agreed Definitions</strong> — each concept has a single, published definition</li>
+            <li><strong>Use simplified concepts</strong> — fewer, well-defined entities over sprawling custom tables</li>
+            <li><strong>Design for reporting and analytics</strong> — data shaped for dashboards from the start</li>
+            <li><strong>Prescribe the data relationships</strong> — explicit FK patterns, not ad-hoc links</li>
+            <li><strong>Share the data model across products</strong> — unified access for all ServiceNow AI Platform products</li>
+            <li><strong>Use clear definitions</strong> — each concept has a single, published definition</li>
           </ul>
         </div>
         <div class="glass" style="padding:.875rem">
           <ul class="clean" style="margin:0">
-            <li><strong>CSDM OOB Tables</strong> — only use tables shipped by ServiceNow</li>
-            <li><strong>Consistent Integrations</strong> — standard import patterns for all products</li>
-            <li><strong>Adoption guidance</strong> — phased crawl→walk→run→fly maturity model</li>
-            <li><strong>Data Governance &amp; Process</strong> — ownership and quality by design</li>
-            <li><strong>Product Use Documentation</strong> — each product documents its CSDM usage</li>
+            <li><strong>Share base-system tables</strong> — use OOB tables shipped by ServiceNow, not custom ones</li>
+            <li><strong>Consistent data integrations</strong> — standard import patterns for all products</li>
+            <li><strong>Speed adoption</strong> — phased Foundation→Crawl→Walk→Run→Fly maturity model</li>
+            <li><strong>Enable data governance and process</strong> — ownership and quality by design</li>
+            <li><strong>Provide practical user documentation</strong> — each product documents its CSDM usage</li>
           </ul>
         </div>
       </div>
@@ -263,12 +262,10 @@
               <h4 style="margin:0;font-size:.95rem">Ideation &amp; Strategy <span class="tag tag-grc" style="vertical-align:middle">NEW</span></h4>
             </div>
           </div>
-          <p>Captures product ideas, planning items, strategic goals and targets before any design work begins. Provides the "why" for everything downstream.</p>
+          <p>Captures product ideas and planning items before any design work begins. Powered by <strong>Strategic Portfolio Management (SPM)</strong> tables — not operational CIs. Provides the "why" for everything downstream.</p>
           <div class="ref-tbl-row">
-            <span class="ref-tbl" data-table="pm_idea">pm_idea</span>
-            <span class="ref-tbl" data-table="pm_planning_item">pm_planning_item</span>
-            <span class="ref-tbl" data-table="pm_project">pm_project</span>
-            <span class="ref-tbl" data-table="goal">goal</span>
+            <span class="ref-tbl" data-table="sn_align_core_product_idea">sn_align_core_product_idea</span>
+            <span class="ref-tbl" data-table="sn_align_core_planning_item">sn_align_core_planning_item</span>
           </div>
         </div>
 
@@ -296,8 +293,9 @@
               <h4 style="margin:0;font-size:.95rem">Build &amp; Integration</h4>
             </div>
           </div>
-          <p>Tracks the SDLC: applications as software artefacts, releases, DevOps pipelines, and the APIs that stitch them together. Links design intent to runnable CIs.</p>
+          <p>Tracks the SDLC: Agile development components, software packages, releases, DevOps pipelines, and APIs. The primary SDLC entity is <code>cmdb_ci_sdlc_component</code>. Note: <code>cmdb_ci_appl</code> is a <em>discoverable infrastructure CI</em>, not an application portfolio record.</p>
           <div class="ref-tbl-row">
+            <span class="ref-tbl" data-table="cmdb_ci_sdlc_component">cmdb_ci_sdlc_component</span>
             <span class="ref-tbl" data-table="cmdb_ci_appl">cmdb_ci_appl</span>
             <span class="ref-tbl" data-table="cmdb_ci_spkg">cmdb_ci_spkg</span>
             <span class="ref-tbl" data-table="rm_release">rm_release</span>
@@ -314,12 +312,12 @@
               <h4 style="margin:0;font-size:.95rem">Service Delivery</h4>
             </div>
           </div>
-          <p>Where services are instantiated and operated. Three OOB service types: <strong>Business Service</strong> (business-facing), <strong>Technology Management Service</strong> (technology-facing), and <strong>Service Instance</strong> (runtime instances including Application Services).</p>
+          <p>Where services are instantiated and operated. Two CSDM service types: <strong>Technology Management Service</strong> (<code>cmdb_ci_service_technical</code>, technology-facing) and <strong>Service Instance</strong> (<code>cmdb_ci_service_auto</code>, runtime instances — discovered, query-based, or tag-based). Business Services are published to consumers from the Service Consumption domain.</p>
           <div class="ref-tbl-row">
-            <span class="ref-tbl" data-table="cmdb_ci_service">cmdb_ci_service</span>
-            <span class="ref-tbl" data-table="cmdb_ci_service_instance">cmdb_ci_service_instance</span>
             <span class="ref-tbl" data-table="cmdb_ci_service_technical">cmdb_ci_service_technical</span>
-            <span class="ref-tbl" data-table="cmdb_ci_app_server">cmdb_ci_app_server</span>
+            <span class="ref-tbl" data-table="cmdb_ci_service_auto">cmdb_ci_service_auto</span>
+            <span class="ref-tbl" data-table="cmdb_ci_query_based_service">cmdb_ci_query_based_service</span>
+            <span class="ref-tbl" data-table="cmdb_ci_service_tags">cmdb_ci_service_tags</span>
           </div>
         </div>
 
@@ -331,8 +329,9 @@
               <h4 style="margin:0;font-size:.95rem">Service Consumption</h4>
             </div>
           </div>
-          <p>How users discover and request services. Service Offerings describe <em>what</em> is available; the request catalog delivers fulfillment. Connects directly to ITSM &amp; HRSD workflows.</p>
+          <p>How users discover and request services. <strong>Business Services</strong> (<code>cmdb_ci_service_business</code>) are the top-level consumer-facing entries; Service Offerings describe <em>what</em> is available under each; the request catalog delivers fulfillment. Connects directly to ITSM &amp; HRSD workflows.</p>
           <div class="ref-tbl-row">
+            <span class="ref-tbl" data-table="cmdb_ci_service_business">cmdb_ci_service_business</span>
             <span class="ref-tbl" data-table="service_offering">service_offering</span>
             <span class="ref-tbl" data-table="sc_cat_item">sc_cat_item</span>
             <span class="ref-tbl" data-table="sc_request">sc_request</span>
@@ -373,7 +372,7 @@
             <tr>
               <td><strong>Service (Logical)</strong></td>
               <td>Service instances and the dependency map</td>
-              <td><span class="ref-tbl" data-table="cmdb_ci_service_instance">cmdb_ci_service_instance</span> <span class="ref-tbl" data-table="cmdb_rel_ci">cmdb_rel_ci</span></td>
+              <td><span class="ref-tbl" data-table="cmdb_ci_service_auto">cmdb_ci_service_auto</span> <span class="ref-tbl" data-table="cmdb_rel_ci">cmdb_rel_ci</span></td>
             </tr>
             <tr>
               <td><strong>Functional</strong></td>
@@ -405,14 +404,12 @@
           <div class="tag tag-grc" style="padding:.3rem .6rem;border-radius:.4rem;font-size:.7rem">NEW</div>
           <h3 style="margin:0">Ideation &amp; Strategy</h3>
         </div>
-        <p>The newest CSDM 5 domain. Captures product ideas, planning items, goals, and strategic programmes before any design or build work begins. Owned by enterprise strategy and portfolio management teams.</p>
+        <p>The newest CSDM 5 domain. Captures product ideas and planning items before any design or build work begins. Powered by <strong>Strategic Portfolio Management (SPM)</strong> tables — these are not CMDB CIs. Owned by enterprise strategy and portfolio management teams.</p>
         <table>
           <thead><tr><th>Table</th><th>Entity</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td><span class="ref-tbl" data-table="pm_idea">pm_idea</span></td><td>Product Idea</td><td>Seed-stage concept, linked to a product or capability</td></tr>
-            <tr><td><span class="ref-tbl" data-table="pm_planning_item">pm_planning_item</span></td><td>Planning Item</td><td>Epic / feature / initiative tracking</td></tr>
-            <tr><td><span class="ref-tbl" data-table="pm_project">pm_project</span></td><td>Strategic Plan / Project</td><td>Formalised delivery container</td></tr>
-            <tr><td><span class="ref-tbl" data-table="goal">goal</span></td><td>Goal</td><td>Strategic objective</td></tr>
+            <tr><td><span class="ref-tbl" data-table="sn_align_core_product_idea">sn_align_core_product_idea</span></td><td>Product Idea</td><td>Seed-stage concept, linked to a product or capability (SPM table)</td></tr>
+            <tr><td><span class="ref-tbl" data-table="sn_align_core_planning_item">sn_align_core_planning_item</span></td><td>Planning Item</td><td>Epic / feature / initiative tracking (SPM table)</td></tr>
           </tbody>
         </table>
       </div>
@@ -434,16 +431,16 @@
       <!-- Build & Integration -->
       <div class="glass">
         <h3>Build &amp; Integration</h3>
-        <p>Tracks software artefacts: running applications as CIs, software packages, releases, APIs, and DevOps pipeline changes. Owned by application teams and DevOps. Connects directly to ITSM Change Management.</p>
+        <p>Tracks the SDLC: Agile development components, software packages, releases, APIs, and DevOps pipeline changes. Owned by application teams and DevOps. Connects directly to ITSM Change Management. <strong>Note:</strong> <code>cmdb_ci_appl</code> is an <em>infrastructure CI</em> (discoverable application instance), not an application portfolio record — do not use it to store managed application details.</p>
         <table>
           <thead><tr><th>Table</th><th>Entity</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_appl">cmdb_ci_appl</span></td><td>Application (CI)</td><td>Installed software instance as a discoverable CI</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_sdlc_component">cmdb_ci_sdlc_component</span></td><td>Agile Development Component</td><td>Primary SDLC tracking entity in CSDM 5 Build &amp; Integration</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_appl">cmdb_ci_appl</span></td><td>Application (CI)</td><td>Discoverable installed software CI (infrastructure, not portfolio)</td></tr>
             <tr><td><span class="ref-tbl" data-table="cmdb_ci_spkg">cmdb_ci_spkg</span></td><td>Software Package</td><td>Distributable software unit</td></tr>
             <tr><td><span class="ref-tbl" data-table="cmdb_ci_api">cmdb_ci_api</span></td><td>API</td><td>Managed API endpoint, links to service layer</td></tr>
             <tr><td><span class="ref-tbl" data-table="rm_release">rm_release</span></td><td>Release</td><td>SDLC release container (ITSM Release Management)</td></tr>
             <tr><td><span class="ref-tbl" data-table="sn_devops_change">sn_devops_change</span></td><td>DevOps Change</td><td>DevOps pipeline change record linked to ITSM change</td></tr>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_application_release">cmdb_ci_application_release</span></td><td>Application Release</td><td>Release artefact for an application</td></tr>
           </tbody>
         </table>
       </div>
@@ -451,14 +448,15 @@
       <!-- Service Delivery -->
       <div class="glass">
         <h3>Service Delivery</h3>
-        <p>Where services are instantiated, operated, and related to the infrastructure that runs them. Defines the service model — Business Service, Technology Management Service, Service Instance — and their dependency map. Owned by Service Management / SRE.</p>
+        <p>Where services are instantiated, operated, and related to the infrastructure that runs them. Defines two CSDM service types: <strong>Technology Management Service</strong> (technology-facing) and <strong>Service Instance</strong> (runtime instances). Business Services are a Service Consumption concept. Owned by Service Management / SRE.</p>
         <table>
-          <thead><tr><th>Table</th><th>Service Type</th><th>Published to</th></tr></thead>
+          <thead><tr><th>Table</th><th>Service Type</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service">cmdb_ci_service</span></td><td>Business Service</td><td>Business users — highest value level</td></tr>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_technical">cmdb_ci_service_technical</span></td><td>Technology Management Service</td><td>Service consumers, manages technology stacks</td></tr>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_instance">cmdb_ci_service_instance</span></td><td>Service Instance (abstract)</td><td>Runtime instantiation of a service (parent of app services)</td></tr>
-            <tr><td><span class="ref-tbl" data-table="cmdb_ci_app_server">cmdb_ci_app_server</span></td><td>Application Service</td><td>Technology-based application service, discovered by Discovery</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_technical">cmdb_ci_service_technical</span></td><td>Technology Management Service</td><td>Technology-facing service, manages technology stacks and components</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_auto">cmdb_ci_service_auto</span></td><td>Service Instance</td><td>Runtime instantiation of a service (parent of sub-types below)</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_discovered">cmdb_ci_service_discovered</span></td><td>↳ Mapped / Manual Service</td><td>Manually mapped or Discovery-populated service instance</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_query_based_service">cmdb_ci_query_based_service</span></td><td>↳ Dynamic CI Group</td><td>Query-based service instance — membership defined by a CI query</td></tr>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_tags">cmdb_ci_service_tags</span></td><td>↳ Tag-based Service</td><td>Service instance membership defined by CI tags</td></tr>
           </tbody>
         </table>
       </div>
@@ -466,10 +464,11 @@
       <!-- Service Consumption -->
       <div class="glass">
         <h3>Service Consumption</h3>
-        <p>How users discover, request, and receive services. Service Offerings define the contractual "what"; catalog items provide the ordering mechanism; requests and tasks track fulfillment. Owned by ITSM / ESM teams.</p>
+        <p>How users discover, request, and receive services. <strong>Business Services</strong> are the top-level consumer-facing entries; Service Offerings define the contractual "what"; catalog items provide the ordering mechanism; requests and tasks track fulfillment. Owned by ITSM / ESM teams.</p>
         <table>
           <thead><tr><th>Table</th><th>Entity</th><th>Notes</th></tr></thead>
           <tbody>
+            <tr><td><span class="ref-tbl" data-table="cmdb_ci_service_business">cmdb_ci_service_business</span></td><td>Business Service</td><td>Business-facing service published to consumers; extends <code>cmdb_ci_service</code></td></tr>
             <tr><td><span class="ref-tbl" data-table="service_offering">service_offering</span></td><td>Service Offering</td><td>Formal offering with SLAs, prices, and linked catalog items</td></tr>
             <tr><td><span class="ref-tbl" data-table="sc_cat_item">sc_cat_item</span></td><td>Catalog Item</td><td>Orderable item in the service portal</td></tr>
             <tr><td><span class="ref-tbl" data-table="sc_request">sc_request</span></td><td>Service Request</td><td>Top-level request container</td></tr>
@@ -485,7 +484,7 @@
         <div class="ref-tbl-row">
           <span class="ref-tbl" data-table="svc_portfolio">svc_portfolio</span>
           <span class="ref-tbl" data-table="pm_portfolio">pm_portfolio</span>
-          <span class="ref-tbl" data-table="cmdb_ci_service">cmdb_ci_service</span>
+          <span class="ref-tbl" data-table="cmdb_ci_service_business">cmdb_ci_service_business</span>
         </div>
       </div>
 
@@ -529,12 +528,12 @@
         <div class="adoption-badge" style="background:rgba(99,223,78,.15);color:#63DF4E">Crawl</div>
         <div class="glass" style="flex:1">
           <h4>Crawl — Application focus</h4>
-          <p>Map business applications to the technical CIs that implement them. Establish the Application Service layer — the dependency map between apps and infrastructure. Prerequisite: Foundation complete.</p>
+          <p>Map business applications to the technical CIs that implement them. Establish the Service Instance layer — the dependency map between apps and infrastructure. Prerequisite: Foundation complete.</p>
           <div class="ref-tbl-row">
             <span class="ref-tbl" data-table="cmdb_ci_business_app">cmdb_ci_business_app</span>
             <span class="ref-tbl" data-table="cmdb_ci_appl">cmdb_ci_appl</span>
             <span class="ref-tbl" data-table="cmdb_ci_app_server">cmdb_ci_app_server</span>
-            <span class="ref-tbl" data-table="cmdb_ci_service_instance">cmdb_ci_service_instance</span>
+            <span class="ref-tbl" data-table="cmdb_ci_service_auto">cmdb_ci_service_auto</span>
           </div>
         </div>
       </div>
@@ -561,7 +560,7 @@
           <h4>Run — Business Services &amp; Portfolio</h4>
           <p>Publish Business Services to business stakeholders. Establish the Service Portfolio. This stage delivers full business-to-technology traceability — incident impact flows from infrastructure all the way to Business Service. Prerequisite: Walk complete.</p>
           <div class="ref-tbl-row">
-            <span class="ref-tbl" data-table="cmdb_ci_service">cmdb_ci_service</span>
+            <span class="ref-tbl" data-table="cmdb_ci_service_business">cmdb_ci_service_business</span>
             <span class="ref-tbl" data-table="svc_portfolio">svc_portfolio</span>
             <span class="ref-tbl" data-table="pm_portfolio">pm_portfolio</span>
             <span class="ref-tbl" data-table="service_offering">service_offering</span>
@@ -574,13 +573,13 @@
         <div class="adoption-badge" style="background:rgba(99,223,78,.38);color:#63DF4E">Fly</div>
         <div class="glass" style="flex:1">
           <h4>Fly — Full CSDM</h4>
-          <p>Activate Business Capabilities, Information Objects, and a complete Request Catalog. This is full CSDM maturity — strategic planning data connects to operational reality end-to-end. Prerequisite: Run complete.</p>
+          <p>Activate Business Capabilities, Information Objects, a complete Request Catalog, and the Ideation &amp; Strategy domain. This is full CSDM maturity — strategic planning data connects to operational reality end-to-end. Prerequisite: Run complete.</p>
           <div class="ref-tbl-row">
             <span class="ref-tbl" data-table="cmdb_ci_business_capability">cmdb_ci_business_capability</span>
             <span class="ref-tbl" data-table="cmdb_ci_information_object">cmdb_ci_information_object</span>
             <span class="ref-tbl" data-table="sc_cat_item">sc_cat_item</span>
-            <span class="ref-tbl" data-table="pm_idea">pm_idea</span>
-            <span class="ref-tbl" data-table="pm_planning_item">pm_planning_item</span>
+            <span class="ref-tbl" data-table="sn_align_core_product_idea">sn_align_core_product_idea</span>
+            <span class="ref-tbl" data-table="sn_align_core_planning_item">sn_align_core_planning_item</span>
           </div>
         </div>
       </div>

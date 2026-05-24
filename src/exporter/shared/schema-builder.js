@@ -29,7 +29,7 @@
  *
  *   sysDbObject:    [{ sys_id, name, label, super_class:{name,displayValue},
  *                      sys_scope:{name,displayValue}, is_extendable, access,
- *                      scriptable_table }]
+ *                      ws_access, scriptable_table }]
  *   sysDictionary:  [{ sys_id, name (table), element (field), column_label,
  *                      internal_type:{value,displayValue},
  *                      reference:{name,displayValue}, max_length, mandatory,
@@ -166,6 +166,11 @@
       if (t.is_extendable === true || t.is_extendable === 'true') {
         extendableSet[t.name] = true;
         tableByName[t.name]._isExtendable = true;
+      }
+      // ws_access=false means the table is not accessible via the Table API / REST.
+      // Only flagged when explicitly false; absence means accessible (the default).
+      if (t.ws_access === false) {
+        tableByName[t.name].ws_access = false;
       }
       if (t.access === 'package_private') {
         packagePrivate.push(t.name);

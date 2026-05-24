@@ -4,7 +4,7 @@ import { graphState, uiState } from '../core/state.js';
 //
 // Builds scope-filter checkboxes into the provided container.
 //
-//   container  — the DOM element to render into (e.g. Dom.scopeList)
+//   container  — the DOM element to render into
 //   opts.onApply() — called whenever the selection changes so the caller can
 //                    trigger a re-render or filter pass
 //

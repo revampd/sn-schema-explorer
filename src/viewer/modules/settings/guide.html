@@ -12,13 +12,15 @@
     <h4>Features</h4>
     <p>Major features that add significant UI surface area. Most are off by default.</p>
     <div class="guide-kv"><span class="guide-key">Saved Views</span><span class="guide-val"><em>On by default.</em> Adds the Saved Views section to the left sidebar. Save and restore named snapshots of your current selection, filters, hop depth, scope, and view mode.</span></div>
-    <div class="guide-kv"><span class="guide-key">Path Finder</span><span class="guide-val"><em>Off by default. Full build only.</em> Adds the Path Finder view mode — shortest dot-walk path between two tables or from a table to a specific field. See the Path Finder tab for full details.</span></div>
-    <div class="guide-kv"><span class="guide-key">Schema Diff</span><span class="guide-val"><em>Off by default. Full build only.</em> Adds the Schema Diff view mode — compare two schema exports to highlight added, removed, and changed tables. See the Schema Diff tab for full details.</span></div>
+    <div class="guide-kv"><span class="guide-key">Path Finder</span><span class="guide-val"><em>Off by default.</em> Adds the Path Finder view mode — shortest dot-walk path between two tables or from a table to a specific field. See the Path Finder tab for full details.</span></div>
+    <div class="guide-kv"><span class="guide-key">Schema Diff</span><span class="guide-val"><em>Off by default.</em> Adds the Schema Diff view mode — compare two schema exports to highlight added, removed, and changed tables. See the Schema Diff tab for full details.</span></div>
   </div>
   <div class="guide-card">
     <h4>Display</h4>
     <p>Control how information is presented on the canvas.</p>
     <div class="guide-kv"><span class="guide-key">Font size</span><span class="guide-val"><em>Default 100%.</em> Scales text throughout the inspector, sidebar, and modals. Use <code>−</code> / <code>+</code> to step in 10% increments (range 80–150%). Persists across reloads and resets to 100% with "Reset to defaults".</span></div>
+    <div class="guide-kv"><span class="guide-key">Highlight custom tables &amp; fields</span><span class="guide-val"><em>Off by default.</em> Marks tables and fields whose names start with a configured prefix with a purple dashed border on the canvas, a <strong>custom</strong> badge in the inspector field list, and a badge in the sidebar table list. The field count in the inspector header also shows how many custom fields are present.</span></div>
+    <div class="guide-kv"><span class="guide-key">Custom prefixes</span><span class="guide-val">Comma-separated list of name prefixes used to classify custom tables and fields. Default: <code>u_, x_</code> — covers user-created tables (<code>u_</code>) and scoped-app tables (<code>x_</code>). Change to match your organisation's naming conventions (e.g. <code>u_, acme_</code>). Applied when "Highlight custom tables &amp; fields" is enabled. Persists across reloads.</span></div>
     <div class="guide-kv"><span class="guide-key">Show field names on edges</span><span class="guide-val"><em>Off by default.</em> Renders the reference field name alongside each edge in Schema Map for the selected table's neighbourhood. Useful for tracing dot-walks visually; can clutter dense graphs.</span></div>
     <div class="guide-kv"><span class="guide-key">Dim unrelated tables on hover</span><span class="guide-val"><em>Off by default.</em> When hovering a table in Schema Map, dims everything that isn't a direct neighbour. Transient — lifts when you move the cursor away.</span></div>
   </div>
@@ -29,6 +31,7 @@
     <div class="guide-kv"><span class="guide-key">Clear search on selection</span><span class="guide-val"><em>On by default.</em> Empties the search box when you click a table, so the next search starts fresh. Sidebar-list clicks bypass this — your filter is preserved.</span></div>
     <div class="guide-kv"><span class="guide-key">Show inherited references in inspector</span><span class="guide-val"><em>Off by default.</em> When a table is selected, also shows the outgoing and incoming references of every ancestor in its inheritance chain, clearly grouped and labelled by ancestor. For example, selecting <code>incident</code> also shows <code>task</code>'s references. Inherited sections start collapsed and have a subtle left-border accent.</span></div>
     <div class="guide-kv"><span class="guide-key">Show inherited edges on canvas</span><span class="guide-val"><em>Off by default.</em> Extends the above to pull ancestor edges into the canvas neighbourhood. Tables that reference <code>task</code> will appear when <code>incident</code> is selected. Can expand the graph significantly on deep chains — keep Hop Depth at 1. Has no effect unless "Show inherited references in inspector" is also on.</span></div>
+    <div class="guide-kv"><span class="guide-key">Show inherited refs in edge tooltip</span><span class="guide-val"><em>Off by default.</em> When hovering a reference edge on the canvas, also shows reference fields inherited from ancestor tables that point to the same target. Each contributing ancestor appears as a separate group: <code>↳ inherited from Task:</code> with up to 5 fields listed; additional fields are summarised as <code>… +N more</code>. The full inheritance chain is walked automatically — no depth limit.</span></div>
   </div>
   <div class="guide-card">
     <h4>Export</h4>
@@ -39,6 +42,6 @@
     <h4>Experimental</h4>
     <p>These features work but may have rough edges — performance issues on large graphs, layout glitches, or unfinished UX. Try them and turn them off if anything misbehaves.</p>
     <div class="guide-kv"><span class="guide-key">Expanded field view</span><span class="guide-val"><em>Off by default.</em> Shows the selected table's fields inline inside its node rectangle in Schema Map. Useful for quick schema inspection; expands node sizes significantly on tables with many fields — consider keeping Max Nodes low.</span></div>
-    <div class="guide-kv"><span class="guide-key">Advanced Path Finder config</span><span class="guide-val"><em>Off by default. Full build only.</em> Adds a Configuration panel to the Path Finder sidebar for tuning minimum/maximum path length and the number of alternatives returned. Requires Path Finder to be enabled.</span></div>
+    <div class="guide-kv"><span class="guide-key">Advanced Path Finder config</span><span class="guide-val"><em>Off by default.</em> Adds a Configuration panel to the Path Finder sidebar for tuning minimum/maximum path length and the number of alternatives returned. Requires Path Finder to be enabled.</span></div>
   </div>
 </div>

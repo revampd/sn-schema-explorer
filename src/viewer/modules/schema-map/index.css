@@ -44,6 +44,249 @@
     display: flex; align-items: center; justify-content: space-between;
   }
 
+  /* ── Scope info (read-only) ── */
+  #scope-info-list {
+    max-height: 220px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  #scope-info-list::-webkit-scrollbar { width: 3px; }
+  #scope-info-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .scope-info-row {
+    display: flex; align-items: center; gap: 6px; padding: 3px 5px; font-size: 11px;
+    cursor: pointer; border-radius: 4px; transition: background .1s; user-select: none;
+  }
+  .scope-info-row:hover { background: rgba(255,255,255,.06); }
+  .scope-info-row.active { background: rgba(196,149,106,.15); }
+  .scope-info-row.active .scope-name { color: var(--sn-wasabi); }
+
+  /* ── Dynamic filter panel ── */
+  .filter-badge {
+    background:var(--sn-wasabi); color:#000; border-radius:10px;
+    font-size:10px; min-width:16px; height:16px; padding:0 4px;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  /* ── Filter bar — ServiceNow-style condition builder ── */
+  /*
+   * Each condition row uses a 4-column grid:
+   *   [label 130px] [operator 110px] [value 1fr] [× 24px]
+   * Conditions stack vertically; "AND" chips between them.
+   */
+  .fc-row {
+    display: grid;
+    grid-template-columns: 130px 110px 1fr 24px;
+    align-items: start;   /* top-align so tall value cells don't push label/op down */
+    gap: 8px;
+    padding: 5px 4px 5px 0;
+    min-height: 34px;
+  }
+  /* rows where the value cell grows (e.g. scope with wrapped pills) */
+  .fc-row--grow {
+    padding: 8px 4px 8px 0;
+  }
+  .fc-row--grow .fc-label-cell,
+  .fc-row--grow .fc-op-cell,
+  .fc-row--grow .fc-remove-btn {
+    /* nudge non-growing cells down a touch so they align with the search input */
+    padding-top: 5px;
+  }
+
+  /* Label column */
+  .fc-label-cell {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 2px;
+  }
+
+  /* Operator column */
+  .fc-op-cell {
+    display: flex;
+    align-items: center;
+  }
+  .fc-op-text {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  /* operator toggle button (for "name" condition) */
+  .fc-op-toggle {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); cursor: pointer;
+    font-size: 11px; padding: 3px 8px; white-space: nowrap;
+    transition: all .15s;
+  }
+  .fc-op-toggle:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+
+  /* Value column */
+  .fc-value-cell {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* Column-mode value cell: search input above, wrapping pills below */
+  .fc-value-cell--col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    overflow: visible;
+  }
+  /* Search input inside value cell */
+  .fc-scope-search {
+    width: 100%; max-width: 280px;
+    background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-size: 11px; padding: 3px 7px;
+  }
+  .fc-scope-search::placeholder { color: var(--muted); }
+  .fc-scope-search:focus { outline: none; border-color: var(--sn-wasabi); }
+  .fc-text-input, .fc-select {
+    flex: 1; min-width: 60px;
+    background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-size: 11px; padding: 3px 7px;
+  }
+  .fc-text-input:focus, .fc-select:focus { outline: none; border-color: var(--sn-wasabi); }
+  /* Native <select> dropdown popup ignores rgba() backgrounds on Windows/Chrome;
+     setting a solid colour on <option> ensures the list is readable in all browsers. */
+  .fc-select option {
+    background: var(--sn-infinite, #13161e);
+    color: var(--text);
+  }
+  .fc-num {
+    width: 60px; background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); font-size: 11px;
+    padding: 3px 6px; text-align: center;
+  }
+  .fc-num:focus { outline: none; border-color: var(--sn-wasabi); }
+  .fc-range-sep { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+
+  /* Remove button */
+  .fc-remove-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 16px; padding: 0; line-height: 1;
+    justify-self: center;
+  }
+  .fc-remove-btn:hover { color: #e06c75; }
+
+  /* tableType pills */
+  .fc-pills { display: flex; flex-wrap: nowrap; gap: 3px; }
+  .fc-pill {
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); cursor: pointer;
+    font-size: 10px; padding: 2px 9px; transition: all .15s; flex-shrink: 0;
+  }
+  .fc-pill:hover:not(.active):not(:disabled) { border-color: var(--sn-wasabi); }
+  .fc-pill.active { background: var(--sn-wasabi); border-color: var(--sn-wasabi); color: #000; }
+  .fc-pill:disabled { opacity: .3; cursor: default; }
+
+  /* scope pills — wrap vertically to grow downward */
+  .fc-scope-pills {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    max-width: 100%;
+  }
+  .fc-scope-pill {
+    display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,.06);
+    border: 1px solid var(--border); border-radius: 10px;
+    cursor: pointer; font-size: 10px; padding: 2px 8px; transition: all .15s;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .fc-scope-pill.active { border-color: var(--sn-wasabi); background: rgba(99,223,78,.12); color: var(--sn-wasabi); }
+  .fc-scope-pill .scope-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* AND / OR connector chip between condition rows — clickable toggle */
+  .fc-connector-chip {
+    display: inline-block;
+    background: none; border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted); cursor: pointer;
+    font-size: 9px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; padding: 2px 7px;
+    margin: 2px 0; transition: all .15s; user-select: none;
+    align-self: flex-start;
+  }
+  .fc-connector-chip:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+  /* OR state — highlighted in accent orange so it stands out from AND */
+  .fc-connector-chip.fc-connector-or {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .fc-connector-chip.fc-connector-or:hover {
+    border-color: var(--accent3); color: #fff;
+    background: rgba(255,159,90,.15);
+  }
+
+  /* Footer row: + Add condition  |  Clear all */
+  .fc-bar-actions {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0 2px;
+  }
+  .fc-add-wrap { position: relative; }
+  .fc-add-btn {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted); cursor: pointer; font-size: 11px;
+    padding: 4px 12px; white-space: nowrap; transition: all .15s;
+  }
+  .fc-add-btn:hover { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
+  .fc-picker {
+    position: absolute; top: calc(100% + 4px); left: 0;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    padding: 4px 0; z-index: 50; min-width: 170px;
+  }
+  .fc-picker-item { padding: 6px 14px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+  .fc-picker-item:hover { background: rgba(255,255,255,.07); }
+  .fc-clear-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 11px; padding: 4px 8px; white-space: nowrap;
+    transition: color .15s;
+  }
+  .fc-clear-btn:hover { color: #e06c75; }
+
+  /* ── Autocomplete widget ── */
+  .fc-ac-wrap { width: 100%; }
+  .fc-ac-wrap .fc-text-input { width: 100%; box-sizing: border-box; }
+  /* Dropdown is portalled to <body> (position:fixed) so it is never clipped
+     by parent overflow or stacking-context z-index in the grid layout.
+     top/left/width are set dynamically by JS via getBoundingClientRect(). */
+  .fc-ac-drop {
+    position: fixed;
+    background: var(--sn-infinite, #13161e);
+    border: 1px solid var(--sn-wasabi);
+    border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.6);
+    z-index: 9999; max-height: 220px; overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sn-wasabi) rgba(255,255,255,.06);
+  }
+  .fc-ac-drop::-webkit-scrollbar { width: 5px; }
+  .fc-ac-drop::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 0 4px 4px 0; }
+  .fc-ac-drop::-webkit-scrollbar-thumb { background: var(--sn-wasabi); border-radius: 3px; }
+  .fc-ac-drop::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--sn-wasabi) 80%, #fff); }
+  .fc-ac-item {
+    padding: 5px 8px; font-size: 11px; cursor: pointer;
+    display: flex; align-items: baseline; gap: 6px;
+    overflow: hidden;
+  }
+  .fc-ac-item:hover, .fc-ac-item.active { background: rgba(255,255,255,.08); }
+  .fc-ac-main { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fc-ac-sub  { color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; }
+
+  /* Cascading helpers */
+  .fc-pill-count {
+    font-size: 9px; color: inherit; opacity: .65;
+    margin-left: 3px; font-variant-numeric: tabular-nums;
+  }
+  .fc-count-hint {
+    font-size: 10px; color: var(--muted); white-space: nowrap; flex-shrink: 0;
+  }
+  .fc-input-hint-row {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+  }
+  .fc-input-hint-row .fc-text-input { flex: 1; min-width: 0; }
+  .fc-input-hint-row .fc-ac-wrap    { flex: 1; min-width: 0; }
+  .fc-hint-text { font-size: 10px; color: var(--muted); font-style: italic; }
+
   #table-list {
     flex: 1;
     overflow-y: auto;
@@ -97,6 +340,11 @@
   .sort-btn:hover  { border-color: var(--sn-wasabi); color: var(--sn-wasabi); }
   .sort-btn.active { border-color: var(--sn-wasabi);
     background: var(--sn-wasabi-dim); color: var(--sn-wasabi); font-weight:700; }
+  .table-count {
+    margin-left: auto; font-size: 10px; color: var(--muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;
+  }
+  .table-count--filtered { color: var(--sn-wasabi); }
 
   .table-item {
     padding: 6px 16px;
@@ -115,6 +363,13 @@
   .table-item.selected { background: rgba(0,229,255,.08); border-left-color: var(--accent); color: var(--accent); }
   .ti-names { flex: 1; min-width: 0; }
   .ti-name  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  .ti-custom-badge {
+    display: inline-block; margin-left: 5px;
+    font-size: 7px; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--custom-highlight); background: rgba(196,149,106,.1);
+    border: 1px solid rgba(196,149,106,.25); border-radius: 2px;
+    padding: 0 3px; vertical-align: middle; line-height: 1.7;
+  }
   .ti-id    { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; color: var(--muted); margin-top: 1px; }
   .table-item.selected .ti-id { color: rgba(0,229,255,.6); }
   /* Field-match preview shown beneath a table row when searching by field.
@@ -279,6 +534,8 @@
     filter: drop-shadow(0 0 8px rgba(99,223,78,.35));
   }
   .node-group.core .node-rect { stroke: var(--sn-wasabi); }
+  .node-group.node-custom .node-rect { stroke: var(--custom-highlight); stroke-dasharray: 4 3; }
+  .node-group.node-custom .node-label { fill: var(--custom-highlight); }
   .node-group.dimmed { opacity: .15; }
   /* Hover-dim: lighter dim than search-dim so it's clearly transient.
      Edges don't share a single .edge class — each type has its own —

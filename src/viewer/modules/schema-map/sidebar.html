@@ -36,19 +36,19 @@
     </div>
   </div>
 
-  <!-- Scope filter — populated dynamically when data loads -->
-  <div class="filter-group" id="scope-filter-group">
-    <div class="filter-section-label">Application Scope</div>
-    <div id="scope-list">
-      <div class="scope-empty">Load data to see scopes</div>
-    </div>
+  <!-- Scope info — read-only, shown when data loads -->
+  <div class="filter-group" id="scope-info-group" style="display:none">
+    <div class="filter-section-label">Application Scopes</div>
+    <div id="scope-info-list"><div class="scope-empty">Load data to see scopes</div></div>
   </div>
+
 
   <!-- Sort bar (shown once data is loaded) -->
   <div class="sort-bar" id="sort-bar" style="display:none">
     <span class="sort-label">Sort</span>
     <button class="sort-btn active" id="sort-btn-name">Name ↑</button>
     <button class="sort-btn"        id="sort-btn-edge">Edges</button>
+    <span class="table-count" id="table-count"></span>
   </div>
 
   <!-- Virtual-scrolled table list. The wrapper provides scroll height via

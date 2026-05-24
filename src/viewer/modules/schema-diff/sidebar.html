@@ -25,6 +25,12 @@
         <span class="diff-stat-label">Changed</span>
       </div>
     </div>
+    <!-- Search / filter input — visible once a diff is loaded -->
+    <div class="diff-search-wrap" id="diff-search-wrap" style="display:none">
+      <input type="text" id="diff-search-input" class="diff-search-input"
+             placeholder="Filter tables…" autocomplete="off" spellcheck="false">
+      <button class="diff-search-clear" id="diff-search-clear" title="Clear filter" style="display:none" aria-label="Clear filter">✕</button>
+    </div>
     <div class="diff-toggle-row" id="diff-toggle-row">
       <span>Showing changed tables only</span>
       <button class="diff-show-all-btn" id="diff-show-all-btn">Show all</button>
