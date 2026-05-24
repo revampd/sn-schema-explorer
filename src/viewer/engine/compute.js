@@ -1,9 +1,9 @@
 import { graphState, uiState, diffState } from '../core/state.js';
 import { Settings } from '../modules/settings/index.js';
+import { filterOk } from '../core/advanced-filter.js';
 
 export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = false } = {}) {
   const { nodes, edges } = graphState.graphData;
-  const scopeOk = n => uiState.selectedScopes.size === 0 || uiState.selectedScopes.has(n.scope);
 
   const edgeTypeOk = e =>
     (e.type === 'reference' && (uiState.showRefTo || uiState.showRefFrom)) ||
@@ -105,7 +105,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     const reachedFiltered = [...reached]
       .filter(id => {
         const n = _nb ? _nb.get(id) : nodes.find(x => x.id === id);
-        return n && scopeOk(n);
+        return n && filterOk(n);
       })
       .sort((a, b) => {
         if (a === uiState.selectedNode) return -1;
@@ -167,7 +167,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     }
   } else {
     const edgeCnt = graphState.graphData._edgeCnt || {};
-    const sorted = nodes.filter(scopeOk)
+    const sorted = nodes.filter(filterOk)
       .sort((a, b) => (edgeCnt[b.id] || 0) - (edgeCnt[a.id] || 0));
     const capped = countOnly ? sorted : sorted.slice(0, uiState.maxNodes);
     visNodeIds = new Set(capped.map(n => n.id));

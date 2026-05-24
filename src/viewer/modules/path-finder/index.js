@@ -395,27 +395,36 @@ onViewModeChange((mode, prevMode) => {
 // ── Sidebar sync ─────────────────────────────────────────────────────────────
 
 export function pfSyncSidebar() {
-  const pfSidebar  = document.getElementById('pf-sidebar');
-  const tableList  = document.getElementById('table-list');
-  const sortBar    = document.getElementById('sort-bar');
-  const scopeGroup = document.getElementById('scope-filter-group');
-  const densityG   = document.getElementById('density-group') || Dom.densityGroup;
+  const pfSidebar     = document.getElementById('pf-sidebar');
+  const tableList     = document.getElementById('table-list');
+  const sortBar       = document.getElementById('sort-bar');
+  const scopeGroup    = document.getElementById('scope-info-group');
+  const filterPanel   = document.getElementById('filter-panel');
+  const densityG      = document.getElementById('density-group') || Dom.densityGroup;
   if (!pfSidebar) return;
+  // Search bar stays visible across all views — unified search paradigm.
+  // Placeholder text updates to clarify what searching does in the active view.
+  if (Dom.searchBox) {
+    Dom.searchBox.placeholder = uiState.viewMode === 'path'
+      ? 'search tables…'   // dims canvas nodes; no sidebar effect in path mode
+      : (Dom.searchBox.dataset.mode === 'fields' ? 'search fields…' : 'search tables…');
+  }
   if (uiState.viewMode === 'path') {
     pfSidebar.style.display = 'flex';
-    if (tableList)  tableList.style.display  = 'none';
-    if (sortBar)    sortBar.style.display    = 'none';
-    if (scopeGroup) scopeGroup.style.display = 'none';
-    if (densityG)   densityG.style.display   = 'none';
-    const src = document.getElementById('pf-source');
+    if (tableList)   tableList.style.display   = 'none';
+    if (sortBar)     sortBar.style.display     = 'none';
+    if (scopeGroup)  scopeGroup.style.display  = 'none';
+    if (filterPanel) filterPanel.style.display = 'none';
+    if (densityG)    densityG.style.display    = 'none';
     pfValidate();
   } else {
     pfSidebar.style.display = 'none';
     if (uiState.viewMode !== 'diff') {
-      if (tableList)  tableList.style.display  = '';
-      if (sortBar)    sortBar.style.display    = '';
-      if (scopeGroup) scopeGroup.style.display = '';
-      if (densityG)   densityG.style.display   = '';
+      if (tableList)   tableList.style.display   = '';
+      if (sortBar)     sortBar.style.display     = '';
+      if (scopeGroup)  scopeGroup.style.display  = '';
+      if (filterPanel) filterPanel.style.display = '';
+      if (densityG)    densityG.style.display    = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
         tlRenderVisible();

@@ -37,7 +37,7 @@ export function initControlsListeners() {
   initDensityControls({ onRender: () => render(), onCommit: () => pushHistory() });
 
   // Scope filter — delegated to shared component; applyFilters() is the callback
-  // (called lazily on first graph load via buildScopeFilter in load/index.js too)
+  // (called lazily on first graph load via buildFilterPanel in load/index.js too)
 
   // Settings-driven re-renders
   uiState.showLabels = Settings.isEnabled('showEdgeLabels');
