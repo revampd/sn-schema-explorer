@@ -41,8 +41,10 @@
       <div class="guide-card">
         <h4>Hop exclusions</h4>
         <p>Some tables act as hubs — <code>sys_user</code>, <code>cmdb_ci</code>, <code>sys_choice</code> — with hundreds of reference edges. The pathfinding algorithm routes through them as cheap intermediates, which can produce noisy results where nearly every path passes through the same hub table.</p>
-        <p><strong>Exclude a table from intermediate hops</strong> by typing its name in the <em>Add table to exclude…</em> input at the bottom of the Hop exclusions section and selecting from the autocomplete. Excluded tables can still be the <em>start</em> or <em>end</em> of a path — they are only skipped when the algorithm would use them as a waypoint.</p>
-        <p>Active exclusions appear as chips above the add input. Click <strong>×</strong> on any chip to re-include that table, or use <strong>Clear all</strong> to remove all exclusions at once. The search result updates automatically whenever an exclusion is added or removed.</p>
+        <p>Two exclusion granularities are supported:</p>
+        <p><strong>Table exclusion</strong> — type a bare table name (e.g. <code>sys_user</code>) and select from the autocomplete. The entire table is skipped as an intermediate waypoint but can still be used as the start or end of a path.</p>
+        <p><strong>Field exclusion</strong> — type in dot-walk notation (e.g. <code>task.assigned_to</code>) to exclude a single reference field while leaving the target table reachable via other fields. The autocomplete switches to field mode once you type a dot, listing reference fields on the table before the dot (including inherited fields). Field exclusion chips appear in cyan to distinguish them from table chips.</p>
+        <p>Active exclusions appear as chips above the add input. Click <strong>×</strong> on any chip to re-include it, or use <strong>Clear all</strong> to remove all exclusions at once. The search result updates automatically whenever an exclusion changes.</p>
         <p>Exclusions persist across reloads (stored in <code>localStorage</code>).</p>
       </div>
     </div>

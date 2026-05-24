@@ -55,32 +55,47 @@ test('clearing field search reverts to showing all tables', async ({ page }) => 
 // ── Hop depth slider ──────────────────────────────────────────────────────────
 test('changing hop-depth slider updates the displayed value', async ({ page }) => {
   await loadAndInject(page);
-  const slider = page.locator('#sl-hop-depth');
-  const valEl  = page.locator('#val-hop-depth');
-  // Set to max (5)
-  await slider.fill('5');
-  await slider.dispatchEvent('input');
-  await expect(valEl).toHaveText('5', { timeout: 3_000 });
+  const valEl = page.locator('#val-hop-depth');
+  // The slider max is computed dynamically from the selected node's reachable
+  // neighbourhood — use evaluate() to read it and set a valid value, the same
+  // pattern used for max-nodes (never hard-code a value that may exceed the cap).
+  const newVal = await page.evaluate(() => {
+    const el = document.getElementById('sl-hop-depth');
+    const v = String(el.max || '1');
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return v;
+  });
+  await expect(valEl).toHaveText(newVal, { timeout: 3_000 });
 });
 
-test('reducing hop-depth to 1 shows a lower or equal node count than hop-depth 3', async ({ page }) => {
+test('reducing hop-depth to 1 shows a lower or equal node count than hop-depth max', async ({ page }) => {
   await loadAndInject(page);
   // Select a node first to trigger hop-depth-based BFS
   await page.locator('#graph-root g.node-group').first().click();
   await page.waitForTimeout(300);
 
-  const slider = page.locator('#sl-hop-depth');
-  await slider.fill('1');
-  await slider.dispatchEvent('input');
+  // Set to depth 1 and record visible node count
+  await page.evaluate(() => {
+    const el = document.getElementById('sl-hop-depth');
+    el.value = '1';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await page.waitForTimeout(500);
   const countAt1 = parseInt(await page.locator('#stat-nodes').textContent(), 10);
 
-  await slider.fill('3');
-  await slider.dispatchEvent('input');
+  // Set to the slider's actual maximum and record visible node count.
+  // With the small test fixture the max may also be 1 — in that case both
+  // counts are equal, which still satisfies the ≤ assertion.
+  await page.evaluate(() => {
+    const el = document.getElementById('sl-hop-depth');
+    el.value = el.max;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   await page.waitForTimeout(500);
-  const countAt3 = parseInt(await page.locator('#stat-nodes').textContent(), 10);
+  const countAtMax = parseInt(await page.locator('#stat-nodes').textContent(), 10);
 
-  expect(countAt1).toBeLessThanOrEqual(countAt3);
+  expect(countAt1).toBeLessThanOrEqual(countAtMax);
 });
 
 // ── Max nodes slider ──────────────────────────────────────────────────────────
