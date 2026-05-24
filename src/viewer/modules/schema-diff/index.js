@@ -174,23 +174,20 @@ function diffSyncSidebar() {
   if (!diffSidebar) return;
   if (uiState.viewMode === 'diff') {
     diffSidebar.style.display = 'flex';
-    if (tableList)   tableList.style.display   = 'none';
-    if (sortBar)     sortBar.style.display     = 'none';
-    if (scopeGroup)  scopeGroup.style.display  = 'none';
-    if (filterPanel) filterPanel.style.display = 'none';   // force-close header panel
-    if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = 'none';  // hide button
-    if (densityG)    densityG.style.display    = '';
+    if (tableList)  tableList.style.display  = 'none';
+    if (sortBar)    sortBar.style.display    = 'none';
+    if (scopeGroup) scopeGroup.style.display = 'none';
+    // filter bar and Filter button remain visible — advanced filter applies in diff view too
+    if (densityG)   densityG.style.display   = '';
     diffUpdateSummary();
     diffBuildList();
   } else {
     diffSidebar.style.display = 'none';
     if (uiState.viewMode !== 'path') {
-      if (tableList)   tableList.style.display   = '';
-      if (sortBar)     sortBar.style.display     = '';
-      if (scopeGroup)  scopeGroup.style.display  = '';
-      // header filter panel: leave closed (stays display:none), just restore button
-      if (graphState.graphData && Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
-      if (densityG)    densityG.style.display    = '';
+      if (tableList)  tableList.style.display  = '';
+      if (sortBar)    sortBar.style.display    = '';
+      if (scopeGroup) scopeGroup.style.display = '';
+      if (densityG)   densityG.style.display   = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
         tlRenderVisible();

@@ -318,58 +318,6 @@
     height: 14px;
   }
 
-  /* ── Header filter panel — fixed overlay below the header ── */
-  .header-filter-panel {
-    position: fixed;
-    top: var(--header-h);
-    left: 0;
-    width: 320px;
-    background: var(--sn-panel);
-    border: 1px solid var(--sn-border);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 4px 8px 24px rgba(0,0,0,.55);
-    z-index: 35;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - var(--header-h) - 30px);
-    overflow: hidden;
-  }
-  .hfp-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--sn-border);
-    flex-shrink: 0;
-  }
-  .hfp-title {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    flex: 1;
-  }
-  .hfp-close {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    padding: 0 2px;
-    transition: color .15s;
-  }
-  .hfp-close:hover { color: var(--sn-wasabi); }
-  .hfp-body {
-    padding: 8px 12px;
-    overflow-y: auto;
-    flex: 1;
-  }
-  .hfp-body::-webkit-scrollbar { width: 3px; }
-  .hfp-body::-webkit-scrollbar-thumb { background: var(--sn-border); border-radius: 2px; }
-
   /* ── Filter bar — ServiceNow-style condition builder panel ── */
   #filter-bar {
     grid-area: filterbar;

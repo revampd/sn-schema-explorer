@@ -45,57 +45,7 @@ export function injectCiRelEdges(data) {
   }
 }
 
-// Wire the Filter header button once at module load (not per-schema-load) so that
-// multiple loadGraph() calls don't stack duplicate listeners.
-// The filter panel is a fixed overlay below the header — the button toggles it.
-(function wireFilterControls() {
-  const btn = Dom.filterOpenBtn;
-  if (!btn) return;
-
-  function getPanel() { return document.getElementById('filter-panel'); }
-
-  // Toggle panel open/closed on button click
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const panel = getPanel();
-    if (!panel) return;
-    const isOpen = panel.style.display !== 'none';
-    if (isOpen) {
-      panel.style.display = 'none';
-    } else {
-      panel.style.display = '';
-      if (Dom.filterBody?._rebuildFilterPanel) Dom.filterBody._rebuildFilterPanel();
-    }
-  });
-
-  // Close when clicking outside the panel (but not on the button itself)
-  document.addEventListener('click', e => {
-    const panel = getPanel();
-    if (!panel || panel.style.display === 'none') return;
-    if (!panel.contains(e.target) && !btn.contains(e.target)) {
-      panel.style.display = 'none';
-    }
-  });
-
-  // Close button inside the panel header
-  document.addEventListener('click', e => {
-    if (e.target.id === 'hfp-close') {
-      const panel = getPanel();
-      if (panel) panel.style.display = 'none';
-    }
-  });
-
-  // Escape key closes the panel
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      const panel = getPanel();
-      if (panel && panel.style.display !== 'none') {
-        panel.style.display = 'none';
-        btn.focus();
-      }
-    }
-  });
-})();
+// (Filter button wiring is done inside loadGraph on first load — see below)
 
 export function loadGraph(data) {
   resetHistory();
@@ -202,7 +152,7 @@ export function loadGraph(data) {
   Object.assign(data, { _refOutIds, _refInIds, _extOutIds, _extInIds,
                         _m2mIds, _relIds, _viewIds, _cmdbRelIds, _cmdbCiIds });
 
-  // Scope display (sidebar) + filter panel (dropdown)
+  // Scope display (sidebar) + filter panel (grid row below header)
   buildScopeDisplay(Dom.scopeInfoList, { onApply: applyFilters });
   if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
 
@@ -210,8 +160,26 @@ export function loadGraph(data) {
   const scopeInfoGroup = document.getElementById('scope-info-group');
   if (scopeInfoGroup) scopeInfoGroup.style.display = '';
 
-  // Show the "Filter" button in the header search bar (hidden until data loads)
+  // Show the "Filter" button in the header (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
+
+  // Wire the Filter button to toggle the filter bar (once only per session)
+  if (Dom.filterOpenBtn && !Dom.filterOpenBtn._filterListenerAdded) {
+    Dom.filterOpenBtn._filterListenerAdded = true;
+
+    const _closeBar = () => Dom.filterBar?.classList.remove('open');
+    const _openBar  = () => {
+      Dom.filterBar?.classList.add('open');
+      if (Dom.filterBody?._rebuildFilterPanel) Dom.filterBody._rebuildFilterPanel();
+    };
+
+    Dom.filterOpenBtn.addEventListener('click', () => {
+      Dom.filterBar?.classList.contains('open') ? _closeBar() : _openBar();
+    });
+
+    // Escape key closes the bar
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeBar(); });
+  }
 
   updateMaxNodesSlider();
   updateHopDepthSlider();
