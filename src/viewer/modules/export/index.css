@@ -1,61 +1,6 @@
-  /* Export menu — uses position:fixed so it escapes the header's
-     overflow:hidden clip. Position is set in JS when opened, anchored to
-     the trigger button's bounding rect. */
-  .export-wrap { position: relative; display: inline-block; }
-  .export-menu {
-    position: fixed;
-    min-width: 280px;
-    background: var(--panel);
-    border: 1px solid var(--sn-border);
-    border-radius: 6px;
-    padding: 4px;
-    display: none;
-    flex-direction: column;
-    gap: 1px;
-    z-index: 1000;
-    box-shadow: 0 6px 24px rgba(0,0,0,.45);
-  }
-  .export-menu.open { display: flex; }
-  .export-item {
-    background: none;
-    border: none;
-    border-radius: 4px;
-    color: var(--text);
-    text-align: left;
-    cursor: pointer;
-    padding: 8px 10px;
-    font-family: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    transition: background .12s;
-  }
-  .export-item:hover { background: var(--sn-wasabi-dim); }
-  .export-item-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .export-item:hover .export-item-label { color: var(--sn-wasabi); }
-  .export-item-desc {
-    font-size: 9px;
-    color: var(--muted);
-    line-height: 1.3;
-  }
-  .export-sep {
-    height: 1px;
-    background: var(--sn-border);
-    margin: 4px 6px;
-    opacity: .5;
-  }
-  /* PNG-scale picker — segmented control at the bottom of the export menu. */
-  .export-scale-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px 4px;
-    gap: 8px;
-  }
+  /* ── Export bar settings controls ── */
+  /* PNG-scale row inside the export bar settings row. */
+  .export-scale-row { display: none; } /* legacy selector — no longer used */
   .export-scale-label {
     font-size: 10px;
     color: var(--muted);
@@ -112,9 +57,6 @@
     text-align: right;
     flex-shrink: 0;
   }
-  .export-scale-info-row {
-    padding: 1px 10px 5px;
-  }
   .export-scale-info {
     font-size: 9px;
     color: var(--muted);
@@ -122,18 +64,7 @@
   }
   .export-scale-info.export-scale-capped { color: #e09955; }
 
-  /* Background color section */
-  .export-bg-section {
-    border-top: 1px solid var(--sn-border);
-    margin-top: 2px;
-  }
-  .export-bg-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px 6px;
-    gap: 8px;
-  }
+  .export-bg-row { display: none; } /* legacy selector — no longer used */
   .export-bg-controls {
     display: flex;
     align-items: center;
