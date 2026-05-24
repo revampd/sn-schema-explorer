@@ -6,10 +6,29 @@ import { applyTableFilter } from '../search/index.js';
 import { fillInspector } from '../../shared/inspector.js';
 import { syncLegendRows, LEGEND_TYPE_MAP } from '../graph-view/controls.js';
 import { updateMaxNodesSlider, updateHopDepthSlider, initDensityControls } from '../../shared/density-controls.js';
+import { filterOk } from '../../core/advanced-filter.js';
 import { pushHistory } from '../history/index.js';
 
 export function applyFilters() {
   if (!graphState.graphData) return;
+
+  // If the selected node no longer passes the active filter conditions, clear the
+  // selection so the canvas falls back to the global filtered view instead of going
+  // blank (the BFS from a filtered-out node would reach only other filtered-out nodes).
+  if (uiState.selectedNode && uiState.filterConditions.length > 0) {
+    const n = graphState.graphData._nodeById?.get(uiState.selectedNode);
+    if (n && !filterOk(n)) {
+      uiState.selectedNode = null;
+      uiState.connectedNodes = new Set();
+      uiState._lastInheritedSeeds = new Set();
+      Dom.statFocus.textContent = '—';
+      Dom.inspectorEmpty.style.display = '';
+      Dom.inspectorContent.style.display = 'none';
+      Dom.activeFilter.style.display = 'none';
+      document.querySelectorAll('.table-item').forEach(el => el.classList.remove('selected'));
+    }
+  }
+
   // updateMaxNodesSlider before render so uiState.maxNodes is correct when renderGraph runs
   updateMaxNodesSlider();
   render();

@@ -398,9 +398,9 @@ export function pfSyncSidebar() {
   const pfSidebar     = document.getElementById('pf-sidebar');
   const tableList     = document.getElementById('table-list');
   const sortBar       = document.getElementById('sort-bar');
-  const scopeGroup    = document.getElementById('scope-info-group');
-  const filterPanel   = document.getElementById('filter-panel');
-  const densityG      = document.getElementById('density-group') || Dom.densityGroup;
+  const scopeGroup = document.getElementById('scope-info-group');
+  const filterBar  = Dom.filterBar;
+  const densityG   = document.getElementById('density-group') || Dom.densityGroup;
   if (!pfSidebar) return;
   // Search bar stays visible across all views — unified search paradigm.
   // Placeholder text updates to clarify what searching does in the active view.
@@ -411,20 +411,22 @@ export function pfSyncSidebar() {
   }
   if (uiState.viewMode === 'path') {
     pfSidebar.style.display = 'flex';
-    if (tableList)   tableList.style.display   = 'none';
-    if (sortBar)     sortBar.style.display     = 'none';
-    if (scopeGroup)  scopeGroup.style.display  = 'none';
-    if (filterPanel) filterPanel.style.display = 'none';
-    if (densityG)    densityG.style.display    = 'none';
+    if (tableList)  tableList.style.display  = 'none';
+    if (sortBar)    sortBar.style.display    = 'none';
+    if (scopeGroup) scopeGroup.style.display = 'none';
+    if (filterBar)  filterBar.style.display  = 'none';   // hide bar (overrides .open)
+    if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = 'none';
+    if (densityG)   densityG.style.display   = 'none';
     pfValidate();
   } else {
     pfSidebar.style.display = 'none';
     if (uiState.viewMode !== 'diff') {
-      if (tableList)   tableList.style.display   = '';
-      if (sortBar)     sortBar.style.display     = '';
-      if (scopeGroup)  scopeGroup.style.display  = '';
-      if (filterPanel) filterPanel.style.display = '';
-      if (densityG)    densityG.style.display    = '';
+      if (tableList)  tableList.style.display  = '';
+      if (sortBar)    sortBar.style.display    = '';
+      if (scopeGroup) scopeGroup.style.display = '';
+      if (filterBar)  filterBar.style.display  = '';     // restore (class .open controls visibility)
+      if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
+      if (densityG)   densityG.style.display   = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
         tlRenderVisible();

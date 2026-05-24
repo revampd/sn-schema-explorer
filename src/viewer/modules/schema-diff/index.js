@@ -11,6 +11,7 @@ import { registerHistoryExtractor, registerHistoryRestorer, pushHistory } from '
 import { injectCiRelEdges } from '../load/index.js';
 import { computeDiff } from './compute-diff.js';
 import { onSearchChange, getSearchMode } from '../search/index.js';
+import { onFilterChange, filterOk } from '../../core/advanced-filter.js';
 
 // ── Settings registration ─────────────────────────────────────────────────────
 
@@ -163,27 +164,25 @@ function diffSyncSidebar() {
   const diffSidebar  = document.getElementById('diff-sidebar');
   const tableList    = document.getElementById('table-list');
   const sortBar      = document.getElementById('sort-bar');
-  const scopeGroup   = document.getElementById('scope-info-group');
-  const filterPanel  = document.getElementById('filter-panel');
-  const densityG     = document.getElementById('density-group') || Dom.densityGroup;
+  const scopeGroup = document.getElementById('scope-info-group');
+  const densityG   = document.getElementById('density-group') || Dom.densityGroup;
   if (!diffSidebar) return;
   if (uiState.viewMode === 'diff') {
     diffSidebar.style.display = 'flex';
-    if (tableList)   tableList.style.display   = 'none';
-    if (sortBar)     sortBar.style.display     = 'none';
-    if (scopeGroup)  scopeGroup.style.display  = 'none';
-    if (filterPanel) filterPanel.style.display = 'none';
-    if (densityG)    densityG.style.display    = '';
+    if (tableList)  tableList.style.display  = 'none';
+    if (sortBar)    sortBar.style.display    = 'none';
+    if (scopeGroup) scopeGroup.style.display = 'none';
+    // filter bar and Filter button remain visible — advanced filter applies in diff view too
+    if (densityG)   densityG.style.display   = '';
     diffUpdateSummary();
     diffBuildList();
   } else {
     diffSidebar.style.display = 'none';
     if (uiState.viewMode !== 'path') {
-      if (tableList)   tableList.style.display   = '';
-      if (sortBar)     sortBar.style.display     = '';
-      if (scopeGroup)  scopeGroup.style.display  = '';
-      if (filterPanel) filterPanel.style.display = '';
-      if (densityG)    densityG.style.display    = '';
+      if (tableList)  tableList.style.display  = '';
+      if (sortBar)    sortBar.style.display    = '';
+      if (scopeGroup) scopeGroup.style.display = '';
+      if (densityG)   densityG.style.display   = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
         tlRenderVisible();
@@ -288,6 +287,17 @@ function diffBuildList() {
 
   function makeGroup(label, items, kind) {
     if (!items.length) return;
+    // Apply advanced filter conditions (same predicate as the schema map)
+    if (uiState.filterConditions?.length) {
+      const nodeMap = kind === 'added'
+        ? diffState._diffData.compareMap
+        : diffState._diffData.baseMap;
+      items = items.filter(({ id }) => {
+        const n = nodeMap?.get(id);
+        return !n || filterOk(n);
+      });
+      if (!items.length) return;
+    }
     // Apply header search bar filter (Tbl mode only) when in diff view
     if (Dom.searchBox && getSearchMode() === 'tables') {
       const q = Dom.searchBox.value.toLowerCase().trim();
@@ -849,5 +859,10 @@ diffSyncVisibility();
 
 // Rebuild diff list when the header search changes while in diff view
 onSearchChange(() => {
+  if (uiState.viewMode === 'diff') diffBuildList();
+});
+
+// Rebuild diff list when advanced filter conditions change while in diff view
+onFilterChange(() => {
   if (uiState.viewMode === 'diff') diffBuildList();
 });

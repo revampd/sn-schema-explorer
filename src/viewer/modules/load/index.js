@@ -150,52 +150,33 @@ export function loadGraph(data) {
   Object.assign(data, { _refOutIds, _refInIds, _extOutIds, _extInIds,
                         _m2mIds, _relIds, _viewIds, _cmdbRelIds, _cmdbCiIds });
 
-  // Scope display + filter panel
-  buildScopeDisplay(Dom.scopeInfoList);
+  // Scope display (sidebar) + filter panel (dropdown)
+  buildScopeDisplay(Dom.scopeInfoList, { onApply: applyFilters });
   if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
 
-  // Show the two new sidebar groups
+  // Show the scope info sidebar group
   const scopeInfoGroup = document.getElementById('scope-info-group');
-  const filterPanelEl  = document.getElementById('filter-panel');
   if (scopeInfoGroup) scopeInfoGroup.style.display = '';
-  if (filterPanelEl)  filterPanelEl.style.display  = '';
 
-  // Wire collapse toggle for the filter panel header
-  const filterPanelHeader = document.getElementById('filter-panel-header');
-  const filterBody        = Dom.filterBody;
-  const filterToggle      = document.getElementById('filter-panel-toggle');
-  if (filterPanelHeader && filterBody) {
-    filterPanelHeader.addEventListener('click', e => {
-      if (e.target.closest('.filter-panel-toggle') || e.target === filterPanelHeader ||
-          e.target.closest('.filter-panel-header')) {
-        const expanded = filterBody.style.display !== 'none';
-        filterBody.style.display = expanded ? 'none' : 'block';
-        if (filterToggle) {
-          filterToggle.textContent = expanded ? '▸' : '▾';
-          filterToggle.setAttribute('aria-expanded', String(!expanded));
-        }
-      }
-    });
-  }
-
-  // Show the "Filter" button in the header search bar (hidden until data loads)
+  // Show the "Filter" button in the header (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
 
-  // Wire "Filter" header button: expands filter panel in the sidebar
-  if (Dom.filterOpenBtn) {
+  // Wire the Filter button to toggle the filter bar (once only)
+  if (Dom.filterOpenBtn && !Dom.filterOpenBtn._filterListenerAdded) {
+    Dom.filterOpenBtn._filterListenerAdded = true;
+
+    const _closeBar = () => Dom.filterBar?.classList.remove('open');
+    const _openBar  = () => {
+      Dom.filterBar?.classList.add('open');
+      if (Dom.filterBody?._rebuildFilterPanel) Dom.filterBody._rebuildFilterPanel();
+    };
+
     Dom.filterOpenBtn.addEventListener('click', () => {
-      // Expand the filter panel
-      if (filterBody) filterBody.style.display = 'block';
-      if (filterToggle) {
-        filterToggle.textContent = '▾';
-        filterToggle.setAttribute('aria-expanded', 'true');
-      }
-      // Scroll sidebar so the filter panel is visible
-      const filterPanelEl = document.getElementById('filter-panel');
-      if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      // Re-render the filter panel
-      if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
+      Dom.filterBar?.classList.contains('open') ? _closeBar() : _openBar();
     });
+
+    // Escape key closes the bar
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeBar(); });
   }
 
   updateMaxNodesSlider();
