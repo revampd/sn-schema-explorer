@@ -37,6 +37,14 @@
               <br><br>
               Expected runtime on a typical instance (~6800 tables):
               <strong>45–90 seconds</strong> without record counts.
+              <br><br>
+              <strong>Background Script UI notes:</strong>
+              <ul style="margin:4px 0 0 16px;padding:0;font-size:10px;line-height:1.7">
+                <li><strong>Application scope picker</strong> — must show <strong>Global</strong> (see warning above)</li>
+                <li><strong>Record for rollback?</strong> — leave checked (default). Creates a rollback context so the script can be rolled back via Script Execution History if something goes wrong.</li>
+                <li><strong>Execute in sandbox?</strong> — leave <strong>unchecked</strong>. Sandbox mode prevents data writes — the script needs to save the JSON as a <code>sys_attachment</code> on your user record, so it will fail silently if this is checked.</li>
+                <li><strong>Cancel after 4 hours?</strong> — leave checked (default). The script completes in under 2 minutes on most instances.</li>
+              </ul>
             </div>
             <div class="setup-notice info" style="margin-bottom:8px">
               <span class="setup-notice-icon">💡</span>

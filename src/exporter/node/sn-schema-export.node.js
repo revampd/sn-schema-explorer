@@ -982,10 +982,13 @@ function serializeOpenApi(schema, opts) {
         lines.push('      tags: [' + yamlStr(node.id) + ']');
         lines.push('      parameters:');
         lines.push('        - {name: sysparm_query, in: query, schema: {type: string}}');
-        lines.push('        - {name: sysparm_limit, in: query, schema: {type: integer, default: 10}}');
+        lines.push('        - {name: sysparm_limit, in: query, schema: {type: integer, default: 10000}}');
         lines.push('        - {name: sysparm_offset, in: query, schema: {type: integer, default: 0}}');
         lines.push('        - {name: sysparm_fields, in: query, schema: {type: string}}');
-        lines.push('        - {name: sysparm_display_value, in: query, schema: {type: string}}');
+        lines.push('        - {name: sysparm_display_value, in: query, schema: {type: string, enum: ["true","false","all"], default: "false"}}');
+        lines.push('        - {name: sysparm_exclude_reference_link, in: query, schema: {type: boolean, default: false}}');
+        lines.push('        - {name: sysparm_suppress_pagination_header, in: query, schema: {type: boolean, default: false}}');
+        lines.push('        - {name: sysparm_view, in: query, schema: {type: string}}');
         lines.push('      responses:');
         lines.push('        "200":');
         lines.push('          description: OK');
@@ -1001,6 +1004,9 @@ function serializeOpenApi(schema, opts) {
             lines.push('      summary: '     + yamlStr('Create ' + lbl));
             lines.push('      operationId: create_' + opId);
             lines.push('      tags: [' + yamlStr(node.id) + ']');
+            lines.push('      parameters:');
+            lines.push('        - {name: sysparm_display_value, in: query, schema: {type: string, enum: ["true","false","all"], default: "false"}}');
+            lines.push('        - {name: sysparm_input_display_value, in: query, schema: {type: boolean, default: false}}');
             lines.push('      requestBody:');
             lines.push('        content:');
             lines.push('          application/json:');
@@ -1021,6 +1027,10 @@ function serializeOpenApi(schema, opts) {
         lines.push('      summary: '     + yamlStr('Get ' + lbl));
         lines.push('      operationId: get_' + opId);
         lines.push('      tags: [' + yamlStr(node.id) + ']');
+        lines.push('      parameters:');
+        lines.push('        - {name: sysparm_display_value, in: query, schema: {type: string, enum: ["true","false","all"], default: "false"}}');
+        lines.push('        - {name: sysparm_exclude_reference_link, in: query, schema: {type: boolean, default: false}}');
+        lines.push('        - {name: sysparm_fields, in: query, schema: {type: string}}');
         lines.push('      responses:');
         lines.push('        "200":');
         lines.push('          description: OK');
@@ -1034,6 +1044,9 @@ function serializeOpenApi(schema, opts) {
             lines.push('      summary: '     + yamlStr('Update ' + lbl));
             lines.push('      operationId: patch_' + opId);
             lines.push('      tags: [' + yamlStr(node.id) + ']');
+            lines.push('      parameters:');
+            lines.push('        - {name: sysparm_display_value, in: query, schema: {type: string, enum: ["true","false","all"], default: "false"}}');
+            lines.push('        - {name: sysparm_input_display_value, in: query, schema: {type: boolean, default: false}}');
             lines.push('      requestBody:');
             lines.push('        content:');
             lines.push('          application/json:');
