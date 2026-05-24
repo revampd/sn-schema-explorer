@@ -49,7 +49,7 @@ export function exportSchemaJSON() {
       };
     }),
   };
-  const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(clean)], { type: 'application/json' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.json`);
 }
 
@@ -85,7 +85,7 @@ export function exportNeighbourhoodJSON() {
     hopDepth: uiState.hopDepth, viewMode: uiState.viewMode,
     nodes, edges,
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
   downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.json`);
 }
 
