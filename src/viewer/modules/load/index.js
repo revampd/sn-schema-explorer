@@ -45,48 +45,56 @@ export function injectCiRelEdges(data) {
   }
 }
 
-// Wire the Filter header button AND filter panel collapse toggle once at module load
-// (not per-schema-load) so that multiple loadGraph() calls don't stack duplicate
-// listeners. Also ensures the filter panel container is un-hidden in case a mode
-// change (diff/path) hid it.
+// Wire the Filter header button once at module load (not per-schema-load) so that
+// multiple loadGraph() calls don't stack duplicate listeners.
+// The filter panel is a fixed overlay below the header — the button toggles it.
 (function wireFilterControls() {
-  // "Filter" button in header search bar — expands sidebar filter panel + scrolls to it
   const btn = Dom.filterOpenBtn;
-  if (btn) {
-    btn.addEventListener('click', () => {
-      const filterPanelEl = document.getElementById('filter-panel');
-      const filterBody    = Dom.filterBody;
-      const filterToggle  = document.getElementById('filter-panel-toggle');
-      // Ensure the panel container itself is visible (may have been hidden by diff/path sync)
-      if (filterPanelEl) filterPanelEl.style.display = '';
-      if (filterBody)    filterBody.style.display = 'block';
-      if (filterToggle) {
-        filterToggle.textContent = '▾';
-        filterToggle.setAttribute('aria-expanded', 'true');
-      }
-      if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
-    });
-  }
+  if (!btn) return;
 
-  // Collapse toggle on the filter panel header (▸ / ▾)
-  const filterPanelHeader = document.getElementById('filter-panel-header');
-  const filterToggle      = document.getElementById('filter-panel-toggle');
-  if (filterPanelHeader) {
-    filterPanelHeader.addEventListener('click', e => {
-      if (e.target.closest('.filter-panel-toggle') || e.target === filterPanelHeader ||
-          e.target.closest('.filter-panel-header')) {
-        const filterBody = Dom.filterBody;
-        if (!filterBody) return;
-        const expanded = filterBody.style.display !== 'none';
-        filterBody.style.display = expanded ? 'none' : 'block';
-        if (filterToggle) {
-          filterToggle.textContent = expanded ? '▸' : '▾';
-          filterToggle.setAttribute('aria-expanded', String(!expanded));
-        }
+  function getPanel() { return document.getElementById('filter-panel'); }
+
+  // Toggle panel open/closed on button click
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const panel = getPanel();
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    if (isOpen) {
+      panel.style.display = 'none';
+    } else {
+      panel.style.display = '';
+      if (Dom.filterBody?._rebuildFilterPanel) Dom.filterBody._rebuildFilterPanel();
+    }
+  });
+
+  // Close when clicking outside the panel (but not on the button itself)
+  document.addEventListener('click', e => {
+    const panel = getPanel();
+    if (!panel || panel.style.display === 'none') return;
+    if (!panel.contains(e.target) && !btn.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
+
+  // Close button inside the panel header
+  document.addEventListener('click', e => {
+    if (e.target.id === 'hfp-close') {
+      const panel = getPanel();
+      if (panel) panel.style.display = 'none';
+    }
+  });
+
+  // Escape key closes the panel
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const panel = getPanel();
+      if (panel && panel.style.display !== 'none') {
+        panel.style.display = 'none';
+        btn.focus();
       }
-    });
-  }
+    }
+  });
 })();
 
 export function loadGraph(data) {
@@ -198,11 +206,9 @@ export function loadGraph(data) {
   buildScopeDisplay(Dom.scopeInfoList);
   if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
 
-  // Show the two new sidebar groups
+  // Show the scope info group in the sidebar
   const scopeInfoGroup = document.getElementById('scope-info-group');
-  const filterPanelEl  = document.getElementById('filter-panel');
   if (scopeInfoGroup) scopeInfoGroup.style.display = '';
-  if (filterPanelEl)  filterPanelEl.style.display  = '';
 
   // Show the "Filter" button in the header search bar (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';

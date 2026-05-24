@@ -177,7 +177,8 @@ function diffSyncSidebar() {
     if (tableList)   tableList.style.display   = 'none';
     if (sortBar)     sortBar.style.display     = 'none';
     if (scopeGroup)  scopeGroup.style.display  = 'none';
-    if (filterPanel) filterPanel.style.display = 'none';
+    if (filterPanel) filterPanel.style.display = 'none';   // force-close header panel
+    if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = 'none';  // hide button
     if (densityG)    densityG.style.display    = '';
     diffUpdateSummary();
     diffBuildList();
@@ -187,7 +188,8 @@ function diffSyncSidebar() {
       if (tableList)   tableList.style.display   = '';
       if (sortBar)     sortBar.style.display     = '';
       if (scopeGroup)  scopeGroup.style.display  = '';
-      if (filterPanel) filterPanel.style.display = '';
+      // header filter panel: leave closed (stays display:none), just restore button
+      if (graphState.graphData && Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
       if (densityG)    densityG.style.display    = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();

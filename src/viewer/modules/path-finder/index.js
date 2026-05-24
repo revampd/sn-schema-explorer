@@ -612,7 +612,7 @@ export function pfSyncSidebar() {
   const tableList     = document.getElementById('table-list');
   const sortBar       = document.getElementById('sort-bar');
   const scopeGroup    = document.getElementById('scope-info-group');
-  const filterPanel   = document.getElementById('filter-panel');
+  const filterPanel   = document.getElementById('filter-panel');   // header overlay
   const densityG      = document.getElementById('density-group') || Dom.densityGroup;
   if (!pfSidebar) return;
   // Search bar stays visible across all views — unified search paradigm.
@@ -627,7 +627,8 @@ export function pfSyncSidebar() {
     if (tableList)   tableList.style.display   = 'none';
     if (sortBar)     sortBar.style.display     = 'none';
     if (scopeGroup)  scopeGroup.style.display  = 'none';
-    if (filterPanel) filterPanel.style.display = 'none';
+    if (filterPanel) filterPanel.style.display = 'none';   // force-close header panel
+    if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = 'none';  // hide button
     if (densityG)    densityG.style.display    = 'none';
     pfValidate();
   } else {
@@ -636,7 +637,8 @@ export function pfSyncSidebar() {
       if (tableList)   tableList.style.display   = '';
       if (sortBar)     sortBar.style.display     = '';
       if (scopeGroup)  scopeGroup.style.display  = '';
-      if (filterPanel) filterPanel.style.display = '';
+      // header filter panel: leave closed (stays display:none), just restore button
+      if (graphState.graphData && Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
       if (densityG)    densityG.style.display    = '';
       requestAnimationFrame(() => {
         tlSetSpacerHeight();
