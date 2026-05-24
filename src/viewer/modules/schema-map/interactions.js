@@ -13,6 +13,7 @@ export function showCtx(e,d) {
   const isSelected = uiState.selectedNode && d.id === uiState.selectedNode;
   Dom.ctxDeselect.style.display = isSelected ? 'block' : 'none';
   Dom.ctxFocus.style.display   = isSelected ? 'none'  : 'block';
+
   m.style.display='block';
   const vw=window.innerWidth, vh=window.innerHeight, mw=m.offsetWidth, mh=m.offsetHeight;
   m.style.left=Math.min(e.clientX,vw-mw-8)+'px';

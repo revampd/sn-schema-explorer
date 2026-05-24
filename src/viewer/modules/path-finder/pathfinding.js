@@ -1,4 +1,4 @@
-import { graphState } from '../../core/state.js';
+import { graphState, uiState } from '../../core/state.js';
 
 export const Pathfinding = (() => {
   const EDGE_WEIGHTS = {
@@ -120,10 +120,18 @@ export const Pathfinding = (() => {
         if (visited.has(to)) continue;
         if (forbiddenNodes && forbiddenNodes.has(to)) continue;
         if (forbiddenEdges && forbiddenEdges.has(edge)) continue;
+        // Skip excluded-hop tables when they're intermediates (still allowed as target)
+        if (!targetSet.has(to) && uiState.pfExcludedHops.has(to)) continue;
 
         if (edge.type === 'reference' && dir !== 'out') continue;
         if (edge.type === 'extends'   && dir !== 'out') continue;
         if (edge.type === 'm2m' || edge.type === 'rel' || edge.type === 'view' || edge.type === 'cmdb_rel') continue;
+
+        // Skip explicitly excluded reference fields ("sourceTable.fieldName" in pfExcludedHops)
+        if (edge.type === 'reference' && edge.field) {
+          const edgeSrc = edge.source?.id ?? edge.source;
+          if (uiState.pfExcludedHops.has(edgeSrc + '.' + edge.field)) continue;
+        }
 
         const w = EDGE_WEIGHTS[edge.type] ?? 1;
         const alt = bestDist + w;
