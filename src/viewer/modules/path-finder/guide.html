@@ -38,4 +38,11 @@
         <div class="guide-kv"><span class="guide-key">Dot-walk</span><span class="guide-val">The plain reference chain — e.g. <code>assigned_to.department</code>. Paste into scripts, ACL conditions, email templates, or UI policies.</span></div>
         <div class="guide-kv"><span class="guide-key">Encoded query</span><span class="guide-val">The same path formatted as a ServiceNow encoded query fragment — e.g. <code>assigned_to.department=&lt;value&gt;</code>. Replace <code>&lt;value&gt;</code> with the desired filter value and paste directly into a GlideRecord query, list filter, or condition builder.</span></div>
       </div>
+      <div class="guide-card">
+        <h4>Hop exclusions</h4>
+        <p>Some tables act as hubs — <code>sys_user</code>, <code>cmdb_ci</code>, <code>sys_choice</code> — with hundreds of reference edges. The pathfinding algorithm routes through them as cheap intermediates, which can produce noisy results where nearly every path passes through the same hub table.</p>
+        <p><strong>Exclude a table from intermediate hops</strong> by typing its name in the <em>Add table to exclude…</em> input at the bottom of the Hop exclusions section and selecting from the autocomplete. Excluded tables can still be the <em>start</em> or <em>end</em> of a path — they are only skipped when the algorithm would use them as a waypoint.</p>
+        <p>Active exclusions appear as chips above the add input. Click <strong>×</strong> on any chip to re-include that table, or use <strong>Clear all</strong> to remove all exclusions at once. The search result updates automatically whenever an exclusion is added or removed.</p>
+        <p>Exclusions persist across reloads (stored in <code>localStorage</code>).</p>
+      </div>
     </div>

@@ -45,4 +45,18 @@
       <button class="pf-find-btn" id="pf-find" disabled>Find shortest path</button>
       <div id="pf-result"></div>
     </div>
+    <!-- Hop exclusions — wired by pfRefreshExcludedChips() + pfWireExclusionInput() in index.js -->
+    <div class="pf-sidebar-section pf-excluded-section" id="pf-excluded-section">
+      <div class="pf-excluded-header">
+        <span class="pf-excluded-title">Hop exclusions</span>
+        <button class="pf-excluded-clear" id="pf-excluded-clear" title="Clear all exclusions" style="display:none">Clear all</button>
+      </div>
+      <div id="pf-excluded-chips" class="pf-excluded-chips"></div>
+      <div class="pf-input-wrap">
+        <input type="text" class="pf-input pf-excluded-add" id="pf-excluded-add"
+               placeholder="e.g. sys_user or task.assigned_to" autocomplete="off" spellcheck="false">
+        <div class="pf-autocomplete" id="pf-excluded-ac"></div>
+      </div>
+      <div class="pf-excluded-hint">Type <code>table</code> to skip a table entirely, or <code>table.field</code> to exclude a specific reference hop.</div>
+    </div>
   </div>

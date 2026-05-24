@@ -22,6 +22,7 @@ export const uiState = {
   maxNodes:            null,
   hopDepth:            null,
   _viewPositionCache:  { force: null, diff: null },
+  pfExcludedHops:      new Set(),
 };
 
 uiState.maxNodes = Config.render.maxNodesDefault;

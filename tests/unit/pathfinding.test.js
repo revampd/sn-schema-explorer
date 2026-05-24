@@ -1,7 +1,7 @@
 /**
  * Unit tests for src/viewer/modules/path-finder/pathfinding.js
  *
- * pathfinding.js has exactly one external dependency: graphState from state.js.
+ * pathfinding.js depends on graphState and uiState from state.js.
  * We mock state.js and mutate graphState.graphData before each test.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // vi.mock is hoisted by vitest, so this runs before any imports below.
 vi.mock('../../src/viewer/core/state.js', () => ({
   graphState: { graphData: { nodes: [], edges: [] } },
+  uiState:    { pfExcludedHops: new Set() },
 }));
 
 import { graphState } from '../../src/viewer/core/state.js';
