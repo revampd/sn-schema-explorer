@@ -49,7 +49,7 @@ export const Dom = (() => {
     btnRefresh:      g('btn-refresh'),
     btnReset:        g('btn-reset'),
     btnExport:       g('btn-export'),
-    exportMenu:      g('export-menu'),
+    exportBar:       g('export-bar'),
     btnFitM:         g('btn-fit-m'),
     btnRefGuide:     g('btn-ref-guide'),
     btnUserGuide:    g('btn-user-guide'),

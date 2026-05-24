@@ -626,10 +626,36 @@ function _updateScaleInfo(scale) {
   infoEl.textContent = text;
 }
 
-export function exportMenuOpen() {
-  const r = Dom.btnExport.getBoundingClientRect();
-  Dom.exportMenu.style.top   = (r.bottom + 6) + 'px';
-  Dom.exportMenu.style.right = (window.innerWidth - r.right) + 'px';
+// ── Export bar (panel below header) ──────────────────────────────────────────
+
+let _dataScope  = 'full';  // 'full' | 'neighbourhood'  — for JSON / Markdown
+let _imageScope = 'view';  // 'view' | 'full'            — for PNG / SVG
+
+function _syncScopeUI() {
+  const isNbhd    = _dataScope === 'neighbourhood';
+  const isImgFull = _imageScope === 'full';
+  const hasSelect = !!uiState.selectedNode;
+
+  // Data scope toggle
+  document.getElementById('export-data-scope-full')?.classList.toggle('active', !isNbhd);
+  document.getElementById('export-data-scope-nbhd')?.classList.toggle('active', isNbhd);
+  // Image scope toggle
+  document.getElementById('export-img-scope-view')?.classList.toggle('active', !isImgFull);
+  document.getElementById('export-img-scope-full')?.classList.toggle('active', isImgFull);
+
+  // Data format buttons — disabled when neighbourhood scope but nothing selected
+  const dataDisabled = isNbhd && !hasSelect;
+  for (const id of ['epb-json', 'epb-markdown']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = dataDisabled;
+  }
+  // Hint text
+  const hint = document.getElementById('export-nbhd-hint');
+  if (hint) hint.hidden = !(isNbhd && !hasSelect);
+}
+
+export function exportBarOpen() {
+  if (!Dom.exportBar) return;
   const maxScale = Settings.getMaxPngScale();
   const slider = document.getElementById('export-scale-slider');
   if (slider) {
@@ -641,15 +667,21 @@ export function exportMenuOpen() {
     _updateScaleInfo(persisted);
   }
   _syncBgUI();
-  Dom.exportMenu.classList.add('open');
-  Dom.exportMenu.setAttribute('aria-hidden','false');
+  _syncScopeUI();
+  Dom.exportBar.classList.add('open');
+  Dom.btnExport.setAttribute('aria-expanded', 'true');
 }
 
-export function exportMenuClose() {
-  Dom.exportMenu.classList.remove('open');
-  Dom.exportMenu.setAttribute('aria-hidden','true');
+export function exportBarClose() {
+  if (!Dom.exportBar) return;
+  Dom.exportBar.classList.remove('open');
+  Dom.btnExport.setAttribute('aria-expanded', 'false');
   _cpClose();
 }
+
+/** @deprecated kept for back-compat — callers should use exportBarOpen/Close */
+export function exportMenuOpen()  { exportBarOpen(); }
+export function exportMenuClose() { exportBarClose(); }
 
 export function fitGraph() {
   if (!graphState.graphData) return;
@@ -663,43 +695,61 @@ export function fitGraph() {
 }
 
 export function initExportListeners() {
+  // Toggle export bar
   Dom.btnExport.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (Dom.exportMenu.classList.contains('open')) exportMenuClose();
-    else exportMenuOpen();
+    if (Dom.exportBar?.classList.contains('open')) exportBarClose();
+    else exportBarOpen();
   });
 
-  Dom.exportMenu.addEventListener('click', (e) => {
-    const btn = e.target.closest('.export-item');
-    if (!btn) return;
-    exportMenuClose();
-    switch (btn.dataset.export) {
-      case 'schema-json':              exportSchemaJSON();              break;
-      case 'neighbourhood-json':       exportNeighbourhoodJSON();       break;
-      case 'schema-markdown':          exportSchemaMarkdown();          break;
-      case 'neighbourhood-markdown':   exportNeighbourhoodMarkdown();   break;
-      case 'view-png':                 exportViewPNG();                 break;
-      case 'view-svg':                 exportViewSVG();                 break;
-      case 'full-png':                 exportFullPNG();                 break;
-      case 'full-svg':                 exportFullSVG();                 break;
+  // Scope toggles + format buttons (delegated on the bar)
+  Dom.exportBar?.addEventListener('click', (e) => {
+    // Scope toggle — data or image row, independent
+    const scopeBtn = e.target.closest('.export-scope-btn');
+    if (scopeBtn) {
+      const { cat, scope } = scopeBtn.dataset;
+      if (cat === 'data')  _dataScope  = scope;
+      if (cat === 'image') _imageScope = scope;
+      _syncScopeUI();
+      return;
+    }
+    // Format button — dispatch based on format + category scope, then close
+    const fmtBtn = e.target.closest('.export-fmt-btn');
+    if (fmtBtn && !fmtBtn.disabled) {
+      const { fmt, cat } = fmtBtn.dataset;
+      exportBarClose();
+      if (cat === 'data') {
+        if (_dataScope === 'full') {
+          if (fmt === 'json')     { exportSchemaJSON();      return; }
+          if (fmt === 'markdown') { exportSchemaMarkdown();  return; }
+        } else {
+          if (fmt === 'json')     { exportNeighbourhoodJSON();     return; }
+          if (fmt === 'markdown') { exportNeighbourhoodMarkdown(); return; }
+        }
+      }
+      if (cat === 'image') {
+        if (_imageScope === 'view') {
+          if (fmt === 'png') { exportViewPNG(); return; }
+          if (fmt === 'svg') { exportViewSVG(); return; }
+        } else {
+          if (fmt === 'png') { exportFullPNG(); return; }
+          if (fmt === 'svg') { exportFullSVG(); return; }
+        }
+      }
+    }
+  });
+
+  // Close on Escape or click outside the bar
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && Dom.exportBar?.classList.contains('open')) {
+      exportBarClose();
     }
   });
 
   document.addEventListener('click', (e) => {
-    if (!Dom.exportMenu.classList.contains('open')) return;
-    if (e.target.closest('.export-wrap')) return;
-    if (e.target.closest('#export-menu')) return;
-    exportMenuClose();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && Dom.exportMenu.classList.contains('open')) {
-      exportMenuClose();
-    }
-  });
-
-  window.addEventListener('resize', () => {
-    if (Dom.exportMenu.classList.contains('open')) exportMenuClose();
+    if (!Dom.exportBar?.classList.contains('open')) return;
+    if (e.target.closest('#export-bar') || e.target.closest('#btn-export')) return;
+    exportBarClose();
   });
 
   // Swatch button — toggle picker open/close
