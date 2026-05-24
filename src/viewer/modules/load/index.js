@@ -178,24 +178,23 @@ export function loadGraph(data) {
     });
   }
 
-  // Wire "Filter +" shortcut: adds scope condition, expands filter panel, fires applyFilters
-  const scopeFilterBtn = document.getElementById('scope-filter-btn');
-  if (scopeFilterBtn) {
-    scopeFilterBtn.addEventListener('click', () => {
-      const alreadyHasScope = uiState.filterConditions.some(c => c.type === 'scope');
-      if (!alreadyHasScope) {
-        uiState.filterConditions = [...uiState.filterConditions,
-          { id: 'fc_scope_shortcut', type: 'scope', values: [] }];
-      }
+  // Show the "Filter" button in the header search bar (hidden until data loads)
+  if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
+
+  // Wire "Filter" header button: expands filter panel in the sidebar
+  if (Dom.filterOpenBtn) {
+    Dom.filterOpenBtn.addEventListener('click', () => {
       // Expand the filter panel
       if (filterBody) filterBody.style.display = 'block';
       if (filterToggle) {
         filterToggle.textContent = '▾';
         filterToggle.setAttribute('aria-expanded', 'true');
       }
+      // Scroll sidebar so the filter panel is visible
+      const filterPanelEl = document.getElementById('filter-panel');
+      if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       // Re-render the filter panel
       if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
-      applyFilters();
     });
   }
 
