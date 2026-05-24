@@ -45,6 +45,28 @@ export function injectCiRelEdges(data) {
   }
 }
 
+// Wire the Filter header button once at module load (not per-schema-load) so that
+// multiple loadGraph() calls don't stack duplicate listeners. Also ensures the
+// filter panel container is un-hidden in case a mode change (diff/path) hid it.
+(function wireFilterBtn() {
+  const btn = Dom.filterOpenBtn;
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const filterPanelEl = document.getElementById('filter-panel');
+    const filterBody    = Dom.filterBody;
+    const filterToggle  = document.getElementById('filter-panel-toggle');
+    // Ensure the panel container itself is visible (may have been hidden by diff/path sync)
+    if (filterPanelEl) filterPanelEl.style.display = '';
+    if (filterBody)    filterBody.style.display = 'block';
+    if (filterToggle) {
+      filterToggle.textContent = '▾';
+      filterToggle.setAttribute('aria-expanded', 'true');
+    }
+    if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
+  });
+})();
+
 export function loadGraph(data) {
   resetHistory();
   graphState.graphData = data;
@@ -180,23 +202,6 @@ export function loadGraph(data) {
 
   // Show the "Filter" button in the header search bar (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
-
-  // Wire "Filter" header button: expands filter panel in the sidebar
-  if (Dom.filterOpenBtn) {
-    Dom.filterOpenBtn.addEventListener('click', () => {
-      // Expand the filter panel
-      if (filterBody) filterBody.style.display = 'block';
-      if (filterToggle) {
-        filterToggle.textContent = '▾';
-        filterToggle.setAttribute('aria-expanded', 'true');
-      }
-      // Scroll sidebar so the filter panel is visible
-      const filterPanelEl = document.getElementById('filter-panel');
-      if (filterPanelEl) filterPanelEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      // Re-render the filter panel
-      if (filterBody?._rebuildFilterPanel) filterBody._rebuildFilterPanel();
-    });
-  }
 
   updateMaxNodesSlider();
   updateHopDepthSlider();
