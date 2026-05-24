@@ -202,8 +202,8 @@ export function loadGraph(data) {
   Object.assign(data, { _refOutIds, _refInIds, _extOutIds, _extInIds,
                         _m2mIds, _relIds, _viewIds, _cmdbRelIds, _cmdbCiIds });
 
-  // Scope display + filter panel
-  buildScopeDisplay(Dom.scopeInfoList);
+  // Scope display (sidebar) + filter panel (dropdown)
+  buildScopeDisplay(Dom.scopeInfoList, { onApply: applyFilters });
   if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
 
   // Show the scope info group in the sidebar

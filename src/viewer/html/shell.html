@@ -24,7 +24,7 @@
       <button class="smt-btn active" data-sm="tables" id="sms-tables" title="Search by table name">Tbl</button>
       <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
     </div>
-    <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter</button>
+    <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter<span class="filter-badge" id="filter-badge" style="display:none">0</span></button>
   </div>
   <div class="header-sep desk-only" style="width:1px;height:22px;align-self:center;background:var(--border);flex-shrink:0;opacity:.6"></div>
 
@@ -67,7 +67,6 @@
 <div id="filter-panel" class="header-filter-panel" style="display:none" aria-label="Table filters">
   <div class="hfp-header">
     <span class="hfp-title">Filters</span>
-    <span class="filter-badge" id="filter-badge" style="display:none">0</span>
     <button class="hfp-close" id="hfp-close" aria-label="Close filter panel" title="Close">✕</button>
   </div>
   <div id="filter-body" class="filter-body hfp-body"></div>

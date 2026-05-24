@@ -10,6 +10,7 @@ import { applyTableFilter } from '../modules/search/index.js';
 import { fitGraph } from '../modules/export/index.js';
 import { highlightListItem } from './table-list.js';
 import { updateDensityInfo, updateHopDepthSlider } from './density-controls.js';
+import { filterOk } from '../core/advanced-filter.js';
 import { pushHistory } from '../modules/history/index.js';
 
 // _fillInspectorHook: optional override injected by path-finder
@@ -60,9 +61,9 @@ export function clearSelection() {
   Dom.inspectorContent.style.display = 'none';
   Dom.activeFilter.style.display = 'none';
   document.querySelectorAll('.table-item').forEach(el=>el.classList.remove('selected'));
-  const totalAvailable = uiState.selectedScopes.size === 0
+  const totalAvailable = uiState.filterConditions.length === 0
     ? graphState.graphData.nodes.length
-    : graphState.graphData.nodes.filter(n => uiState.selectedScopes.has(n.scope)).length;
+    : graphState.graphData.nodes.filter(filterOk).length;
   const newCeiling = Math.max(1, totalAvailable);
   Dom.slMaxNodes.max = newCeiling;
   if (uiState.maxNodes > newCeiling) uiState.maxNodes = newCeiling;

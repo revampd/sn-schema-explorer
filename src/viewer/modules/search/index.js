@@ -103,6 +103,16 @@ export function applyTableFilter(q) {
   Dom.tableList.scrollTop = 0;
   tlRenderVisible();
   setHintMode(_searchMode === 'fields' && !!queryRaw);
+
+  // Update result count indicator in sort bar
+  if (Dom.tableCount) {
+    const total = getTableDataAll().length;
+    const hasActiveFilter = uiState.filterConditions.length > 0 || !!queryRaw;
+    Dom.tableCount.textContent = hasActiveFilter
+      ? `${filtered.length} / ${total}`
+      : String(total);
+    Dom.tableCount.classList.toggle('table-count--filtered', hasActiveFilter && filtered.length < total);
+  }
 }
 
 export function initSearchListeners() {
