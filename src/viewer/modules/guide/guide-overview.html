@@ -26,10 +26,11 @@
     <p>✦ Discover M2M junction tables and named relationships</p>
     <p>✦ Inspect fields, types, and scopes for any table</p>
     <p>✦ Search by table name <em>or</em> field name across the entire dataset</p>
+    <p>✦ Filter the canvas with a multi-condition builder (scope, type, name, edge type, field count, custom prefix)</p>
     <p>✦ Find the shortest dot-walk path between any two tables or to any field</p>
     <p>✦ Compare two schema exports to see what changed between builds or upgrades</p>
     <p>✦ Save named views and restore them instantly</p>
-    <p>✦ Export the graph as PNG or SVG, or export the schema or neighbourhood as JSON</p>
+    <p>✦ Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML</p>
   </div>
   <div class="guide-card">
     <h4>Header at a glance</h4>
@@ -38,7 +39,8 @@
     <div class="guide-kv"><span class="guide-key">◀ / ▶</span><span class="guide-val">Navigation history. Step back and forward through your last 10 states — table selections, view-mode switches, filter changes, and density slider commits. Disabled until you have recorded at least two states. Keyboard shortcuts: <strong>Alt+←</strong> / <strong>Alt+→</strong>.</span></div>
     <div class="guide-kv"><span class="guide-key">Refresh</span><span class="guide-val">Re-render the graph preserving the current selection, filters, and node positions.</span></div>
     <div class="guide-kv"><span class="guide-key">Fit</span><span class="guide-val">Zoom and pan to fit all visible nodes into the viewport.</span></div>
-    <div class="guide-kv"><span class="guide-key">Export ▾</span><span class="guide-val">Download the full schema JSON, the current neighbourhood JSON, the canvas as PNG (multiple scales), or as SVG. See Tips &amp; Tricks for use cases.</span></div>
+    <div class="guide-kv"><span class="guide-key">Filter</span><span class="guide-val">Opens the dynamic condition builder. Add conditions to narrow the canvas and sidebar list by scope, table type, name, field name, edge type, field count, or custom prefix. Active conditions show a badge count. Hidden while Path Finder is active.</span></div>
+    <div class="guide-kv"><span class="guide-key">Export ▾</span><span class="guide-val">Download schema data in multiple formats (JSON, Markdown, JSON-LD, OWL/Turtle, OpenAPI YAML) at either full-schema or current-neighbourhood scope, plus PNG and SVG canvas exports with background colour and opacity control. See Tips &amp; Tricks for details on each format.</span></div>
     <div class="guide-kv"><span class="guide-key">Reference</span><span class="guide-val">Open the ServiceNow Data Model Reference. Covers CSDM 5 architecture, domain breakdown, service lifecycle, adoption maturity path, and the ESM blueprint across six tabs. Table name chips throughout the reference are interactive — when a table exists in your loaded schema it lights up green; click it to close the modal and navigate directly to that table in the schema map.</span></div>
     <div class="guide-kv"><span class="guide-key">Guide</span><span class="guide-val">Opens this user guide.</span></div>
     <div class="guide-kv"><span class="guide-key">Settings</span><span class="guide-val">Toggle features and preferences. Settings persist across sessions via localStorage.</span></div>
