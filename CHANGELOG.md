@@ -39,6 +39,13 @@ backlog ([#38](https://github.com/revampd/sn-schema-explorer/issues/38),
 
 ### Changed
 
+- Internal refactor — large source files split into cohesive modules with **zero
+  behaviour change** ([#73](https://github.com/revampd/sn-schema-explorer/issues/73)):
+  the viewer/Node/Background export serialisers, the Path Finder config and
+  hop-exclusions UI, the advanced-filter evaluation core, the Schema Diff
+  inspector, the render instance-info pill/modal, and the two large stylesheets
+  (`schema-map`, `core`) now live in focused sibling modules / CSS partials. The
+  built outputs (single HTML, exporter scripts) are byte-for-byte unchanged.
 - Saved-view naming and "Open in ServiceNow" now use an inline modal input
   instead of the blocking `window.prompt()` (which some browser-hardening
   policies suppress); "Open in ServiceNow" opens directly when the instance is
