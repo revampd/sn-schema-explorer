@@ -11,7 +11,7 @@ No installation, no server, no external dependencies.
 ## Features
 
 - Force-directed Schema Map with adjustable hop depth, max nodes, and edge-type filters
-- Advanced filter builder — narrow the canvas by scope, table type, name, field, edge type, field count, or custom prefix
+- Advanced filter builder — narrow the canvas by scope, table type, table access, name, field, edge type, field count, or custom prefix
 - Inspect any table's fields, types, inheritance chain, references, M2M links, and CMDB CI topology
 - Search by table name **or** field name across the full dataset
 - Path Finder — shortest dot-walk path between any two tables or to a specific field; hop exclusions to suppress hub tables
@@ -20,6 +20,7 @@ No installation, no server, no external dependencies.
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML
 - Custom colour-coded export background with opacity control
 - CMDB CI topology edges and ServiceNow Data Model Reference (CSDM 5)
+- Optional update check — a dismissible footer badge when a newer release is available (toggle in Settings; no telemetry)
 
 ![Schema Map](screenshots/screenshot-feature-schema_map.jpg)
 ![Diff](screenshots/screenshot-feature-diff.jpg)

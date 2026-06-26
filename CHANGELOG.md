@@ -23,6 +23,10 @@ backlog ([#38](https://github.com/revampd/sn-schema-explorer/issues/38),
 
 - **Table Access** filter condition (`package_private` / `public`) in the filter
   builder ([#41](https://github.com/revampd/sn-schema-explorer/issues/41)).
+- Optional **update check** — once per session, a dismissible footer badge links
+  to a newer GitHub release when one exists. Off-able in Settings; the only
+  network call is a single GET to the public releases API, no telemetry
+  ([#45](https://github.com/revampd/sn-schema-explorer/issues/45)).
 - ESLint (flat config) and Prettier configuration, plus `lint`, `format`,
   `format:check`, and `test:coverage` npm scripts.
 - Code-coverage reporting (vitest v8) with a ratcheted CI threshold.
