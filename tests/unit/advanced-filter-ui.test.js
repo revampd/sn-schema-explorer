@@ -41,9 +41,10 @@ beforeEach(() => {
 });
 
 // Click the "+ Add condition" picker item whose label matches.
+// The picker is portalled to <body>, so query the document, not the container.
 function addCondition(label) {
   container.querySelector('.fc-add-btn').click();
-  const item = [...container.querySelectorAll('.fc-picker-item')].find(
+  const item = [...document.querySelectorAll('.fc-picker-item')].find(
     el => el.textContent === label
   );
   if (!item) throw new Error('picker item not found: ' + label);
@@ -84,7 +85,7 @@ describe('buildFilterPanel — singleton enforcement', () => {
     addCondition('Application Scope');
 
     container.querySelector('.fc-add-btn').click();
-    const labels = [...container.querySelectorAll('.fc-picker-item')].map(el => el.textContent);
+    const labels = [...document.querySelectorAll('.fc-picker-item')].map(el => el.textContent);
     expect(labels).not.toContain('Application Scope');
     // multi-instance types remain available
     expect(labels).toContain('Table Name');

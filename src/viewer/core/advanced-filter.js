@@ -328,13 +328,27 @@ const OP_LABEL = { startsWith: 'starts with', contains: 'contains', is: 'is' };
 // _render() cleans up any portal dropdowns from the previous render before
 // replacing children, so there is no leak.
 
+// Tracks every body-portalled element (autocomplete dropdowns + the add-condition
+// picker) so they can be torn down explicitly rather than via a brittle global
+// class query. _destroyFilterPortals() runs at the top of every _render().
+const _filterPortals = new Set();
+function _destroyFilterPortals() {
+  _filterPortals.forEach(el => el.remove());
+  _filterPortals.clear();
+}
+
 function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } = {}) {
   const input = h('input', inputProps);
   const wrap = h('div', { class: 'fc-ac-wrap' });
 
-  // Portal: lives on <body>, cleaned up in _render()
+  // Portal: lives on <body>, torn down via _destroyFilterPortals() in _render().
   const dropdown = h('div', { class: 'fc-ac-drop', style: 'display:none' });
   document.body.appendChild(dropdown);
+  _filterPortals.add(dropdown);
+  const destroy = () => {
+    dropdown.remove();
+    _filterPortals.delete(dropdown);
+  };
 
   function _itemValue(item) {
     return typeof item === 'string' ? item : item.value;
@@ -413,7 +427,7 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
   );
 
   wrap.append(input);
-  return { wrap, input };
+  return { wrap, input, destroy };
 }
 
 // ── Dynamic filter panel builder ─────────────────────────────────────────────
@@ -450,9 +464,10 @@ export function buildFilterPanel(container, { onApply } = {}) {
   }
 
   function _render() {
-    // Remove portal autocomplete dropdowns from the previous render before
-    // replacing children (they live on <body>, not inside container).
-    document.querySelectorAll('.fc-ac-drop').forEach(el => el.remove());
+    // Tear down body-portalled elements (autocomplete dropdowns + picker) from
+    // the previous render before replacing children — they live on <body>, not
+    // inside container.
+    _destroyFilterPortals();
     container.replaceChildren();
     const gd = graphState.graphData;
 
@@ -869,18 +884,50 @@ export function buildFilterPanel(container, { onApply } = {}) {
     const availableTypes = Object.keys(CONDITION_LABELS).filter(t => !usedSingletons.has(t));
 
     if (availableTypes.length > 0) {
+      // Picker is body-portalled (like the autocomplete dropdowns) so it can't be
+      // clipped by the filter bar's overflow/stacking context.
+      const pickerEl = h('div', {
+        class: 'fc-picker',
+        style: 'display:none;position:fixed;z-index:1000',
+      });
+
+      function _positionPicker() {
+        const r = addBtn.getBoundingClientRect();
+        pickerEl.style.top = r.bottom + 2 + 'px';
+        pickerEl.style.left = r.left + 'px';
+      }
+      function _closePicker() {
+        pickerEl.style.display = 'none';
+      }
+      // Self-removing outside-click handler: closes the picker, and detaches
+      // itself once the picker has been torn down by a re-render.
+      function _onDocDown(e) {
+        if (!document.body.contains(pickerEl)) {
+          document.removeEventListener('mousedown', _onDocDown, true);
+          return;
+        }
+        if (!pickerEl.contains(e.target) && e.target !== addBtn) _closePicker();
+      }
+
       const addBtn = h(
         'button',
         {
           class: 'fc-add-btn',
           onClick: () => {
-            pickerEl.style.display = pickerEl.style.display === 'none' ? 'block' : 'none';
+            if (pickerEl.style.display === 'none') {
+              _positionPicker();
+              pickerEl.style.display = 'block';
+              setTimeout(() => document.addEventListener('mousedown', _onDocDown, true), 0);
+            } else {
+              _closePicker();
+            }
           },
         },
         '+ Add condition'
       );
 
-      const pickerEl = h('div', { class: 'fc-picker', style: 'display:none' });
+      document.body.appendChild(pickerEl);
+      _filterPortals.add(pickerEl);
       availableTypes.forEach(t => {
         const item = h(
           'div',
@@ -931,7 +978,7 @@ export function buildFilterPanel(container, { onApply } = {}) {
       });
 
       const addWrap = h('div', { class: 'fc-add-wrap' });
-      addWrap.append(addBtn, pickerEl);
+      addWrap.append(addBtn);
       actionsRow.appendChild(addWrap);
     }
 
