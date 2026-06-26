@@ -10,7 +10,8 @@ import {
   clearSelection,
   setFillInspectorHook,
 } from '../../shared/inspector.js';
-import { buildTableList, tlRenderVisible, tlSetSpacerHeight } from '../../shared/table-list.js';
+import { buildTableList } from '../../shared/table-list.js';
+import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
 import { h } from '../../core/template.js';
 import {
@@ -168,33 +169,11 @@ function diffSyncVisibility() {
 // ── Sidebar sync ──────────────────────────────────────────────────────────────
 
 function diffSyncSidebar() {
-  const diffSidebar = document.getElementById('diff-sidebar');
-  const tableList = document.getElementById('table-list');
-  const sortBar = document.getElementById('sort-bar');
-  const scopeGroup = document.getElementById('scope-info-group');
-  const densityG = document.getElementById('density-group') || Dom.densityGroup;
-  if (!diffSidebar) return;
+  if (!document.getElementById('diff-sidebar')) return;
+  syncSidebarForMode();
   if (uiState.viewMode === 'diff') {
-    diffSidebar.style.display = 'flex';
-    if (tableList) tableList.style.display = 'none';
-    if (sortBar) sortBar.style.display = 'none';
-    if (scopeGroup) scopeGroup.style.display = 'none';
-    // filter bar and Filter button remain visible — advanced filter applies in diff view too
-    if (densityG) densityG.style.display = '';
     diffUpdateSummary();
     diffBuildList();
-  } else {
-    diffSidebar.style.display = 'none';
-    if (uiState.viewMode !== 'path') {
-      if (tableList) tableList.style.display = '';
-      if (sortBar) sortBar.style.display = '';
-      if (scopeGroup) scopeGroup.style.display = '';
-      if (densityG) densityG.style.display = '';
-      requestAnimationFrame(() => {
-        tlSetSpacerHeight();
-        tlRenderVisible();
-      });
-    }
   }
 }
 

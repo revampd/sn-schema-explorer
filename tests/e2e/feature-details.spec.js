@@ -90,6 +90,25 @@ test.describe('Path Finder dot-walk', () => {
   });
 });
 
+// ── Sidebar sync across view modes (#46.14) ──────────────────────────────────
+test.describe('Sidebar sync', () => {
+  test('switching to Path Finder and back restores the default sidebar', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { pathFinding: true } });
+    await injectSchema(page, SCHEMA_OUTPUT);
+
+    // Default view: table list visible, path sidebar hidden.
+    await expect(page.locator('#table-list')).toBeVisible();
+
+    await page.locator('#vms-path').click();
+    await expect(page.locator('#pf-sidebar')).toBeVisible();
+    await expect(page.locator('#table-list')).toBeHidden();
+
+    await page.locator('#vms-force').click();
+    await expect(page.locator('#pf-sidebar')).toBeHidden();
+    await expect(page.locator('#table-list')).toBeVisible();
+  });
+});
+
 // ── Schema Diff interactions ──────────────────────────────────────────────────
 test.describe('Schema Diff interactions', () => {
   async function openDiff(page) {
