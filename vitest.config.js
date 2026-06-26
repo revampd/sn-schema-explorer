@@ -13,10 +13,10 @@ export default defineConfig({
       // fail CI without blocking today. Raised in Phase 4 after adding the
       // graph-state, filter-memoisation, and feature e2e tests.
       thresholds: {
-        statements: 13,
-        branches: 13,
-        functions: 13,
-        lines: 13,
+        statements: 15.5,
+        branches: 13.5,
+        functions: 14,
+        lines: 15.5,
       },
     },
   },
