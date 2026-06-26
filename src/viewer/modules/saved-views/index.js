@@ -10,6 +10,7 @@ import { h } from '../../core/template.js';
 import { onViewModeChange } from '../../engine/view-mode.js';
 import { render } from '../../engine/render.js';
 import { focusTable } from '../../shared/inspector.js';
+import { inlinePrompt } from '../../shared/inline-prompt.js';
 
 // ── Saved-views UI (self-contained — no external wiring needed) ───────────────
 
@@ -140,9 +141,13 @@ function buildViewsList() {
 SavedViews.onChange(buildViewsList);
 
 // Wire save and apply/delete interactions
-document.getElementById('btn-save-view')?.addEventListener('click', () => {
+document.getElementById('btn-save-view')?.addEventListener('click', async () => {
   if (!graphState.graphData) return;
-  const name = prompt('Name this view:');
+  const name = await inlinePrompt({
+    title: 'Name this view',
+    placeholder: 'e.g. Incident neighbourhood',
+    okLabel: 'Save',
+  });
   if (name == null) return;
   const trimmed = name.trim();
   if (!trimmed) return;
