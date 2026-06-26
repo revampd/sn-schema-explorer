@@ -167,7 +167,19 @@ export const BUILDER_INPUT = {
     },
   ],
 
-  sysRelationship: [],
+  sysRelationship: [
+    {
+      sys_id: 'rel_1',
+      name: 'Task to User',
+      // basic_apply_to is a plain table name → resolves the "from" side directly
+      apply_to: '',
+      basic_apply_to: 'incident',
+      // query_from is a simple `answer = '<table>'` script → resolves the "to" side
+      query_from: "answer = 'sys_user';",
+      basic_query_from: '',
+      query_with: '',
+    },
+  ],
 
   sysGlideObject: [
     {
