@@ -1,4 +1,4 @@
-import { graphState, uiState, diffState } from '../core/state.js';
+import { graphState, uiState, diffState, edgeSourceId, edgeTargetId } from '../core/state.js';
 import { Settings } from '../modules/settings/index.js';
 import { filterOk } from '../core/advanced-filter.js';
 
@@ -34,9 +34,9 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
         const curAdj = _adj ? _adj.get(cur) : null;
         const extEdge = curAdj
           ? curAdj.out.find(e => e.type === 'extends')
-          : edges.find(e => (e.source?.id ?? e.source) === cur && e.type === 'extends');
+          : edges.find(e => edgeSourceId(e) === cur && e.type === 'extends');
         if (!extEdge) break;
-        const parentId = extEdge.target?.id ?? extEdge.target;
+        const parentId = edgeTargetId(extEdge);
         if (!parentId || seen.has(parentId)) break;
         seen.add(parentId);
         inheritedSeeds.add(parentId);
@@ -56,7 +56,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           if (!na) continue;
           for (const e of na.out) {
             if (!edgeTypeOk(e)) continue;
-            const t = e.target?.id ?? e.target;
+            const t = edgeTargetId(e);
             if (t === fid) continue;
             if (e.type === 'reference') {
               if (uiState.showRefTo   && !reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
@@ -66,7 +66,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           }
           for (const e of na.in) {
             if (!edgeTypeOk(e)) continue;
-            const s = e.source?.id ?? e.source;
+            const s = edgeSourceId(e);
             if (s === fid) continue;
             if (e.type === 'reference') {
               if (uiState.showRefFrom && !reached.has(s)) { next.add(s); hopDist[s] = hop + 1; }
@@ -84,7 +84,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
         const next = new Set();
         edges.forEach(e => {
           if (!edgeTypeOk(e)) return;
-          const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
+          const s = edgeSourceId(e), t = edgeTargetId(e);
           if (s === t) return;
           if (e.type === 'reference') {
             if (uiState.showRefTo   && frontier.has(s) && !reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
@@ -126,7 +126,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           const na = _adj.get(id) || { out: [], in: [] };
           for (const e of [...na.out, ...na.in]) {
             if (!edgeTypeOk(e)) continue;
-            const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
+            const s = edgeSourceId(e), t = edgeTargetId(e);
             let parentId = null;
             if (t === id && hopDist[s] === depth - 1) {
               // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
@@ -147,7 +147,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           if (depth < 2) continue;
           for (const e of edges) {
             if (!edgeTypeOk(e)) continue;
-            const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
+            const s = edgeSourceId(e), t = edgeTargetId(e);
             let parentId = null;
             if (t === id && hopDist[s] === depth - 1) {
               // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
@@ -194,8 +194,8 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
   if (countOnly) return { visNodeIds, connectedNodes: uiState.connectedNodes };
 
   const visEdges = edges.filter(e => {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    const s = edgeSourceId(e);
+    const t = edgeTargetId(e);
     if (s === t) return false;
     if (!visNodeIds.has(s) || !visNodeIds.has(t)) return false;
     if (e.type === 'reference') {
@@ -219,8 +219,8 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
   });
 
   const edgeKey = e => {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    const s = edgeSourceId(e);
+    const t = edgeTargetId(e);
     return `${s}||${t}||${e.type}`;
   };
   const collapsed = new Map();

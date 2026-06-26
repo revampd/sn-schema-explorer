@@ -108,11 +108,14 @@ function _evalOne(c, node) {
 // ALL conditions in ANY one group.  Example:
 //   A  AND  B  OR  C  AND  D  →  (A AND B) OR (C AND D)
 
-export function filterOk(node) {
-  if (!uiState.filterConditions?.length) return true;
-  const conds = uiState.filterConditions;
+// Memoisation: nodes are immutable after load, so a node's filter result only
+// changes when the conditions change. We cache the OR/AND partition and the
+// per-node verdicts, keyed by a signature of the active conditions. A render
+// pass over N nodes with unchanged filters then re-evaluates each node at most
+// once; subsequent re-renders (pan/zoom/hop change) hit the cache outright.
+const _filterCache = { sig: null, graph: null, groups: null, results: new Map() };
 
-  // Partition into OR-separated AND-groups
+function _partitionGroups(conds) {
   const groups = [];
   let group = [conds[0]];
   for (let i = 1; i < conds.length; i++) {
@@ -123,9 +126,31 @@ export function filterOk(node) {
     group.push(conds[i]);
   }
   groups.push(group);
+  return groups;
+}
+
+export function filterOk(node) {
+  const conds = uiState.filterConditions;
+  if (!conds?.length) return true;
+
+  // The condition list is tiny, so stringifying it per call is cheap relative to
+  // the substring/array work _evalOne does — and it correctly detects in-place
+  // edits that a reference/length check would miss.
+  const sig = JSON.stringify(conds);
+  if (sig !== _filterCache.sig || graphState.graphData !== _filterCache.graph) {
+    _filterCache.sig = sig;
+    _filterCache.graph = graphState.graphData;
+    _filterCache.groups = _partitionGroups(conds);
+    _filterCache.results = new Map();
+  }
+
+  const cached = _filterCache.results.get(node.id);
+  if (cached !== undefined) return cached;
 
   // Pass if every condition in any one group is satisfied
-  return groups.some(g => g.every(c => _evalOne(c, node)));
+  const ok = _filterCache.groups.some(g => g.every(c => _evalOne(c, node)));
+  _filterCache.results.set(node.id, ok);
+  return ok;
 }
 
 // ── Sync selectedScopes (derived) from filterConditions ───────────────────────

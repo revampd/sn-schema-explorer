@@ -1,4 +1,4 @@
-import { graphState, uiState, diffState } from '../../core/state.js';
+import { graphState, uiState, diffState, buildIndexes } from '../../core/state.js';
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -52,14 +52,13 @@ function diffGraftAddedIntoBase() {
   for (const e of diffState._diffData.allAddedEdges || []) {
     graphState.graphData.edges.push({ ...e, _diffOnly: true });
   }
+  buildIndexes(graphState.graphData);
   const _ec = {};
   graphState.graphData.edges.forEach(e => {
-    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-    _ec[s] = (_ec[s] || 0) + 1;
-    _ec[t] = (_ec[t] || 0) + 1;
+    _ec[e._sourceId] = (_ec[e._sourceId] || 0) + 1;
+    _ec[e._targetId] = (_ec[e._targetId] || 0) + 1;
   });
   graphState.graphData._edgeCnt = _ec;
-  _rebuildIndexes(graphState.graphData);
   buildTableList();
 }
 
@@ -70,30 +69,16 @@ function diffUngraftAddedFromBase() {
   if (!hadAny) return;
   graphState.graphData.nodes = graphState.graphData.nodes.filter(n => !n._diffOnly);
   graphState.graphData.edges = graphState.graphData.edges.filter(e => !e._diffOnly);
+  // Rebuild _sourceId/_targetId, _nodeById and _adj after edge/node mutations
+  // (graft/ungraft), then recompute edge counts from the normalized ids.
+  buildIndexes(graphState.graphData);
   const _ec = {};
   graphState.graphData.edges.forEach(e => {
-    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-    _ec[s] = (_ec[s] || 0) + 1;
-    _ec[t] = (_ec[t] || 0) + 1;
+    _ec[e._sourceId] = (_ec[e._sourceId] || 0) + 1;
+    _ec[e._targetId] = (_ec[e._targetId] || 0) + 1;
   });
   graphState.graphData._edgeCnt = _ec;
-  _rebuildIndexes(graphState.graphData);
   buildTableList();
-}
-
-function _rebuildIndexes(data) {
-  // Rebuild _nodeById and _adj after edge/node mutations (called by diff graft/ungraft)
-  const nb = new Map();
-  data.nodes.forEach(n => nb.set(n.id, n));
-  data._nodeById = nb;
-  const adj = new Map();
-  data.nodes.forEach(n => adj.set(n.id, { out: [], in: [] }));
-  data.edges.forEach(e => {
-    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-    if (adj.has(s)) adj.get(s).out.push(e);
-    if (adj.has(t)) adj.get(t).in.push(e);
-  });
-  data._adj = adj;
 }
 
 // ── loadDiffSchema ────────────────────────────────────────────────────────────

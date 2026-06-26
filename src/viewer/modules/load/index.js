@@ -1,4 +1,4 @@
-import { graphState, uiState, diffState, buildScopeColorMap } from '../../core/state.js';
+import { graphState, uiState, diffState, buildScopeColorMap, buildIndexes } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { Settings } from '../settings/index.js';
 import { render, updateInstancePill, updateStats } from '../../engine/render.js';
@@ -81,21 +81,20 @@ export function loadGraph(data) {
 
   injectCiRelEdges(data);
 
+  // Stamp edge _sourceId/_targetId and build _nodeById + _adj (shared with the
+  // diff module). Everything below can now rely on the normalized id fields.
+  buildIndexes(data);
+
   const _ec = {};
   data.edges.forEach(e => {
-    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
-    _ec[s] = (_ec[s] || 0) + 1;
-    _ec[t] = (_ec[t] || 0) + 1;
+    _ec[e._sourceId] = (_ec[e._sourceId] || 0) + 1;
+    _ec[e._targetId] = (_ec[e._targetId] || 0) + 1;
   });
   data._edgeCnt = _ec;
 
   updateStats();
   buildScopeColorMap(data.nodes);
   buildTableList();
-
-  const _nodeById = new Map();
-  data.nodes.forEach(n => { _nodeById.set(n.id, n); });
-  data._nodeById = _nodeById;
 
   const _fieldSearchIndex = new Map();
   data.nodes.forEach(n => {
@@ -107,18 +106,7 @@ export function loadGraph(data) {
       _fieldSearchIndex.get(key).add(n.id);
     }
   });
-  setSearchData(_nodeById, _fieldSearchIndex);
-
-  // Build adjacency index: Map<nodeId, {out: edge[], in: edge[]}> for O(degree) lookups
-  const _adj = new Map();
-  data.nodes.forEach(n => _adj.set(n.id, { out: [], in: [] }));
-  data.edges.forEach(e => {
-    const s = e.source?.id ?? e.source;
-    const t = e.target?.id ?? e.target;
-    if (_adj.has(s)) _adj.get(s).out.push(e);
-    if (_adj.has(t)) _adj.get(t).in.push(e);
-  });
-  data._adj = _adj;
+  setSearchData(data._nodeById, _fieldSearchIndex);
 
   // Pre-compute edge-membership sets for the dynamic filter
   const _refOutIds = new Set(), _refInIds = new Set();
@@ -128,7 +116,7 @@ export function loadGraph(data) {
   const _childrenOf = new Map();
 
   for (const e of data.edges) {
-    const s = e.source?.id ?? e.source, t = e.target?.id ?? e.target;
+    const s = e._sourceId, t = e._targetId;
     if (e.type === 'reference') { _refOutIds.add(s); _refInIds.add(t); }
     if (e.type === 'extends')   {
       _extOutIds.add(s); _extInIds.add(t);

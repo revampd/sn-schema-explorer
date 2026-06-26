@@ -66,7 +66,7 @@ export function initCanvasUI() {
           sidebar:   Math.round(sidebarPx),
           inspector: Math.round(inspectorPx)
         }));
-      } catch (e) {}
+      } catch (e) { console.warn('canvas-ui: localStorage write failed', e); }
     }
 
     function startDrag(handle, side) {
