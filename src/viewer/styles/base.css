@@ -1,0 +1,156 @@
+/* UI typography
+     ──────────────
+     The official "ServiceNow Sans" webfont is hosted on servicenow.com but
+     its CDN blocks cross-origin loads, so it cannot be hotlinked from a
+     standalone HTML file. To keep this tool fully self-contained and
+     offline-friendly we rely on the OS's modern system sans-serif stack
+     (San Francisco on Apple, Segoe UI on Windows, Roboto/Inter on Linux/
+     ChromeOS, etc.). The 'ServiceNow Sans' name is left in the font-family
+     stacks below in case anyone installs the font locally — the browser
+     simply falls through to the system fonts otherwise.
+
+     Monospace contexts (table IDs, field names, dot-walks) use the system
+     monospace stack (ui-monospace → Cascadia Code / SF Mono / Consolas /
+     Menlo / DejaVu Sans Mono). 'JetBrains Mono' is listed first as a
+     courtesy for users who have it installed locally; no network request
+     is made for it. */
+
+:root {
+  /* ServiceNow Infinite Blue palette */
+  --sn-infinite: #032d42;
+  --sn-deep: #021e2d;
+  --sn-surface: #042b3e;
+  --sn-panel: #0a3448;
+  --sn-border: rgba(255, 255, 255, 0.1);
+  --sn-wasabi: #63df4e;
+  --sn-wasabi-dim: rgba(99, 223, 78, 0.12);
+  --custom-highlight: #c4956a;
+  --sn-blue: #0ea5e9;
+  --sn-indigo: #6366f1;
+  --sn-purple: #a855f7;
+  --sn-teal: #2a4f62;
+  --sn-text: #e0eaf0;
+  --sn-muted: rgba(255, 255, 255, 0.45);
+
+  /* App variable mappings */
+  --bg: var(--sn-deep);
+  --surface: var(--sn-surface);
+  --panel: var(--sn-panel);
+  --border: var(--sn-border);
+  --accent: var(--sn-wasabi);
+  --accent2: var(--sn-blue);
+  --accent3: #ff9f5a;
+  --text: var(--sn-text);
+  --muted: var(--sn-muted);
+  --core-node: var(--sn-wasabi);
+  --ref-edge: var(--sn-blue);
+  --ext-edge: #2a6496;
+  --node-fill: rgba(4, 43, 62, 0.9);
+  --node-stroke: rgba(255, 255, 255, 0.12);
+  /* Edge type colours */
+  --edge-ref-to: #00c896;
+  --edge-ref-from: #c46aff;
+  --edge-ref: #7b61ff;
+  --edge-ext: #2a6496;
+  --edge-m2m: #06d6a0;
+  --edge-rel: #ff9f5a;
+  --edge-view: #ffd166;
+  /* CI topology — runtime CMDB class-to-class relationships from
+       cmdb_rel_type_suggest. Visually distinct from schema-level edges
+       (dashed double line, cool teal) because these represent runtime
+       data relationships, not dot-walkable schema connections. */
+  --edge-cmdbrel: #4dd0e1;
+  --edge-warn: #fbbf24;
+  --header-h: 50px;
+  --sidebar-w: 260px;
+  --inspector-w: 280px;
+  --sidebar-collapsed: 28px;
+  --inspector-collapsed: 28px;
+  --font-scale: 1;
+  /* Schema Diff colours */
+  --diff-added: #4ade80;
+  --diff-removed: #f87171;
+  --diff-changed: #fbbf24;
+  --diff-added-dim: rgba(74, 222, 128, 0.13);
+  --diff-removed-dim: rgba(248, 113, 113, 0.13);
+  --diff-changed-dim: rgba(251, 191, 36, 0.13);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: calc(12px * var(--font-scale, 1));
+  display: grid;
+  grid-template-rows: var(--header-h) auto auto 1fr 22px;
+  grid-template-columns: var(--sidebar-w) 1fr var(--inspector-w);
+  transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  grid-template-areas:
+    'header    header    header'
+    'exportbar exportbar exportbar'
+    'filterbar filterbar filterbar'
+    'sidebar   canvas    inspector'
+    'footer    footer    footer';
+  height: 100vh;
+}
+/* While the user is dragging a resize handle we suppress the grid
+     transition so the columns track the cursor 1:1 instead of easing. */
+body.resizing {
+  transition: none !important;
+  cursor: col-resize;
+  user-select: none;
+}
+body.resizing * {
+  user-select: none !important;
+}
+
+/* Resize handles — thin invisible bars sitting on the inner edges of the
+     sidebar and inspector. They live inside the aside/#inspector so they
+     follow column width changes without taking grid space. */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 25;
+  background: transparent;
+  transition: background 0.15s;
+}
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--sn-wasabi);
+  opacity: 0.35;
+}
+#sidebar-resize {
+  right: -3px;
+} /* inner-right edge of sidebar */
+#inspector-resize {
+  left: -3px;
+} /* inner-left  edge of inspector */
+/* Hide handles when the corresponding panel is collapsed */
+body.sidebar-collapsed #sidebar-resize,
+body.inspector-collapsed #inspector-resize {
+  display: none;
+}
