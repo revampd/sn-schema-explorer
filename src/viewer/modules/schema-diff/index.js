@@ -1,4 +1,4 @@
-import { graphState, uiState, diffState, buildIndexes } from '../../core/state.js';
+import { graphState, uiState, diffState } from '../../core/state.js';
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -10,10 +10,8 @@ import {
   clearSelection,
   setFillInspectorHook,
 } from '../../shared/inspector.js';
-import { buildTableList } from '../../shared/table-list.js';
 import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
-import { h } from '../../core/template.js';
 import {
   registerHistoryExtractor,
   registerHistoryRestorer,
@@ -21,10 +19,13 @@ import {
 } from '../history/index.js';
 import { injectCiRelEdges } from '../load/index.js';
 import { computeDiff } from './compute-diff.js';
-import { onSearchChange, getSearchMode } from '../search/index.js';
-import { onFilterChange, filterOk } from '../../core/advanced-filter.js';
+import { onSearchChange } from '../search/index.js';
+import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
 import { initDiffFileInput } from './file-input.js';
+import { diffBuildList } from './build-list.js';
+import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
+import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
 
 // ── Settings registration ─────────────────────────────────────────────────────
 
@@ -53,48 +54,6 @@ registerHistoryRestorer(snap => {
     diffBuildList();
   }
 });
-
-// ── Graft helpers ─────────────────────────────────────────────────────────────
-
-function diffGraftAddedIntoBase() {
-  if (!diffState._diffData || !graphState.graphData) return;
-  for (const id of diffState._diffData.added) {
-    const cmpNode = diffState._diffData.compareMap.get(id);
-    if (!cmpNode) continue;
-    graphState.graphData.nodes.push({ ...cmpNode, _diffOnly: true });
-  }
-  for (const e of diffState._diffData.allAddedEdges || []) {
-    graphState.graphData.edges.push({ ...e, _diffOnly: true });
-  }
-  buildIndexes(graphState.graphData);
-  const _ec = {};
-  graphState.graphData.edges.forEach(e => {
-    _ec[e._sourceId] = (_ec[e._sourceId] || 0) + 1;
-    _ec[e._targetId] = (_ec[e._targetId] || 0) + 1;
-  });
-  graphState.graphData._edgeCnt = _ec;
-  buildTableList();
-}
-
-function diffUngraftAddedFromBase() {
-  if (!graphState.graphData) return;
-  const hadAny =
-    graphState.graphData.nodes.some(n => n._diffOnly) ||
-    graphState.graphData.edges.some(e => e._diffOnly);
-  if (!hadAny) return;
-  graphState.graphData.nodes = graphState.graphData.nodes.filter(n => !n._diffOnly);
-  graphState.graphData.edges = graphState.graphData.edges.filter(e => !e._diffOnly);
-  // Rebuild _sourceId/_targetId, _nodeById and _adj after edge/node mutations
-  // (graft/ungraft), then recompute edge counts from the normalized ids.
-  buildIndexes(graphState.graphData);
-  const _ec = {};
-  graphState.graphData.edges.forEach(e => {
-    _ec[e._sourceId] = (_ec[e._sourceId] || 0) + 1;
-    _ec[e._targetId] = (_ec[e._targetId] || 0) + 1;
-  });
-  graphState.graphData._edgeCnt = _ec;
-  buildTableList();
-}
 
 // ── loadDiffSchema ────────────────────────────────────────────────────────────
 
@@ -206,198 +165,6 @@ function diffUpdateSummary() {
     const el = document.getElementById('diff-stat-' + k);
     if (el) el.classList.toggle('active', diffState._diffFilter === k);
   });
-}
-
-// ── Keyboard cursor ───────────────────────────────────────────────────────────
-
-let _diffCursor = -1;
-
-function _diffGetItems() {
-  return [...document.querySelectorAll('#diff-list .diff-item')];
-}
-
-function _diffMoveCursor(delta) {
-  const items = _diffGetItems();
-  if (!items.length) return;
-  if (_diffCursor >= 0 && _diffCursor < items.length) {
-    items[_diffCursor].classList.remove('diff-item--focused');
-  }
-  _diffCursor = Math.max(
-    0,
-    Math.min(
-      items.length - 1,
-      _diffCursor < 0 ? (delta > 0 ? 0 : items.length - 1) : _diffCursor + delta
-    )
-  );
-  items[_diffCursor].classList.add('diff-item--focused');
-  items[_diffCursor].scrollIntoView({ block: 'nearest' });
-}
-
-function _diffClearCursor() {
-  _diffGetItems().forEach(el => el.classList.remove('diff-item--focused'));
-  _diffCursor = -1;
-}
-
-// ── diffBuildList ─────────────────────────────────────────────────────────────
-
-function diffBuildList() {
-  _diffClearCursor();
-  const list = document.getElementById('diff-list');
-  if (!list) return;
-  list.classList.toggle('visible', !!diffState._diffData);
-  list.innerHTML = '';
-  if (!diffState._diffData) return;
-
-  const frag = document.createDocumentFragment();
-
-  function appendEdgeSubgroup(tableId, addedEdges, removedEdges) {
-    if (!addedEdges.length && !removedEdges.length) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'diff-edge-subgroup';
-    const hdr = document.createElement('div');
-    hdr.className = 'diff-edge-subgroup-header';
-    hdr.textContent = 'Relationship changes (' + (addedEdges.length + removedEdges.length) + ')';
-    wrap.appendChild(hdr);
-    const renderEdges = (edges, sign, signCls) => {
-      for (const e of edges) {
-        const s = typeof e.source === 'object' ? e.source.id : e.source;
-        const t = typeof e.target === 'object' ? e.target.id : e.target;
-        const otherId = s === tableId ? t : s;
-        const row = document.createElement('div');
-        row.className = 'diff-edge-item';
-        row.dataset.id = otherId;
-        row.title = otherId;
-        // Built with h() so schema-derived edge fields (type, source, target,
-        // field) become text nodes — never interpreted as HTML.
-        row.append(
-          h('span', { class: `diff-edge-sign ${signCls}` }, sign),
-          h('span', { class: 'diff-edge-type' }, e.type),
-          h(
-            'span',
-            { class: 'diff-edge-target' },
-            `${s} → ${t}${e.field ? ' (' + e.field + ')' : ''}`
-          )
-        );
-        wrap.appendChild(row);
-      }
-    };
-    renderEdges(addedEdges, '+', 'des-added');
-    renderEdges(removedEdges, '−', 'des-removed');
-    frag.appendChild(wrap);
-  }
-
-  function makeGroup(label, items, kind) {
-    if (!items.length) return;
-    // Apply advanced filter conditions (same predicate as the schema map)
-    if (uiState.filterConditions?.length) {
-      const nodeMap =
-        kind === 'added' ? diffState._diffData.compareMap : diffState._diffData.baseMap;
-      items = items.filter(({ id }) => {
-        const n = nodeMap?.get(id);
-        return !n || filterOk(n);
-      });
-      if (!items.length) return;
-    }
-    // Apply header search bar filter (Tbl mode only) when in diff view
-    if (Dom.searchBox && getSearchMode() === 'tables') {
-      const q = Dom.searchBox.value.toLowerCase().trim();
-      if (q) {
-        items = items.filter(
-          ({ id, nodeLabel }) =>
-            id.toLowerCase().includes(q) || (nodeLabel && nodeLabel.toLowerCase().includes(q))
-        );
-        if (!items.length) return;
-      }
-    }
-    // Apply inline sidebar filter (diff-search-input)
-    const search = (diffState._diffSearch || '').toLowerCase().trim();
-    if (search) {
-      items = items.filter(
-        ({ id, nodeLabel }) =>
-          id.toLowerCase().includes(search) ||
-          (nodeLabel && nodeLabel.toLowerCase().includes(search))
-      );
-      if (!items.length) return;
-    }
-    const header = document.createElement('div');
-    header.className = 'diff-group-header dgh-' + kind;
-    header.textContent = label + ' (' + items.length + ')';
-    frag.appendChild(header);
-    for (const { id, nodeLabel, count, addedEdges, removedEdges } of items) {
-      const item = document.createElement('div');
-      item.className = 'diff-item';
-      item.dataset.id = id;
-      item.dataset.kind = kind;
-      if (uiState.selectedNode === id) item.classList.add('selected');
-      const pill = document.createElement('div');
-      pill.className = `diff-item-pill dp-${kind}`;
-      const names = document.createElement('div');
-      names.className = 'diff-item-names';
-      const lbl = document.createElement('div');
-      lbl.className = 'diff-item-label';
-      lbl.textContent = nodeLabel || id;
-      if (Settings.isEnabled('customHighlight') && Settings.isCustomName(id)) {
-        const badge = document.createElement('span');
-        badge.className = 'ti-custom-badge';
-        badge.textContent = 'custom';
-        lbl.appendChild(badge);
-      }
-      const tid = document.createElement('div');
-      tid.className = 'diff-item-id';
-      tid.textContent = id;
-      names.appendChild(lbl);
-      names.appendChild(tid);
-      item.appendChild(pill);
-      item.appendChild(names);
-      if (count !== undefined) {
-        const cnt = document.createElement('div');
-        cnt.className = 'diff-item-count';
-        cnt.textContent = (count > 0 ? '+' : '') + count;
-        item.appendChild(cnt);
-      }
-      frag.appendChild(item);
-      if (addedEdges || removedEdges) {
-        appendEdgeSubgroup(id, addedEdges || [], removedEdges || []);
-      }
-    }
-  }
-
-  const filter = diffState._diffFilter;
-
-  if (filter === 'all' || filter === 'added') {
-    const items = [...diffState._diffData.added].sort().map(id => {
-      const n = diffState._diffData.compareMap.get(id);
-      return { id, nodeLabel: n?.label || id };
-    });
-    makeGroup('Added', items, 'added');
-  }
-
-  if (filter === 'all' || filter === 'removed') {
-    const items = [...diffState._diffData.removed].sort().map(id => {
-      const n = diffState._diffData.baseMap.get(id);
-      return { id, nodeLabel: n?.label || id };
-    });
-    makeGroup('Removed', items, 'removed');
-  }
-
-  if (filter === 'all' || filter === 'changed') {
-    const items = [...diffState._diffData.changed.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([id, ch]) => {
-        const n = diffState._diffData.baseMap.get(id);
-        const fieldDelta = ch.addedFields.length - ch.removedFields.length;
-        return {
-          id,
-          nodeLabel: n?.label || id,
-          count: fieldDelta,
-          addedEdges: ch.addedEdges,
-          removedEdges: ch.removedEdges,
-        };
-      });
-    makeGroup('Changed', items, 'changed');
-  }
-
-  list.appendChild(frag);
 }
 
 // ── Canvas overlays ───────────────────────────────────────────────────────────
@@ -534,20 +301,18 @@ initDiffFileInput({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      _diffMoveCursor(1);
+      moveDiffCursor(1);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      _diffMoveCursor(-1);
+      moveDiffCursor(-1);
     } else if (e.key === 'Enter') {
-      if (_diffCursor < 0) return;
-      const items = _diffGetItems();
-      const item = items[_diffCursor];
+      const item = getFocusedDiffItem();
       if (!item) return;
       const id = item.dataset.id;
       if (id) id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
     } else if (e.key === 'Escape') {
       clearSelection();
-      _diffClearCursor();
+      clearDiffCursor();
     }
   });
 
@@ -577,7 +342,7 @@ registerModeValidator(mode => mode !== 'diff' || Settings.isEnabled('schemaDiff'
 
 onViewModeChange((mode, prevMode) => {
   if (prevMode === 'diff' && mode !== 'diff') {
-    _diffClearCursor();
+    clearDiffCursor();
     root
       .selectAll('g.node-group')
       .classed('diff-added', false)
