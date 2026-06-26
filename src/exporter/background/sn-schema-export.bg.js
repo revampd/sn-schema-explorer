@@ -197,9 +197,11 @@ function fetchSysDictionary() {
     var out = [];
     var gr = new GlideRecord('sys_dictionary');
     // (No setLimit — default is unbounded. setLimit(0) actually means "return 0 rows".)
-    // Only active rows. Empty `element` rows are kept here because the builder
-    // skips them itself — keeping them keeps this fetcher source-agnostic.
-    gr.addQuery('active', true);
+    // Keep active rows AND rows where active is empty/null — matches the Node
+    // extractor's `active!=false` query so both exporters return the same set.
+    // (Plain addQuery('active', true) would silently drop active=NULL rows.)
+    // Empty `element` rows are kept here because the builder skips them itself.
+    gr.addQuery('active', '!=', false);
     gr.query();
     while (gr.next()) {
         var element = gr.getValue('element');
@@ -444,8 +446,22 @@ function fetchCmdbRelTypeSuggest() {
 function fetchRecordCounts(tableNames) {
     var counts   = {};
     var failures = {};
-    var include  = (CONFIG.recordCountInclude || []).map(function (p) { return new RegExp(p); });
-    var exclude  = (CONFIG.recordCountExclude || []).map(function (p) { return new RegExp(p); });
+    // Compile user-supplied patterns defensively: a malformed pattern would
+    // otherwise throw and abort the whole export. Skip + warn on bad patterns.
+    function compilePatterns(patterns, label) {
+        var compiled = [];
+        for (var i = 0; i < patterns.length; i++) {
+            try {
+                compiled.push(new RegExp(patterns[i]));
+            } catch (e) {
+                gs.warn('[record-counts] Ignoring invalid ' + label + ' pattern "' +
+                    patterns[i] + '": ' + e);
+            }
+        }
+        return compiled;
+    }
+    var include  = compilePatterns(CONFIG.recordCountInclude || [], 'recordCountInclude');
+    var exclude  = compilePatterns(CONFIG.recordCountExclude || [], 'recordCountExclude');
     function shouldCount(name) {
         for (var i = 0; i < exclude.length; i++) if (exclude[i].test(name)) return false;
         if (!include.length) return true;

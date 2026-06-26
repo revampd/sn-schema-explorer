@@ -54,14 +54,29 @@ function parseArgs(argv) {
 }
 const args = parseArgs(process.argv);
 
+// Classify a failed record-count request into one of four buckets, used for the
+// end-of-run access-notes summary. Pure function — exported for unit tests.
+function classifyCountError(errMsgRaw, status) {
+    const msg = String(errMsgRaw || '').toLowerCase();
+    if (status === 401 || status === 403) return 'acl';
+    if (msg.includes('security restricted') || msg.includes('access denied') ||
+        msg.includes('source descriptor is empty') || msg.includes('restricted caller access')) return 'acl';
+    if (msg.includes('does not support aggregate')) return 'unsupported';
+    if (msg.includes('rhinoecma') || msg.includes('undefined value has no properties') ||
+        msg.includes('typeerror') || msg.includes('referenceerror')) return 'script_error';
+    return 'other';
+}
+
 const ALL_EDGE_TYPES = ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'];
 const VALID_FORMATS  = ['json', 'markdown', 'jsonld', 'owl', 'openapi'];
 
 const config = {
     instance:   args.instance   || process.env.SN_INSTANCE,
     user:       args.user       || process.env.SN_USER,
-    password:   args.password   || process.env.SN_PASSWORD,
-    apikey:     args.apikey     || process.env.SN_APIKEY,
+    // Secrets are read from the environment only — never from argv. Command-line
+    // arguments leak into shell history and `ps`/process listings.
+    password:   process.env.SN_PASSWORD,
+    apikey:     process.env.SN_APIKEY,
     output:     args.output     || process.env.SN_OUTPUT    || null,  // default depends on format
     // Keep pages small so each HTTP response stays well under ServiceNow's
     // server-side response-size limit (~5 MB). At ~600 bytes/row for
@@ -79,23 +94,35 @@ function die(msg, code) {
     process.exit(code || 1);
 }
 
-if (!config.instance) {
-    die('Required: --instance (or SN_INSTANCE env var)');
+// Validate and normalise config from CLI args / env. Pulled into a function so
+// the module can be imported (e.g. by unit tests) without exiting the process —
+// it only runs when this file is executed directly as a CLI (see bottom).
+function validateCliConfig() {
+    // Refuse secrets on the command line — they leak into shell history and `ps`.
+    if (args.password !== undefined || args.apikey !== undefined) {
+        die('Secrets must not be passed as command-line arguments (they leak into\n' +
+            '  shell history and process listings). Use environment variables instead:\n' +
+            '    SN_PASSWORD=*** (Basic auth)  or  SN_APIKEY=*** (API key auth)');
+    }
+
+    if (!config.instance) {
+        die('Required: --instance (or SN_INSTANCE env var)');
+    }
+    if (!config.apikey && (!config.user || !config.password)) {
+        die('Required: --apikey (API key auth) or --user + --password (Basic auth)\n' +
+            '  Env-var equivalents: SN_APIKEY  or  SN_USER + SN_PASSWORD');
+    }
+    if (!VALID_FORMATS.includes(config.format)) {
+        die('Unknown --format "' + config.format + '". Valid options: ' + VALID_FORMATS.join(', '));
+    }
+    // Default output path depends on format
+    if (!config.output) {
+        const exts = { json: '.json', markdown: '.md', jsonld: '.jsonld', owl: '.ttl', openapi: '.yaml' };
+        config.output = 'sn_schema_export' + (exts[config.format] || '.json');
+    }
+    if (!/^https?:\/\//.test(config.instance)) config.instance = 'https://' + config.instance;
+    config.instance = config.instance.replace(/\/+$/, '');
 }
-if (!config.apikey && (!config.user || !config.password)) {
-    die('Required: --apikey (API key auth) or --user + --password (Basic auth)\n' +
-        '  Env-var equivalents: SN_APIKEY  or  SN_USER + SN_PASSWORD');
-}
-if (!VALID_FORMATS.includes(config.format)) {
-    die('Unknown --format "' + config.format + '". Valid options: ' + VALID_FORMATS.join(', '));
-}
-// Default output path depends on format
-if (!config.output) {
-    const exts = { json: '.json', markdown: '.md', jsonld: '.jsonld', owl: '.ttl', openapi: '.yaml' };
-    config.output = 'sn_schema_export' + (exts[config.format] || '.json');
-}
-if (!/^https?:\/\//.test(config.instance)) config.instance = 'https://' + config.instance;
-config.instance = config.instance.replace(/\/+$/, '');
 
 // ─── Progress bar (TTY only, no external deps) ────────────────────────────
 const Progress = (() => {
@@ -173,6 +200,11 @@ const Progress = (() => {
 const log  = (...a) => { Progress.clearLine(); console.log('[' + new Date().toISOString() + ']', ...a); };
 const vlog = (...a) => { if (config.verbose) log(...a); };
 
+// Hard ceiling on a single HTTP response. Pages are kept small (see pageSize
+// comment, ~600 KB each), so any response approaching this cap signals a
+// misbehaving or hostile endpoint — fail fast rather than exhaust the heap.
+const MAX_RESPONSE_BYTES = 200 * 1024 * 1024; // 200 MB
+
 // ─── HTTP helper (basic auth, JSON responses) ─────────────────────────────
 function httpGet(urlString) {
     return new Promise((resolve, reject) => {
@@ -194,7 +226,17 @@ function httpGet(urlString) {
         const lib = u.protocol === 'https:' ? https : http;
         const req = lib.request(opts, (res) => {
             const chunks = [];
-            res.on('data', (c) => chunks.push(c));
+            let received = 0;
+            res.on('data', (c) => {
+                received += c.length;
+                if (received > MAX_RESPONSE_BYTES) {
+                    req.destroy(new Error(
+                        'Response exceeded ' + MAX_RESPONSE_BYTES + ' bytes on ' + urlString +
+                        ' — aborting. Lower --page-size or check the instance.'));
+                    return;
+                }
+                chunks.push(c);
+            });
             res.on('end', () => {
                 const body = Buffer.concat(chunks);
                 if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -287,6 +329,9 @@ async function fetchTableAll(table, queryString, fields, _onProgress) {
     params.set('sysparm_orderby',        'sys_id');
     if (fields)       params.set('sysparm_fields', fields.join(','));
     if (queryString)  params.set('sysparm_query',  queryString);
+    // Absolute backstop when the row total is unknown (no X-Total-Count header).
+    const HARD_PAGE_CAP = 1000000;
+    let pages = 0;
     // Stop only when the API returns an empty page. Do NOT break on
     // rows.length < pageSize: some instances cap the effective page size
     // below our requested limit, which would cause early termination after
@@ -306,6 +351,18 @@ async function fetchTableAll(table, queryString, fields, _onProgress) {
         if (offset === 0 && headers['x-total-count']) {
             const tc = parseInt(headers['x-total-count'], 10);
             if (tc > 0) knownTotal = tc;
+        }
+        // Safety cap: if a misbehaving instance keeps returning non-empty pages
+        // (e.g. repeating the same page), bail rather than loop forever. When the
+        // total is known we allow a small buffer beyond the expected page count.
+        pages++;
+        const maxPages = knownTotal ? Math.ceil(knownTotal / config.pageSize) + 5 : HARD_PAGE_CAP;
+        if (pages > maxPages) {
+            throw new Error(
+                'Pagination for ' + table + ' exceeded ' + maxPages + ' pages' +
+                (knownTotal ? ' (X-Total-Count=' + knownTotal + ')' : '') +
+                ' — aborting to avoid an infinite loop. The instance may be returning ' +
+                'inconsistent or duplicate pages.');
         }
         all.push(...rows);
         offset += rows.length;
@@ -560,16 +617,6 @@ async function fetchAllViaTableApi() {
         log('Collecting record counts (this is the slow step)…');
         recordCounts = {};
         recordCountFailures = {};
-        const classify = (errMsgRaw, status) => {
-            const msg = String(errMsgRaw || '').toLowerCase();
-            if (status === 401 || status === 403) return 'acl';
-            if (msg.includes('security restricted') || msg.includes('access denied') ||
-                msg.includes('source descriptor is empty') || msg.includes('restricted caller access')) return 'acl';
-            if (msg.includes('does not support aggregate')) return 'unsupported';
-            if (msg.includes('rhinoecma') || msg.includes('undefined value has no properties') ||
-                msg.includes('typeerror') || msg.includes('referenceerror')) return 'script_error';
-            return 'other';
-        };
         const names = sysDbObject.map(t => t.name).filter(Boolean);
         let done = 0;
         // Cheap parallelism with a worker pool to keep the instance happy
@@ -593,7 +640,7 @@ async function fetchAllViaTableApi() {
                 } catch (e) {
                     recordCounts[name] = null;
                     recordCountFailures[name] = {
-                        category: classify(e && e.message, e && e.status),
+                        category: classifyCountError(e && e.message, e && e.status),
                         message:  String((e && e.message) || e || 'unknown').substring(0, 200)
                     };
                 }
@@ -1182,7 +1229,7 @@ function serializeOpenApi(schema, opts) {
 }
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────
-(async function main() {
+async function main() {
     const t0 = Date.now();
     log('Schema export — instance=' + config.instance);
     try {
@@ -1275,4 +1322,25 @@ function serializeOpenApi(schema, opts) {
     } catch (err) {
         die(err.message || String(err), 2);
     }
-})();
+}
+
+// Run only when executed directly as a CLI. When this file is imported (e.g. by
+// unit tests, via readFileSync + new Function), neither validation nor main()
+// runs, so the process is never exited and helpers can be tested in isolation.
+if (require.main === module) {
+    validateCliConfig();
+    main();
+}
+
+// Exported for unit tests. Harmless in the bundled standalone (CommonJS context).
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        parseArgs,
+        classifyCountError,
+        validateCliConfig,
+        httpGet,
+        fetchTableAll,
+        config,
+        MAX_RESPONSE_BYTES,
+    };
+}
