@@ -1,0 +1,16 @@
+# Generated / vendored
+dist/
+coverage/
+test-results/
+playwright-report/
+node_modules/
+package-lock.json
+
+# Binary / non-source
+screenshots/
+LICENSE
+
+# HTML partials are build-injected via exact markers, regex replacements, and
+# offset slicing in build.js (e.g. <!--INJECT:*-->, GUIDE:TAB, class="g-tab").
+# Reformatting them risks breaking the build for no real benefit.
+*.html

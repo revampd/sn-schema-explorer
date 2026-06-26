@@ -74,15 +74,15 @@ SN_APIKEY='<sn_api_key>' node sn-schema-export.node.standalone.js \
 
 Key flags:
 
-| Flag | Default | Description |
-|---|---|---|
-| `--instance` | — | Instance URL (required) |
-| `--user` | — | Basic Auth username (password via `SN_PASSWORD`) |
-| `--output` | *(format-dependent)* | Output file path |
-| `--format` | `json` | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi` |
-| `--edge-types` | all six | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
-| `--include-record-counts` | off | Add per-table record counts (adds 5–15 min) |
-| `--page-size` | `1000` | Rows per API request |
+| Flag                      | Default              | Description                                                         |
+| ------------------------- | -------------------- | ------------------------------------------------------------------- |
+| `--instance`              | —                    | Instance URL (required)                                             |
+| `--user`                  | —                    | Basic Auth username (password via `SN_PASSWORD`)                    |
+| `--output`                | _(format-dependent)_ | Output file path                                                    |
+| `--format`                | `json`               | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi`   |
+| `--edge-types`            | all six              | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
+| `--include-record-counts` | off                  | Add per-table record counts (adds 5–15 min)                         |
+| `--page-size`             | `1000`               | Rows per API request                                                |
 
 Credentials are supplied through environment variables only: `SN_PASSWORD`
 (Basic auth) or `SN_APIKEY` (API key auth).

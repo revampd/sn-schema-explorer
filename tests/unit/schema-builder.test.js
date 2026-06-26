@@ -16,10 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let build, buildStreaming;
 
 beforeAll(() => {
-  const src = readFileSync(
-    join(__dirname, '../../src/exporter/shared/schema-builder.js'),
-    'utf8'
-  );
+  const src = readFileSync(join(__dirname, '../../src/exporter/shared/schema-builder.js'), 'utf8');
   const mod = { exports: {} };
   new Function('module', 'exports', src)(mod, mod.exports);
   ({ build, buildStreaming } = mod.exports);
@@ -105,10 +102,10 @@ describe('fields', () => {
     const task = nodeById(out, 'task');
     const sysId = task.fields.find(f => f.name === 'sys_id');
     expect(sysId).toMatchObject({
-      name:      'sys_id',
-      label:     'Sys ID',
-      type:      'GUID',
-      primary:   true,
+      name: 'sys_id',
+      label: 'Sys ID',
+      type: 'GUID',
+      primary: true,
       mandatory: false,
     });
   });
@@ -154,8 +151,8 @@ describe('edges — M2M', () => {
     const m2m = edgesOfType(out, 'm2m');
     expect(m2m).toHaveLength(1);
     expect(m2m[0]).toMatchObject({
-      source:   'incident',
-      target:   'sys_user',
+      source: 'incident',
+      target: 'sys_user',
       viaTable: 'incident_user',
     });
   });
@@ -232,8 +229,9 @@ describe('_stats', () => {
 
   it('package_private_tables count matches hints array length', () => {
     const out = buildFrom();
-    expect(out._stats.counts.package_private_tables)
-      .toBe(out._restrictedHints.packagePrivateTables.length);
+    expect(out._stats.counts.package_private_tables).toBe(
+      out._restrictedHints.packagePrivateTables.length
+    );
   });
 });
 

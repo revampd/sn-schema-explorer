@@ -2,11 +2,11 @@ import { graphState, uiState } from '../../core/state.js';
 
 export const Pathfinding = (() => {
   const EDGE_WEIGHTS = {
-    extends:    0,
-    reference:  1,
-    m2m:        2,
-    rel:        2,
-    view:       2,
+    extends: 0,
+    reference: 1,
+    m2m: 2,
+    rel: 2,
+    view: 2,
   };
 
   let _adjCache = { graph: null, adj: null };
@@ -34,8 +34,8 @@ export const Pathfinding = (() => {
     const seen = new Set([tableId]);
     let cur = tableId;
     for (let depth = 0; depth < 20; depth++) {
-      const ext = graphState.graphData.edges.find(e =>
-        (e.source?.id ?? e.source) === cur && e.type === 'extends'
+      const ext = graphState.graphData.edges.find(
+        e => (e.source?.id ?? e.source) === cur && e.type === 'extends'
       );
       if (!ext) break;
       const parent = ext.target?.id ?? ext.target;
@@ -76,7 +76,7 @@ export const Pathfinding = (() => {
         tableId: n.id,
         isOwn: owner === n.id,
         isInherited: owner !== n.id,
-        inheritedFrom: owner !== n.id ? owner : null
+        inheritedFrom: owner !== n.id ? owner : null,
       });
     }
     return results;
@@ -94,10 +94,14 @@ export const Pathfinding = (() => {
     const frontier = new Set([sourceId]);
 
     while (frontier.size > 0) {
-      let bestId = null, bestDist = Infinity;
+      let bestId = null,
+        bestDist = Infinity;
       for (const id of frontier) {
         const d = dist.get(id);
-        if (d < bestDist) { bestDist = d; bestId = id; }
+        if (d < bestDist) {
+          bestDist = d;
+          bestId = id;
+        }
       }
       if (bestId == null) break;
       frontier.delete(bestId);
@@ -124,8 +128,14 @@ export const Pathfinding = (() => {
         if (!targetSet.has(to) && uiState.pfExcludedHops.has(to)) continue;
 
         if (edge.type === 'reference' && dir !== 'out') continue;
-        if (edge.type === 'extends'   && dir !== 'out') continue;
-        if (edge.type === 'm2m' || edge.type === 'rel' || edge.type === 'view' || edge.type === 'cmdb_rel') continue;
+        if (edge.type === 'extends' && dir !== 'out') continue;
+        if (
+          edge.type === 'm2m' ||
+          edge.type === 'rel' ||
+          edge.type === 'view' ||
+          edge.type === 'cmdb_rel'
+        )
+          continue;
 
         // Skip explicitly excluded reference fields ("sourceTable.fieldName" in pfExcludedHops)
         if (edge.type === 'reference' && edge.field) {
@@ -150,9 +160,9 @@ export const Pathfinding = (() => {
     const { path, edges, totalCost } = pathResult;
     const steps = edges.map(e => ({
       from: e.from,
-      to:   e.to,
+      to: e.to,
       edgeType: e.edge.type,
-      fieldName: e.edge.type === 'reference' ? (e.edge.field || e.edge.label || '?') : null,
+      fieldName: e.edge.type === 'reference' ? e.edge.field || e.edge.label || '?' : null,
       viaInheritance: e.edge.type === 'extends',
       dir: e.dir,
     }));
@@ -178,11 +188,14 @@ export const Pathfinding = (() => {
     if (!first) return A;
     A.push(first);
 
-    const pathKey = (p) => p.edges.map(e => {
-      const s = e.edge.source?.id ?? e.edge.source;
-      const t = e.edge.target?.id ?? e.edge.target;
-      return `${s}|${t}|${e.edge.type}|${e.edge.field || ''}`;
-    }).join('>>');
+    const pathKey = p =>
+      p.edges
+        .map(e => {
+          const s = e.edge.source?.id ?? e.edge.source;
+          const t = e.edge.target?.id ?? e.edge.target;
+          return `${s}|${t}|${e.edge.type}|${e.edge.field || ''}`;
+        })
+        .join('>>');
 
     for (let kth = 1; kth < k; kth++) {
       const prevPath = A[kth - 1];
@@ -191,14 +204,19 @@ export const Pathfinding = (() => {
         const rootPathNodes = prevPath.path.slice(0, i + 1);
         const rootPathEdges = prevPath.edges.slice(0, i);
         const rootCost = rootPathEdges.reduce(
-          (sum, e) => sum + (EDGE_WEIGHTS[e.edge.type] ?? 1), 0);
+          (sum, e) => sum + (EDGE_WEIGHTS[e.edge.type] ?? 1),
+          0
+        );
 
         const forbiddenEdges = new Set();
         for (const accepted of A) {
           if (accepted.path.length <= i + 1) continue;
           let matches = true;
           for (let j = 0; j <= i; j++) {
-            if (accepted.path[j] !== rootPathNodes[j]) { matches = false; break; }
+            if (accepted.path[j] !== rootPathNodes[j]) {
+              matches = false;
+              break;
+            }
           }
           if (matches && accepted.edges[i]) forbiddenEdges.add(accepted.edges[i].edge);
         }
@@ -206,7 +224,7 @@ export const Pathfinding = (() => {
 
         const spurResult = dijkstra(spurNode, targetSet, {
           forbiddenEdges,
-          forbiddenNodes
+          forbiddenNodes,
         });
         if (!spurResult) continue;
 
@@ -278,27 +296,38 @@ export const Pathfinding = (() => {
     const targetSet = new Set(owners.map(o => o.tableId));
     if (targetSet.has(sourceId)) {
       const ownerEntry = owners.find(o => o.tableId === sourceId);
-      return [{
-        steps: [],
-        path: [sourceId],
-        totalCost: 0,
-        dotWalk: `${sourceId}.${fieldName}`,
-        fieldOwner: ownerEntry?.inheritedFrom || sourceId,
-        inheritedFromAncestor: !!ownerEntry?.isInherited,
-      }];
+      return [
+        {
+          steps: [],
+          path: [sourceId],
+          totalCost: 0,
+          dotWalk: `${sourceId}.${fieldName}`,
+          fieldOwner: ownerEntry?.inheritedFrom || sourceId,
+          inheritedFromAncestor: !!ownerEntry?.isInherited,
+        },
+      ];
     }
     const rawPaths = findKShortestPaths(sourceId, targetSet, k);
-    return rawPaths.map(raw => {
-      const formatted = formatPath(raw, sourceId, fieldName);
-      if (!formatted) return null;
-      const finalTable = raw.path[raw.path.length - 1];
-      const ownerEntry = owners.find(o => o.tableId === finalTable);
-      formatted.fieldOwner = ownerEntry?.inheritedFrom || finalTable;
-      formatted.inheritedFromAncestor = !!ownerEntry?.isInherited;
-      return formatted;
-    }).filter(Boolean);
+    return rawPaths
+      .map(raw => {
+        const formatted = formatPath(raw, sourceId, fieldName);
+        if (!formatted) return null;
+        const finalTable = raw.path[raw.path.length - 1];
+        const ownerEntry = owners.find(o => o.tableId === finalTable);
+        formatted.fieldOwner = ownerEntry?.inheritedFrom || finalTable;
+        formatted.inheritedFromAncestor = !!ownerEntry?.isInherited;
+        return formatted;
+      })
+      .filter(Boolean);
   }
 
-  return { tableToTable, tableToField, tableToTableK, tableToFieldK,
-           fieldOwners, fieldDefinedAt, ancestorsOf };
+  return {
+    tableToTable,
+    tableToField,
+    tableToTableK,
+    tableToFieldK,
+    fieldOwners,
+    fieldDefinedAt,
+    ancestorsOf,
+  };
 })();

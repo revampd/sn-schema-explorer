@@ -1,10 +1,10 @@
 import { SCOPE_PALETTE } from './constants.js';
 
 export const graphState = {
-  graphData:    null,
-  simulation:   null,
-  scopeColorMap:{},
-  snInstance:   '',
+  graphData: null,
+  simulation: null,
+  scopeColorMap: {},
+  snInstance: '',
 };
 
 export function buildScopeColorMap(nodes) {

@@ -120,8 +120,16 @@ test.describe('Schema Diff', () => {
       scope: 'Global',
       access: null,
       fields: [
-        { name: 'sys_id', label: 'Sys ID', type: 'GUID', typeLabel: 'Sys ID (GUID)',
-          mandatory: false, maxLength: 32, primary: true, reference: null },
+        {
+          name: 'sys_id',
+          label: 'Sys ID',
+          type: 'GUID',
+          typeLabel: 'Sys ID (GUID)',
+          mandatory: false,
+          maxLength: 32,
+          primary: true,
+          reference: null,
+        },
       ],
     });
 

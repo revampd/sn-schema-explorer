@@ -5,7 +5,12 @@
  * Both are mocked so tests control state directly without DOM or module init.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { filterOk, countActiveFilters, clearAllFilters, syncSelectedScopes } from '../../src/viewer/core/advanced-filter.js';
+import {
+  filterOk,
+  countActiveFilters,
+  clearAllFilters,
+  syncSelectedScopes,
+} from '../../src/viewer/core/advanced-filter.js';
 import { graphState, uiState } from '../../src/viewer/core/state.js';
 
 vi.mock('../../src/viewer/core/state.js', () => {
@@ -28,36 +33,63 @@ vi.mock('../../src/viewer/modules/settings/index.js', () => ({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const _refOutIds  = new Set(['incident', 'change_request']);
-const _refInIds   = new Set(['sys_user']);
-const _extOutIds  = new Set(['incident']);
-const _extInIds   = new Set(['task']);
-const _m2mIds     = new Set(['sys_user_grmember']);
-const _relIds     = new Set(['cmdb_rel_ci']);
-const _viewIds    = new Set(['v_task']);
+const _refOutIds = new Set(['incident', 'change_request']);
+const _refInIds = new Set(['sys_user']);
+const _extOutIds = new Set(['incident']);
+const _extInIds = new Set(['task']);
+const _m2mIds = new Set(['sys_user_grmember']);
+const _relIds = new Set(['cmdb_rel_ci']);
+const _viewIds = new Set(['v_task']);
 const _cmdbRelIds = new Set(['cmdb_ci_server']);
 
 const TASK_NODE = {
-  id: 'task', label: 'Task', scope: 'global', _isView: false,
+  id: 'task',
+  label: 'Task',
+  scope: 'global',
+  _isView: false,
   fields: [
-    { name: 'number',      label: 'Number' },
-    { name: 'state',       label: 'State' },
-    { name: 'opened_by',   label: 'Opened by' },
+    { name: 'number', label: 'Number' },
+    { name: 'state', label: 'State' },
+    { name: 'opened_by', label: 'Opened by' },
     { name: 'u_custom_fld', label: 'Custom Field' },
   ],
 };
 const VIEW_NODE = { id: 'v_task', label: 'Task View', scope: 'global', _isView: true, fields: [] };
-const CUSTOM_NODE = { id: 'u_my_table', label: 'My Table', scope: 'global', _isView: false, fields: [] };
-const GLOBAL_NODE = { id: 'incident', label: 'Incident', scope: 'global', _isView: false, fields: [] };
-const SCOPED_NODE = { id: 'sn_hr_case', label: 'HR Case', scope: 'sn_hr_core', _isView: false, fields: [] };
+const CUSTOM_NODE = {
+  id: 'u_my_table',
+  label: 'My Table',
+  scope: 'global',
+  _isView: false,
+  fields: [],
+};
+const GLOBAL_NODE = {
+  id: 'incident',
+  label: 'Incident',
+  scope: 'global',
+  _isView: false,
+  fields: [],
+};
+const SCOPED_NODE = {
+  id: 'sn_hr_case',
+  label: 'HR Case',
+  scope: 'sn_hr_core',
+  _isView: false,
+  fields: [],
+};
 
 beforeEach(() => {
   uiState.filterConditions = [];
-  uiState.selectedScopes   = new Set();
+  uiState.selectedScopes = new Set();
   graphState.graphData = {
     nodes: [TASK_NODE, VIEW_NODE, CUSTOM_NODE, GLOBAL_NODE, SCOPED_NODE],
-    _refOutIds, _refInIds, _extOutIds, _extInIds,
-    _m2mIds, _relIds, _viewIds, _cmdbRelIds,
+    _refOutIds,
+    _refInIds,
+    _extOutIds,
+    _extInIds,
+    _m2mIds,
+    _relIds,
+    _viewIds,
+    _cmdbRelIds,
     _cmdbCiIds: new Set(['cmdb_ci', 'cmdb_ci_server']),
   };
 });
@@ -156,7 +188,7 @@ describe('name condition', () => {
 describe('hasField condition', () => {
   it('contains matches field name substring', () => {
     uiState.filterConditions = [{ type: 'hasField', operator: 'contains', value: 'opened' }];
-    expect(filterOk(TASK_NODE)).toBe(true);   // has opened_by
+    expect(filterOk(TASK_NODE)).toBe(true); // has opened_by
     expect(filterOk(GLOBAL_NODE)).toBe(false); // incident has no fields in fixture
   });
 
@@ -167,7 +199,7 @@ describe('hasField condition', () => {
 
   it('startsWith matches field name prefix', () => {
     uiState.filterConditions = [{ type: 'hasField', operator: 'startsWith', value: 'u_' }];
-    expect(filterOk(TASK_NODE)).toBe(true);   // has u_custom_fld
+    expect(filterOk(TASK_NODE)).toBe(true); // has u_custom_fld
     expect(filterOk(GLOBAL_NODE)).toBe(false);
   });
 
@@ -189,7 +221,7 @@ describe('hasField condition', () => {
 describe('hasEdge condition', () => {
   it('ref-out passes nodes in _refOutIds', () => {
     uiState.filterConditions = [{ type: 'hasEdge', edgeType: 'ref-out' }];
-    expect(filterOk(GLOBAL_NODE)).toBe(true);   // incident is in _refOutIds
+    expect(filterOk(GLOBAL_NODE)).toBe(true); // incident is in _refOutIds
     expect(filterOk(SCOPED_NODE)).toBe(false);
   });
 
@@ -211,19 +243,19 @@ describe('hasEdge condition', () => {
 describe('fieldCount condition', () => {
   it('min only — excludes nodes with fewer fields', () => {
     uiState.filterConditions = [{ type: 'fieldCount', min: 3, max: null }];
-    expect(filterOk(TASK_NODE)).toBe(true);  // 4 fields
+    expect(filterOk(TASK_NODE)).toBe(true); // 4 fields
     expect(filterOk(VIEW_NODE)).toBe(false); // 0 fields
   });
 
   it('max only — excludes nodes with more fields', () => {
     uiState.filterConditions = [{ type: 'fieldCount', min: null, max: 2 }];
     expect(filterOk(TASK_NODE)).toBe(false); // 4 fields
-    expect(filterOk(VIEW_NODE)).toBe(true);  // 0 fields
+    expect(filterOk(VIEW_NODE)).toBe(true); // 0 fields
   });
 
   it('min + max range', () => {
     uiState.filterConditions = [{ type: 'fieldCount', min: 2, max: 5 }];
-    expect(filterOk(TASK_NODE)).toBe(true);  // 4 fields — in range
+    expect(filterOk(TASK_NODE)).toBe(true); // 4 fields — in range
     expect(filterOk(VIEW_NODE)).toBe(false); // 0 fields — below min
   });
 
@@ -249,11 +281,11 @@ describe('isCustom condition', () => {
 describe('AND logic', () => {
   it('both conditions must pass', () => {
     uiState.filterConditions = [
-      { type: 'scope',     values: ['global'] },
+      { type: 'scope', values: ['global'] },
       { type: 'tableType', value: 'regular', connector: 'AND' },
     ];
-    expect(filterOk(TASK_NODE)).toBe(true);   // global + regular
-    expect(filterOk(VIEW_NODE)).toBe(false);  // global but is a view
+    expect(filterOk(TASK_NODE)).toBe(true); // global + regular
+    expect(filterOk(VIEW_NODE)).toBe(false); // global but is a view
     expect(filterOk(SCOPED_NODE)).toBe(false); // not global
   });
 });
@@ -264,12 +296,12 @@ describe('OR logic', () => {
   it('node passes if it satisfies either group', () => {
     // (scope=global) OR (tableType=views)
     uiState.filterConditions = [
-      { type: 'scope',     values: ['sn_hr_core'] },
+      { type: 'scope', values: ['sn_hr_core'] },
       { type: 'tableType', value: 'views', connector: 'OR' },
     ];
     expect(filterOk(SCOPED_NODE)).toBe(true); // passes first group
-    expect(filterOk(VIEW_NODE)).toBe(true);   // passes second group
-    expect(filterOk(TASK_NODE)).toBe(false);  // fails both
+    expect(filterOk(VIEW_NODE)).toBe(true); // passes second group
+    expect(filterOk(TASK_NODE)).toBe(false); // fails both
   });
 });
 
@@ -287,7 +319,7 @@ describe('countActiveFilters', () => {
 describe('clearAllFilters', () => {
   it('empties filterConditions and clears selectedScopes', () => {
     uiState.filterConditions = [{ type: 'scope', values: ['global'] }];
-    uiState.selectedScopes   = new Set(['global']);
+    uiState.selectedScopes = new Set(['global']);
     clearAllFilters();
     expect(uiState.filterConditions).toHaveLength(0);
     expect(uiState.selectedScopes.size).toBe(0);
@@ -303,7 +335,7 @@ describe('syncSelectedScopes', () => {
 
   it('clears selectedScopes when no scope condition present', () => {
     uiState.filterConditions = [{ type: 'isCustom' }];
-    uiState.selectedScopes   = new Set(['global']);
+    uiState.selectedScopes = new Set(['global']);
     syncSelectedScopes();
     expect(uiState.selectedScopes.size).toBe(0);
   });

@@ -7,14 +7,14 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
 
   const edgeTypeOk = e =>
     (e.type === 'reference' && (uiState.showRefTo || uiState.showRefFrom)) ||
-    (e.type === 'extends'   && uiState.showExt)  ||
-    (e.type === 'm2m'       && uiState.showM2M)  ||
-    (e.type === 'rel'       && uiState.showRel)  ||
-    (e.type === 'view'      && uiState.showView) ||
-    (e.type === 'cmdb_rel'  && uiState.showCmdbRel);
+    (e.type === 'extends' && uiState.showExt) ||
+    (e.type === 'm2m' && uiState.showM2M) ||
+    (e.type === 'rel' && uiState.showRel) ||
+    (e.type === 'view' && uiState.showView) ||
+    (e.type === 'cmdb_rel' && uiState.showCmdbRel);
 
   const _adj = graphState.graphData._adj;
-  const _nb  = graphState.graphData._nodeById;
+  const _nb = graphState.graphData._nodeById;
 
   let visNodeIds;
   let reached = new Set();
@@ -26,8 +26,11 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     hopDist = { [uiState.selectedNode]: 0 };
 
     const inheritedSeeds = new Set();
-    if (!countOnly && Settings.isEnabled('inheritedRefsCanvas') &&
-        Settings.isEnabled('inheritedRefsInspector')) {
+    if (
+      !countOnly &&
+      Settings.isEnabled('inheritedRefsCanvas') &&
+      Settings.isEnabled('inheritedRefsInspector')
+    ) {
       const seen = new Set([uiState.selectedNode]);
       let cur = uiState.selectedNode;
       for (let depth = 0; depth < 20; depth++) {
@@ -59,9 +62,15 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
             const t = edgeTargetId(e);
             if (t === fid) continue;
             if (e.type === 'reference') {
-              if (uiState.showRefTo   && !reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
+              if (uiState.showRefTo && !reached.has(t)) {
+                next.add(t);
+                hopDist[t] = hop + 1;
+              }
             } else {
-              if (!reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
+              if (!reached.has(t)) {
+                next.add(t);
+                hopDist[t] = hop + 1;
+              }
             }
           }
           for (const e of na.in) {
@@ -69,9 +78,15 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
             const s = edgeSourceId(e);
             if (s === fid) continue;
             if (e.type === 'reference') {
-              if (uiState.showRefFrom && !reached.has(s)) { next.add(s); hopDist[s] = hop + 1; }
+              if (uiState.showRefFrom && !reached.has(s)) {
+                next.add(s);
+                hopDist[s] = hop + 1;
+              }
             } else {
-              if (!reached.has(s)) { next.add(s); hopDist[s] = hop + 1; }
+              if (!reached.has(s)) {
+                next.add(s);
+                hopDist[s] = hop + 1;
+              }
             }
           }
         }
@@ -84,14 +99,27 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
         const next = new Set();
         edges.forEach(e => {
           if (!edgeTypeOk(e)) return;
-          const s = edgeSourceId(e), t = edgeTargetId(e);
+          const s = edgeSourceId(e),
+            t = edgeTargetId(e);
           if (s === t) return;
           if (e.type === 'reference') {
-            if (uiState.showRefTo   && frontier.has(s) && !reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
-            if (uiState.showRefFrom && frontier.has(t) && !reached.has(s)) { next.add(s); hopDist[s] = hop + 1; }
+            if (uiState.showRefTo && frontier.has(s) && !reached.has(t)) {
+              next.add(t);
+              hopDist[t] = hop + 1;
+            }
+            if (uiState.showRefFrom && frontier.has(t) && !reached.has(s)) {
+              next.add(s);
+              hopDist[s] = hop + 1;
+            }
           } else {
-            if (frontier.has(s) && !reached.has(t)) { next.add(t); hopDist[t] = hop + 1; }
-            if (frontier.has(t) && !reached.has(s)) { next.add(s); hopDist[s] = hop + 1; }
+            if (frontier.has(s) && !reached.has(t)) {
+              next.add(t);
+              hopDist[t] = hop + 1;
+            }
+            if (frontier.has(t) && !reached.has(s)) {
+              next.add(s);
+              hopDist[s] = hop + 1;
+            }
           }
         });
         next.forEach(id => reached.add(id));
@@ -109,7 +137,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
       })
       .sort((a, b) => {
         if (a === uiState.selectedNode) return -1;
-        if (b === uiState.selectedNode) return  1;
+        if (b === uiState.selectedNode) return 1;
         return (edgeCnt[b] || 0) - (edgeCnt[a] || 0);
       });
     const reachedArr = countOnly ? reachedFiltered : reachedFiltered.slice(0, uiState.maxNodes);
@@ -126,7 +154,8 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           const na = _adj.get(id) || { out: [], in: [] };
           for (const e of [...na.out, ...na.in]) {
             if (!edgeTypeOk(e)) continue;
-            const s = edgeSourceId(e), t = edgeTargetId(e);
+            const s = edgeSourceId(e),
+              t = edgeTargetId(e);
             let parentId = null;
             if (t === id && hopDist[s] === depth - 1) {
               // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
@@ -147,7 +176,8 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
           if (depth < 2) continue;
           for (const e of edges) {
             if (!edgeTypeOk(e)) continue;
-            const s = edgeSourceId(e), t = edgeTargetId(e);
+            const s = edgeSourceId(e),
+              t = edgeTargetId(e);
             let parentId = null;
             if (t === id && hopDist[s] === depth - 1) {
               // incoming edge s→id: valid ref direction is showRefTo (shallow→deep)
@@ -167,7 +197,8 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     }
   } else {
     const edgeCnt = graphState.graphData._edgeCnt || {};
-    const sorted = nodes.filter(filterOk)
+    const sorted = nodes
+      .filter(filterOk)
       .sort((a, b) => (edgeCnt[b.id] || 0) - (edgeCnt[a.id] || 0));
     const capped = countOnly ? sorted : sorted.slice(0, uiState.maxNodes);
     visNodeIds = new Set(capped.map(n => n.id));
@@ -182,7 +213,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     const diffIds = new Set([
       ...diffState._diffData.added,
       ...diffState._diffData.removed,
-      ...diffState._diffData.changed.keys()
+      ...diffState._diffData.changed.keys(),
     ]);
     for (const id of visNodeIds) {
       if (!diffIds.has(id) && id !== uiState.selectedNode) visNodeIds.delete(id);
@@ -201,18 +232,23 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     if (e.type === 'reference') {
       if (!uiState.showRefTo && !uiState.showRefFrom) return false;
     } else {
-      if (!(  (e.type === 'extends'  && uiState.showExt) ||
-              (e.type === 'm2m'      && uiState.showM2M) ||
-              (e.type === 'rel'      && uiState.showRel) ||
-              (e.type === 'view'     && uiState.showView) ||
-              (e.type === 'cmdb_rel' && uiState.showCmdbRel) )) return false;
+      if (
+        !(
+          (e.type === 'extends' && uiState.showExt) ||
+          (e.type === 'm2m' && uiState.showM2M) ||
+          (e.type === 'rel' && uiState.showRel) ||
+          (e.type === 'view' && uiState.showView) ||
+          (e.type === 'cmdb_rel' && uiState.showCmdbRel)
+        )
+      )
+        return false;
     }
     if (!uiState.selectedNode) return true;
     const ds = hopDist[s] ?? Infinity;
     const dt = hopDist[t] ?? Infinity;
     if (e.type === 'reference') {
       if (uiState.showRefTo && uiState.showRefFrom) return Math.abs(ds - dt) === 1;
-      if (uiState.showRefTo)   return dt === ds + 1;
+      if (uiState.showRefTo) return dt === ds + 1;
       return ds === dt + 1;
     }
     return Math.abs(ds - dt) === 1;
@@ -227,13 +263,17 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
   for (const e of visEdges) {
     const key = edgeKey(e);
     if (!collapsed.has(key)) {
-      collapsed.set(key, { ...e, _count: 1, _fields: e.field ? [e.field] : [],
-                                             _fieldLabels: e.label ? [e.label] : [] });
+      collapsed.set(key, {
+        ...e,
+        _count: 1,
+        _fields: e.field ? [e.field] : [],
+        _fieldLabels: e.label ? [e.label] : [],
+      });
     } else {
       const c = collapsed.get(key);
       c._count++;
-      if (e.field)  c._fields.push(e.field);
-      if (e.label)  c._fieldLabels.push(e.label);
+      if (e.field) c._fields.push(e.field);
+      if (e.label) c._fieldLabels.push(e.label);
     }
   }
   const collapsedEdges = [...collapsed.values()];

@@ -14,7 +14,10 @@ export function updateDensityInfo() {
     if (uiState._lastInheritedSeeds.size > 0) {
       const _dcNb = graphState.graphData._nodeById;
       const ancNames = [...uiState._lastInheritedSeeds]
-        .map(id => (_dcNb ? _dcNb.get(id) : graphState.graphData.nodes.find(n => n.id === id))?.label || id)
+        .map(
+          id =>
+            (_dcNb ? _dcNb.get(id) : graphState.graphData.nodes.find(n => n.id === id))?.label || id
+        )
         .join(', ');
       const ownTotal = total;
       el.innerHTML = `Showing <strong>${shown}</strong> of <strong>${ownTotal}</strong> reachable tables for <strong>${uiState.selectedNode}</strong> <span style="opacity:.6;font-style:italic">(includes inherited from: ${ancNames})</span>. Raise Max nodes to see more.`;
@@ -57,19 +60,20 @@ export function updateDensityInfo() {
 // Called only on schema load and edge-type filter change — NOT on every render.
 
 function _edgeTypeActive(e, isIncoming) {
-  if (e.type === 'reference')  return isIncoming ? uiState.showRefFrom : uiState.showRefTo;
-  if (e.type === 'extends')    return uiState.showExt;
-  if (e.type === 'm2m')        return uiState.showM2M;
-  if (e.type === 'rel')        return uiState.showRel;
-  if (e.type === 'view')       return uiState.showView;
-  if (e.type === 'cmdb_rel')   return uiState.showCmdbRel;
+  if (e.type === 'reference') return isIncoming ? uiState.showRefFrom : uiState.showRefTo;
+  if (e.type === 'extends') return uiState.showExt;
+  if (e.type === 'm2m') return uiState.showM2M;
+  if (e.type === 'rel') return uiState.showRel;
+  if (e.type === 'view') return uiState.showView;
+  if (e.type === 'cmdb_rel') return uiState.showCmdbRel;
   return false;
 }
 
 function _bfsFromNode(startId, adj) {
   const visited = new Set([startId]);
   let frontier = [startId];
-  let depth = 0, farthest = startId;
+  let depth = 0,
+    farthest = startId;
   while (frontier.length > 0) {
     const next = [];
     for (const id of frontier) {
@@ -77,13 +81,17 @@ function _bfsFromNode(startId, adj) {
       for (const e of out) {
         const t = e.target?.id ?? e.target;
         if (t !== id && !visited.has(t) && _edgeTypeActive(e, false)) {
-          visited.add(t); next.push(t); farthest = t;
+          visited.add(t);
+          next.push(t);
+          farthest = t;
         }
       }
       for (const e of inc) {
         const s = e.source?.id ?? e.source;
         if (s !== id && !visited.has(s) && _edgeTypeActive(e, true)) {
-          visited.add(s); next.push(s); farthest = s;
+          visited.add(s);
+          next.push(s);
+          farthest = s;
         }
       }
     }
@@ -104,13 +112,15 @@ function _bfsMultiDepth(startIds, adj) {
       for (const e of out) {
         const t = e.target?.id ?? e.target;
         if (t !== id && !visited.has(t) && _edgeTypeActive(e, false)) {
-          visited.add(t); next.push(t);
+          visited.add(t);
+          next.push(t);
         }
       }
       for (const e of inc) {
         const s = e.source?.id ?? e.source;
         if (s !== id && !visited.has(s) && _edgeTypeActive(e, true)) {
-          visited.add(s); next.push(s);
+          visited.add(s);
+          next.push(s);
         }
       }
     }
@@ -145,7 +155,7 @@ function _computeMaxHopDepth() {
       const s = e.source?.id ?? e.source;
       const t = e.target?.id ?? e.target;
       if (_edgeTypeActive(e, false)) inDeg.set(t, (inDeg.get(t) || 0) + 1);
-      if (_edgeTypeActive(e, true))  inDeg.set(s, (inDeg.get(s) || 0) + 1);
+      if (_edgeTypeActive(e, true)) inDeg.set(s, (inDeg.get(s) || 0) + 1);
     }
   }
 
@@ -154,8 +164,8 @@ function _computeMaxHopDepth() {
   for (const [id, deg] of inDeg) {
     if (deg !== 0) continue;
     const { out, in: inc } = adj.get(id) || { out: [], in: [] };
-    const active = out.some(e => _edgeTypeActive(e, false)) ||
-                   inc.some(e => _edgeTypeActive(e, true));
+    const active =
+      out.some(e => _edgeTypeActive(e, false)) || inc.some(e => _edgeTypeActive(e, true));
     if (active) sources.push(id);
   }
 
@@ -166,16 +176,20 @@ function _computeMaxHopDepth() {
 
   // Step 3b — Purely bidirectional (extends-only, all-cyclic ref, etc.):
   // double-BFS using most-active-degree node as seed.
-  let seedId = null, maxActiveDeg = -1;
+  let seedId = null,
+    maxActiveDeg = -1;
   for (const [id, { out, in: inc }] of adj) {
     let deg = 0;
     for (const e of out) if (_edgeTypeActive(e, false) || _edgeTypeActive(e, true)) deg++;
     for (const e of inc) if (_edgeTypeActive(e, false) || _edgeTypeActive(e, true)) deg++;
-    if (deg > maxActiveDeg) { maxActiveDeg = deg; seedId = id; }
+    if (deg > maxActiveDeg) {
+      maxActiveDeg = deg;
+      seedId = id;
+    }
   }
   if (!seedId || maxActiveDeg === 0) return 1;
   const { farthest } = _bfsFromNode(seedId, adj);
-  const { depth }    = _bfsFromNode(farthest, adj);
+  const { depth } = _bfsFromNode(farthest, adj);
   return Math.max(1, depth);
 }
 
@@ -194,7 +208,10 @@ export function updateHopDepthSlider() {
 export function updateMaxNodesSlider() {
   if (!graphState.graphData) return;
   const slMax = Dom.slMaxNodes;
-  const { visNodeIds: _sliderVis } = computeNeighbourhood({ applyHiddenNodes: false, countOnly: true });
+  const { visNodeIds: _sliderVis } = computeNeighbourhood({
+    applyHiddenNodes: false,
+    countOnly: true,
+  });
   let filtered = _sliderVis.size;
   filtered = Math.max(1, filtered);
   slMax.max = filtered;
@@ -225,23 +242,29 @@ export function initDensityControls({ onRender, onCommit }) {
     }, SLIDER_DEBOUNCE_MS);
   }
 
-  Dom.slMaxNodes.addEventListener('input', function() {
+  Dom.slMaxNodes.addEventListener('input', function () {
     uiState.maxNodes = +this.value;
     Dom.valMaxNodes.textContent = uiState.maxNodes;
     scheduleRender();
   });
-  Dom.slHopDepth.addEventListener('input', function() {
+  Dom.slHopDepth.addEventListener('input', function () {
     uiState.hopDepth = +this.value;
     Dom.valHopDepth.textContent = uiState.hopDepth;
     scheduleRender();
   });
-  Dom.slMaxNodes.addEventListener('change', function() {
-    if (_sliderRenderTimer) { clearTimeout(_sliderRenderTimer); _sliderRenderTimer = null; }
+  Dom.slMaxNodes.addEventListener('change', function () {
+    if (_sliderRenderTimer) {
+      clearTimeout(_sliderRenderTimer);
+      _sliderRenderTimer = null;
+    }
     onRender();
     if (onCommit) onCommit();
   });
-  Dom.slHopDepth.addEventListener('change', function() {
-    if (_sliderRenderTimer) { clearTimeout(_sliderRenderTimer); _sliderRenderTimer = null; }
+  Dom.slHopDepth.addEventListener('change', function () {
+    if (_sliderRenderTimer) {
+      clearTimeout(_sliderRenderTimer);
+      _sliderRenderTimer = null;
+    }
     onRender();
     if (onCommit) onCommit();
   });

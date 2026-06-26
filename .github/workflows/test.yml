@@ -22,10 +22,9 @@ jobs:
           cache: npm
       - run: npm install
       - run: npm run lint
-      # Non-blocking: the existing source predates Prettier. Surfaces drift
-      # without forcing a repo-wide reformat. Flip to blocking after a
-      # dedicated `npm run format` PR.
-      - run: npm run format:check || true
+      # Blocking: the codebase is Prettier-formatted (HTML partials excluded via
+      # .prettierignore). Run `npm run format` to fix violations locally.
+      - run: npm run format:check
       # Surface known-vulnerable dependencies. Non-blocking for now.
       - run: npm audit --omit=dev || true
 

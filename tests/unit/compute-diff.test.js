@@ -33,7 +33,7 @@ describe('empty schemas', () => {
 // ── 2. Added nodes ────────────────────────────────────────────────────────────
 describe('added nodes', () => {
   it('detects a table present in compare but not in base', () => {
-    const base    = makeSchema([makeNode('task')]);
+    const base = makeSchema([makeNode('task')]);
     const compare = makeSchema([makeNode('task'), makeNode('incident')]);
     const { added } = computeDiff(base, compare);
     expect(added.has('incident')).toBe(true);
@@ -41,7 +41,7 @@ describe('added nodes', () => {
   });
 
   it('does not add tables that exist in both schemas', () => {
-    const base    = makeSchema([makeNode('task')]);
+    const base = makeSchema([makeNode('task')]);
     const compare = makeSchema([makeNode('task')]);
     const { added } = computeDiff(base, compare);
     expect(added.size).toBe(0);
@@ -51,7 +51,7 @@ describe('added nodes', () => {
 // ── 3. Removed nodes ──────────────────────────────────────────────────────────
 describe('removed nodes', () => {
   it('detects a table present in base but missing from compare', () => {
-    const base    = makeSchema([makeNode('task'), makeNode('incident')]);
+    const base = makeSchema([makeNode('task'), makeNode('incident')]);
     const compare = makeSchema([makeNode('task')]);
     const { removed } = computeDiff(base, compare);
     expect(removed.has('incident')).toBe(true);
@@ -62,7 +62,7 @@ describe('removed nodes', () => {
 // ── 4. Changed fields ─────────────────────────────────────────────────────────
 describe('changed — field added in compare', () => {
   it('appears in addedFields for that table', () => {
-    const base    = makeSchema([makeNode('task', [makeField('sys_id')])]);
+    const base = makeSchema([makeNode('task', [makeField('sys_id')])]);
     const compare = makeSchema([makeNode('task', [makeField('sys_id'), makeField('number')])]);
     const { changed } = computeDiff(base, compare);
     expect(changed.has('task')).toBe(true);
@@ -73,7 +73,7 @@ describe('changed — field added in compare', () => {
 
 describe('changed — field removed from compare', () => {
   it('appears in removedFields for that table', () => {
-    const base    = makeSchema([makeNode('task', [makeField('sys_id'), makeField('number')])]);
+    const base = makeSchema([makeNode('task', [makeField('sys_id'), makeField('number')])]);
     const compare = makeSchema([makeNode('task', [makeField('sys_id')])]);
     const { changed } = computeDiff(base, compare);
     expect(changed.has('task')).toBe(true);
@@ -84,7 +84,7 @@ describe('changed — field removed from compare', () => {
 
 describe('changed — field type changed', () => {
   it('appears in changedFields with both old and new type', () => {
-    const base    = makeSchema([makeNode('task', [makeField('priority', 'integer')])]);
+    const base = makeSchema([makeNode('task', [makeField('priority', 'integer')])]);
     const compare = makeSchema([makeNode('task', [makeField('priority', 'string')])]);
     const { changed } = computeDiff(base, compare);
     expect(changed.has('task')).toBe(true);
@@ -99,8 +99,8 @@ describe('changed — field type changed', () => {
 // ── 5. Unchanged tables ───────────────────────────────────────────────────────
 describe('unchanged tables', () => {
   it('does not appear in changed map when fields and edges are identical', () => {
-    const node    = makeNode('task', [makeField('sys_id')]);
-    const base    = makeSchema([node], [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
+    const node = makeNode('task', [makeField('sys_id')]);
+    const base = makeSchema([node], [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
     const compare = makeSchema([node], [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
     const { changed } = computeDiff(base, compare);
     expect(changed.has('task')).toBe(false);
@@ -110,7 +110,7 @@ describe('unchanged tables', () => {
 // ── 6. Added edges ────────────────────────────────────────────────────────────
 describe('changed — edge added in compare', () => {
   it('assigns addedEdge to the source table entry in changed', () => {
-    const base    = makeSchema([makeNode('task'), makeNode('sys_user')]);
+    const base = makeSchema([makeNode('task'), makeNode('sys_user')]);
     const compare = makeSchema(
       [makeNode('task'), makeNode('sys_user')],
       [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]
@@ -125,7 +125,7 @@ describe('changed — edge added in compare', () => {
 // ── 7. Removed edges ──────────────────────────────────────────────────────────
 describe('changed — edge removed from compare', () => {
   it('assigns removedEdge to the source table entry in changed', () => {
-    const base    = makeSchema(
+    const base = makeSchema(
       [makeNode('task'), makeNode('sys_user')],
       [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]
     );
@@ -139,13 +139,21 @@ describe('changed — edge removed from compare', () => {
 // ── 8. edgeDiffKey handles object source/target ───────────────────────────────
 describe('edgeDiffKey', () => {
   it('treats object {id} source/target the same as plain string', () => {
-    const base    = makeSchema([makeNode('task'), makeNode('sys_user')],
-                               [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
+    const base = makeSchema(
+      [makeNode('task'), makeNode('sys_user')],
+      [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]
+    );
     // Compare has the same edge but with object-format source/target (D3 sim format)
     const compare = makeSchema(
       [makeNode('task'), makeNode('sys_user')],
-      [{ source: { id: 'task' }, target: { id: 'sys_user' },
-         type: 'reference', field: 'assigned_to' }]
+      [
+        {
+          source: { id: 'task' },
+          target: { id: 'sys_user' },
+          type: 'reference',
+          field: 'assigned_to',
+        },
+      ]
     );
     const { changed } = computeDiff(base, compare);
     // Same edge expressed differently → no change
@@ -156,7 +164,7 @@ describe('edgeDiffKey', () => {
 // ── 9. baseMap / compareMap populated ────────────────────────────────────────
 describe('output maps', () => {
   it('baseMap and compareMap are keyed by node id', () => {
-    const base    = makeSchema([makeNode('task')]);
+    const base = makeSchema([makeNode('task')]);
     const compare = makeSchema([makeNode('task'), makeNode('incident')]);
     const { baseMap, compareMap } = computeDiff(base, compare);
     expect(baseMap.has('task')).toBe(true);

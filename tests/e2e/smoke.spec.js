@@ -32,9 +32,9 @@ async function injectSchema(page, schema) {
   // Upload the fixture JSON via the hidden file input — this triggers the same
   // processing pipeline as a user dropping a file on the drop zone.
   await page.locator('#file-input').setInputFiles({
-    name:     'schema.json',
+    name: 'schema.json',
     mimeType: 'application/json',
-    buffer:   Buffer.from(JSON.stringify(schema)),
+    buffer: Buffer.from(JSON.stringify(schema)),
   });
   // Wait for the SVG graph to contain at least one rendered node
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
