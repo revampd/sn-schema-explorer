@@ -22,8 +22,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Gate the release on the same checks CI runs, so a broken tag can't ship.
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
       - name: Build all targets
         run: npm run build
+
+      - name: E2E tests
+        run: |
+          npx playwright install chromium --with-deps
+          npm run test:e2e
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
