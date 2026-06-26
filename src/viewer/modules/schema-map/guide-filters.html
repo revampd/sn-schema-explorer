@@ -23,6 +23,7 @@
     <div class="guide-kv"><span class="guide-key">Has Edge</span><span class="guide-val">Show only tables that have at least one edge of the selected type. All 8 edge types are available: Reference (out), Reference (in), Extends (parent), Extends (children), M2M, Relationship, DB View, CMDB CI Topology.</span></div>
     <div class="guide-kv"><span class="guide-key">Field Count</span><span class="guide-val">Filter by the number of fields on the table. Set a min, a max, or both. Leave a field blank to skip that bound.</span></div>
     <div class="guide-kv"><span class="guide-key">Is Custom</span><span class="guide-val">Show only tables whose names start with a configured custom prefix (see Settings → Display → Custom prefixes). Requires the prefix list to be configured; by default this matches <code>u_</code> and <code>x_</code> tables. Equivalent to selecting <em>Custom</em> in the Table Type condition.</span></div>
+    <div class="guide-kv"><span class="guide-key">Table Access</span><span class="guide-val">Filter by table accessibility: <strong>Package private</strong> (tables restricted to their own application scope — invisible to cross-scope Table API callers) or <strong>Public</strong> (everything else). Pairs well with the Schema Diff export-method mismatch banner to isolate which tables a Table API export may be missing.</span></div>
     <h4>Cascading conditions</h4>
     <p>When two or more conditions are active, each subsequent condition's UI narrows to reflect only the values present after the previous conditions are applied:</p>
     <ul>

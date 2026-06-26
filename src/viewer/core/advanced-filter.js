@@ -96,6 +96,14 @@ function _evalOne(c, node) {
     case 'isCustom':
       return Settings.isCustomName(node.id);
 
+    case 'access':
+      // node.access is 'package_private' on cross-scope-restricted tables and
+      // null/'' otherwise. "public" therefore means "not package_private" — this
+      // matches null public tables, which a literal `=== 'public'` would miss.
+      if (c.value === 'package_private') return node.access === 'package_private';
+      if (c.value === 'public') return node.access !== 'package_private';
+      return true;
+
     default:
       return true;
   }
@@ -281,6 +289,7 @@ const CONDITION_LABELS = {
   hasEdge: 'Has Edge',
   fieldCount: 'Field Count',
   isCustom: 'Is Custom',
+  access: 'Table Access',
 };
 
 const EDGE_TYPE_LABELS = {
@@ -588,6 +597,33 @@ export function buildFilterPanel(container, { onApply } = {}) {
           pills.appendChild(pill);
         });
         valueCell.appendChild(pills);
+      } else if (c.type === 'access') {
+        opCell.appendChild(h('span', { class: 'fc-op-text' }, 'is'));
+        const pills = h('div', { class: 'fc-pills' });
+        const ppCount = candidates.filter(n => n.access === 'package_private').length;
+        const pubCount = candidates.filter(n => n.access !== 'package_private').length;
+        const ACCESS = [
+          { value: 'package_private', label: 'Package private', count: ppCount },
+          { value: 'public', label: 'Public', count: pubCount },
+        ];
+        ACCESS.forEach(t => {
+          const label = i > 0 ? `${t.label} (${t.count})` : t.label;
+          const pill = h(
+            'button',
+            {
+              class: 'fc-pill' + (c.value === t.value ? ' active' : ''),
+              disabled: i > 0 && t.count === 0,
+              onClick: () => {
+                c.value = t.value;
+                _apply();
+                _render();
+              },
+            },
+            label
+          );
+          pills.appendChild(pill);
+        });
+        valueCell.appendChild(pills);
       } else if (c.type === 'name') {
         // Operator toggle — cycles: starts with → contains → is → starts with
         const opBtn = h(
@@ -826,7 +862,7 @@ export function buildFilterPanel(container, { onApply } = {}) {
 
     // Singleton types may only appear once; multi-instance types (name, hasField,
     // hasEdge) can be added repeatedly so the user can combine them with OR logic.
-    const SINGLETON_TYPES = new Set(['scope', 'tableType', 'fieldCount', 'isCustom']);
+    const SINGLETON_TYPES = new Set(['scope', 'tableType', 'fieldCount', 'isCustom', 'access']);
     const usedSingletons = new Set(
       uiState.filterConditions.filter(c => SINGLETON_TYPES.has(c.type)).map(c => c.type)
     );
@@ -877,6 +913,12 @@ export function buildFilterPanel(container, { onApply } = {}) {
                   max: null,
                 },
                 isCustom: { id: _newId(), type: 'isCustom', connector: 'AND' },
+                access: {
+                  id: _newId(),
+                  type: 'access',
+                  connector: 'AND',
+                  value: 'package_private',
+                },
               };
               uiState.filterConditions = [...uiState.filterConditions, defaults[t]];
               _apply();
