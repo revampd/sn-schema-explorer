@@ -327,15 +327,26 @@ function buildExporter() {
     )
   );
   copyFileSync(join(root, 'shared/schema-builder.js'), join(distDir, 'shared/schema-builder.js'));
+  // Format serialisers ship next to the node script (required as ./serialisers.js — same dir).
+  copyFileSync(join(root, 'node/serialisers.js'), join(distDir, 'serialisers.js'));
 
-  // Node standalone — schema-builder inlined, zero external dependencies
-  const inlineNode = nodeSrc.replace(
-    "const SchemaBuilder = require('../shared/schema-builder.js');",
-    '// ── INLINED SchemaBuilder (see https://github.com/.../shared/schema-builder.js for source) ──\n' +
-      'const SchemaBuilder = (function(){ const module = { exports: {} }; \n' +
-      builder +
-      '\nreturn module.exports; })();'
-  );
+  // Node standalone — schema-builder + serialisers inlined, zero external dependencies
+  const serialisers = readFileSync(join(root, 'node/serialisers.js'), 'utf8');
+  const inlineNode = nodeSrc
+    .replace(
+      "const SchemaBuilder = require('../shared/schema-builder.js');",
+      '// ── INLINED SchemaBuilder (see https://github.com/.../shared/schema-builder.js for source) ──\n' +
+        'const SchemaBuilder = (function(){ const module = { exports: {} }; \n' +
+        builder +
+        '\nreturn module.exports; })();'
+    )
+    .replace(
+      "const Serialisers = require('./serialisers.js');",
+      '// ── INLINED Serialisers (see https://github.com/.../node/serialisers.js for source) ──\n' +
+        'const Serialisers = (function(){ const module = { exports: {} }; \n' +
+        serialisers +
+        '\nreturn module.exports; })();'
+    );
   writeFileSync(join(distDir, 'sn-schema-export.node.standalone.js'), inlineNode);
 
   console.log(`  → dist/exporter/ (bg, node, node.standalone, shared/)`);
