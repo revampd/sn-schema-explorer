@@ -4,6 +4,7 @@ import { render } from '../../engine/render.js';
 import { root } from '../../engine/canvas.js';
 import { clearSelection, focusTable } from '../../shared/inspector.js';
 import { SETTLE_ALPHA } from '../../core/constants.js';
+import { inlinePrompt } from '../../shared/inline-prompt.js';
 
 let _ctxNode = null;
 
@@ -82,26 +83,32 @@ export function initInteractionsListeners() {
   Dom.ctxDeselect.addEventListener('click', () => {
     clearSelection();
   });
-  Dom.ctxSnlink.addEventListener('click', () => {
+  Dom.ctxSnlink.addEventListener('click', async () => {
     if (!_ctxNode) return;
-    const ans = prompt(
-      'ServiceNow instance URL (e.g. https://dev12345.service-now.com or https://sn.example.com):',
-      graphState.snInstance
-    );
-    if (!ans) return;
-    let origin = ans.trim();
-    if (!/^https?:\/\//i.test(origin)) {
-      if (!origin.includes('.') && !origin.includes('/'))
-        origin = 'https://' + origin + '.service-now.com';
-      else origin = 'https://' + origin.replace(/\/+$/, '');
+    // The instance origin is normally known from the loaded schema — open
+    // straight away. Only ask (via inline input, not a blocking prompt) when it
+    // hasn't been resolved yet.
+    let origin = graphState.snInstance;
+    if (!origin) {
+      const ans = await inlinePrompt({
+        title: 'ServiceNow instance URL',
+        placeholder: 'https://dev12345.service-now.com',
+      });
+      if (!ans) return;
+      origin = ans.trim();
+      if (!/^https?:\/\//i.test(origin)) {
+        if (!origin.includes('.') && !origin.includes('/'))
+          origin = 'https://' + origin + '.service-now.com';
+        else origin = 'https://' + origin.replace(/\/+$/, '');
+      }
+      try {
+        origin = new URL(origin).origin;
+      } catch (e) {
+        alert('Could not parse: ' + (e.message || e));
+        return;
+      }
+      graphState.snInstance = origin;
     }
-    try {
-      origin = new URL(origin).origin;
-    } catch (e) {
-      alert('Could not parse: ' + (e.message || e));
-      return;
-    }
-    graphState.snInstance = origin;
     window.open(
       origin + '/sys_db_object_list.do?sysparm_query=name=' + encodeURIComponent(_ctxNode.id),
       '_blank'
