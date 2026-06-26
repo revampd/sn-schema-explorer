@@ -12,6 +12,10 @@ const EDGE_SETS = {
   m2m: gd => gd._m2mIds,
   rel: gd => gd._relIds,
   view: gd => gd._viewIds,
+  // "Has Edge: CMDB CI Topology" = tables that actually have a cmdb_rel topology
+  // edge (_cmdbRelIds). This is deliberately NARROWER than the Table Type "CMDB"
+  // option, which uses the _cmdbCiIds class hierarchy (every CI class, whether or
+  // not it has an explicit topology edge). The two answer different questions.
   cmdb_rel: gd => gd._cmdbRelIds,
 };
 

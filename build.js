@@ -8,7 +8,7 @@
  *   node build.js all           → all of the above
  * ============================================================================ */
 import * as esbuild from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -216,8 +216,17 @@ async function buildViewer(targetName) {
 
   // 6. Inject exporter scripts into <pre> blocks in the Setup Instructions tab
   if (t.features.includes('setup')) {
-    const bgSrc = readFileSync(rel('dist/exporter/sn-schema-export.bg.js'), 'utf8');
-    const nodeSrc = readFileSync(rel('dist/exporter/sn-schema-export.node.standalone.js'), 'utf8');
+    const bgPath = rel('dist/exporter/sn-schema-export.bg.js');
+    const nodePath = rel('dist/exporter/sn-schema-export.node.standalone.js');
+    if (!existsSync(bgPath) || !existsSync(nodePath)) {
+      throw new Error(
+        'Exporter dist files are missing — the app build embeds them into the ' +
+          'Setup Instructions tab.\nRun `node build.js all` (or `node build.js exporter` ' +
+          'first) before building the app.'
+      );
+    }
+    const bgSrc = readFileSync(bgPath, 'utf8');
+    const nodeSrc = readFileSync(nodePath, 'utf8');
     html = html
       .replace('<!--INJECT:exporter-bg-->', inj(escHtml(bgSrc)))
       .replace('<!--INJECT:exporter-node-->', inj(escHtml(nodeSrc)));
