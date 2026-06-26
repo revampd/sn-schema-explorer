@@ -26,11 +26,20 @@ export function updateIndicators() {
   const EL_W = 190 + 16 + MARGIN;
   const EL_H = 210 + 16 + MARGIN;
 
-  let posMap;
-  posMap = {};
-  root.selectAll('g.node-group').each(function (d) {
-    if (d && d.id !== undefined) posMap[d.id] = { x: d.x, y: d.y };
-  });
+  // Read live node positions from the simulation's node objects (the same data
+  // d3 binds to g.node-group) instead of walking the DOM on every zoom tick.
+  // Falls back to a DOM scan if the simulation isn't available.
+  const posMap = {};
+  const simNodes = graphState.simulation?.nodes?.();
+  if (simNodes) {
+    for (const d of simNodes) {
+      if (d && d.id !== undefined) posMap[d.id] = { x: d.x, y: d.y };
+    }
+  } else {
+    root.selectAll('g.node-group').each(function (d) {
+      if (d && d.id !== undefined) posMap[d.id] = { x: d.x, y: d.y };
+    });
+  }
 
   const selPos = posMap[uiState.selectedNode];
   if (!selPos) return;
