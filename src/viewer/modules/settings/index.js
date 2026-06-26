@@ -273,6 +273,15 @@ Settings.registerFeature({
   category: 'experimental',
 });
 
+Settings.registerFeature({
+  key: 'checkUpdates',
+  label: 'Check for updates',
+  description:
+    'Once per browser session, check GitHub for a newer release and show a dismissible "update available" badge in the footer. The only network request is a single GET to the public releases API — no telemetry, no usage data. Fails silently when offline. On by default.',
+  default: true,
+  category: 'behaviour',
+});
+
 export function renderSettingsModal() {
   const body = Dom.settingsModalBody;
   body.replaceChildren();

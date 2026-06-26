@@ -161,6 +161,10 @@ async function buildViewer(targetName) {
       minify: false,
       write: false,
       logLevel: 'warning',
+      // Inject the package version so the viewer can compare against the latest
+      // GitHub release (update-check). Replaced at build time; defaults to
+      // '0.0.0' in non-build contexts (e.g. unit tests) so the check is inert.
+      define: { __APP_VERSION__: JSON.stringify(_pkg.version) },
     });
     bundledJS = result.outputFiles[0].text;
   } catch (e) {

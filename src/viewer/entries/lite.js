@@ -11,6 +11,7 @@ import { showCtx, initInteractionsListeners } from '../modules/schema-map/intera
 import { initLoadOverlay } from '../modules/load/index.js';
 import { initModals } from '../core/modals.js';
 import { initReferenceInteractivity } from '../modules/reference/index.js';
+import { initUpdateCheck } from '../core/update-check.js';
 import {
   initHistoryListeners,
   setHistoryViewModeHook,
@@ -53,4 +54,5 @@ initCanvasUI();
 initInteractionsListeners();
 initModals();
 initReferenceInteractivity();
+initUpdateCheck();
 initHistoryListeners();

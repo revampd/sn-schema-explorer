@@ -37,7 +37,8 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.browser, d3: 'readonly' },
+      // d3 is injected inline; __APP_VERSION__ is replaced at build time by esbuild.
+      globals: { ...globals.browser, d3: 'readonly', __APP_VERSION__: 'readonly' },
     },
   },
 
