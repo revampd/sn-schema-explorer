@@ -60,5 +60,14 @@ thresholds are ratcheted and CI will fail on a regression.
 Releases are tag-driven. Pushing a `vX.Y.Z` tag triggers the release workflow,
 which runs lint + unit tests + build + e2e and then publishes the built
 artifacts (`sn_schema_explorer.html`, the background script, and the standalone
-Node extractor) to a GitHub Release. Move the `[Unreleased]` changelog entries
-under the new version before tagging.
+Node extractor) to a GitHub Release.
+
+Before tagging:
+
+1. Move the `[Unreleased]` changelog entries under the new version in
+   `CHANGELOG.md` and bump `version` in `package.json`.
+2. Add the user-facing release notes at `docs/release-notes/<tag>.md` (e.g.
+   `docs/release-notes/v1.0.2.md`). **This file is the full GitHub Release body** —
+   the release workflow publishes it verbatim via `body_path` and fails the
+   release if it is missing, so it must include the feature summary _and_ the
+   Downloads table. See the existing files for the format.

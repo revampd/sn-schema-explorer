@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-26
+
 Hardening, testing, and quality pass addressing a full repository audit
 ([#50](https://github.com/revampd/sn-schema-explorer/issues/50)) and the v1.0.2
 backlog ([#38](https://github.com/revampd/sn-schema-explorer/issues/38),
@@ -128,6 +130,7 @@ Initial public release.
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML.
 - Background Script and Node.js schema extractors.
 
-[Unreleased]: https://github.com/revampd/sn-schema-explorer/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/revampd/sn-schema-explorer/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/revampd/sn-schema-explorer/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/revampd/sn-schema-explorer/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/revampd/sn-schema-explorer/releases/tag/v1.0.0
