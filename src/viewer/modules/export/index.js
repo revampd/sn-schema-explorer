@@ -249,6 +249,117 @@ export function exportNeighbourhoodOpenApi() {
   downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.yaml`);
 }
 
+// Edge-type legend items — mirrors the on-canvas legend (#edge-legend in
+// schema-map/canvas-overlays.html). Single source for drawing the legend into
+// image exports. `cssClass` matches the edge element class so we can detect
+// which types are actually drawn; `stroke`/`dash` reproduce the swatch.
+const EDGE_LEGEND_ITEMS = [
+  { key: 'ref-to', cssClass: 'edge-ref-to', label: 'Reference to', stroke: '#00c896', dash: '' },
+  {
+    key: 'ref-from',
+    cssClass: 'edge-ref-from',
+    label: 'Referenced by',
+    stroke: '#c46aff',
+    dash: '',
+  },
+  { key: 'ext', cssClass: 'edge-extends', label: 'Inheritance', stroke: '#2a6496', dash: '4 2' },
+  { key: 'm2m', cssClass: 'edge-m2m', label: 'M2M junction', stroke: '#06d6a0', dash: '2 3' },
+  {
+    key: 'rel',
+    cssClass: 'edge-rel',
+    label: 'Named relationship',
+    stroke: '#ff9f5a',
+    dash: '5 2 2 2',
+  },
+  { key: 'view', cssClass: 'edge-view', label: 'DB view member', stroke: '#ffd166', dash: '7 2' },
+  {
+    key: 'cmdbrel',
+    cssClass: 'edge-cmdbrel',
+    label: 'CI topology',
+    stroke: '#4dd0e1',
+    dash: '2 2 6 2',
+  },
+];
+
+// Which edge-type legend items are actually drawn in the live graph SVG —
+// i.e. an edge with that class exists and is not hidden. Disabled types are
+// hidden, so presence here means "currently shown". Returns items in
+// EDGE_LEGEND_ITEMS order.
+export function _presentEdgeTypes(svgEl) {
+  if (!svgEl) return [];
+  return EDGE_LEGEND_ITEMS.filter(item => {
+    const els = svgEl.querySelectorAll('.' + item.cssClass);
+    for (let i = 0; i < els.length; i++) {
+      if (els[i].style.display !== 'none' && !els[i].closest('[style*="display: none"]')) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+// Build a native-SVG edge-type legend group for export. `items` is a subset of
+// EDGE_LEGEND_ITEMS; `box` gives the top-left {x, y} in the export coordinate
+// space. Returns { group, width, height }.
+export function _buildEdgeLegendGroup(doc, items, box) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const PAD = 10;
+  const HEADER_H = 16;
+  const ROW_H = 16;
+  const SWATCH_W = 22;
+  const width = 150;
+  const height = PAD * 2 + HEADER_H + items.length * ROW_H;
+  const x = box.x;
+  const y = box.y;
+
+  const group = doc.createElementNS(NS, 'g');
+  group.setAttribute('transform', `translate(${x},${y})`);
+
+  const bg = doc.createElementNS(NS, 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('rx', 6);
+  bg.setAttribute('ry', 6);
+  bg.setAttribute('fill', 'rgba(10,15,25,0.85)');
+  bg.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+  bg.setAttribute('stroke-width', '1');
+  group.appendChild(bg);
+
+  const header = doc.createElementNS(NS, 'text');
+  header.setAttribute('x', PAD);
+  header.setAttribute('y', PAD + 8);
+  header.setAttribute('fill', '#8aa0b8');
+  header.setAttribute('font-family', "'Syne', sans-serif");
+  header.setAttribute('font-size', '8');
+  header.setAttribute('letter-spacing', '0.1em');
+  header.textContent = 'EDGE TYPES';
+  group.appendChild(header);
+
+  items.forEach((item, i) => {
+    const rowY = PAD + HEADER_H + i * ROW_H + ROW_H / 2;
+    const line = doc.createElementNS(NS, 'line');
+    line.setAttribute('x1', PAD);
+    line.setAttribute('y1', rowY);
+    line.setAttribute('x2', PAD + SWATCH_W);
+    line.setAttribute('y2', rowY);
+    line.setAttribute('stroke', item.stroke);
+    line.setAttribute('stroke-width', '1.5');
+    if (item.dash) line.setAttribute('stroke-dasharray', item.dash);
+    group.appendChild(line);
+
+    const label = doc.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD + SWATCH_W + 8);
+    label.setAttribute('y', rowY + 3);
+    label.setAttribute('fill', item.stroke);
+    label.setAttribute('font-family', "'JetBrains Mono', monospace");
+    label.setAttribute('font-size', '10');
+    label.textContent = item.label;
+    group.appendChild(label);
+  });
+
+  return { group, width, height };
+}
+
 export function buildExportSvg(opts) {
   opts = opts || {};
   const scope = opts.scope || 'viewport';
@@ -361,6 +472,40 @@ export function buildExportSvg(opts) {
   }
   // 'transparent' → no rect inserted; PNG canvas default is transparent,
   // SVG renders without a background element.
+
+  // Edge-type legend — drawn as native SVG (not foreignObject, which PNG
+  // rasterisation handles unreliably) into the export's screen-space, so it
+  // ignores the graph-root pan/zoom transform. Only the edge types actually
+  // drawn are shown.
+  if (getExportIncludeLegend()) {
+    const items = _presentEdgeTypes(svgEl);
+    if (items.length) {
+      const PAD = 16;
+      // Provisional height to anchor the box bottom-left; recompute exactly
+      // via the builder, then nudge so the box sits PAD from the bottom edge.
+      let bx, by, h0;
+      const vb = clone.getAttribute('viewBox');
+      const provisional = _buildEdgeLegendGroup(clone.ownerDocument || document, items, {
+        x: 0,
+        y: 0,
+      });
+      h0 = provisional.height;
+      if (vb) {
+        const p = vb.split(/\s+/).map(Number);
+        bx = p[0] + PAD;
+        by = p[1] + p[3] - PAD - h0;
+      } else {
+        bx = PAD;
+        by = exportHeight - PAD - h0;
+      }
+      const { group } = _buildEdgeLegendGroup(clone.ownerDocument || document, items, {
+        x: bx,
+        y: by,
+      });
+      clone.appendChild(group);
+    }
+  }
+
   return {
     svg: new XMLSerializer().serializeToString(clone),
     width: exportWidth,
@@ -406,6 +551,22 @@ export function setExportBgColor(value) {
     console.warn('Export: localStorage write failed', e);
   }
   _syncBgUI();
+}
+
+const INCLUDE_LEGEND_KEY = 'snse:exportIncludeLegend';
+
+export function getExportIncludeLegend() {
+  return localStorage.getItem(INCLUDE_LEGEND_KEY) === '1';
+}
+
+export function setExportIncludeLegend(on) {
+  try {
+    localStorage.setItem(INCLUDE_LEGEND_KEY, on ? '1' : '0');
+  } catch (e) {
+    console.warn('Export: localStorage write failed', e);
+  }
+  const cb = document.getElementById('export-include-legend');
+  if (cb) cb.checked = !!on;
 }
 
 // ── Custom HSV color picker ───────────────────────────────────────────────────
@@ -776,6 +937,8 @@ export function exportBarOpen() {
     if (valEl) valEl.textContent = persisted + '×';
     _updateScaleInfo(persisted);
   }
+  const legendCb = document.getElementById('export-include-legend');
+  if (legendCb) legendCb.checked = getExportIncludeLegend();
   _syncBgUI();
   _syncScopeUI();
   Dom.exportBar.classList.add('open');
@@ -1018,6 +1181,15 @@ export function initExportListeners() {
     _scaleSlider.addEventListener('change', function (e) {
       e.stopPropagation();
       setPngExportScale(parseInt(this.value, 10));
+    });
+  }
+
+  // Include-edge-legend checkbox
+  const _legendCb = document.getElementById('export-include-legend');
+  if (_legendCb) {
+    _legendCb.addEventListener('change', function (e) {
+      e.stopPropagation();
+      setExportIncludeLegend(this.checked);
     });
   }
 

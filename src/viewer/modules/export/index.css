@@ -7,6 +7,17 @@
   font-size: 10px;
   color: var(--muted);
 }
+/* Include-edge-legend checkbox row */
+.export-legend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.export-legend-toggle input {
+  cursor: pointer;
+  margin: 0;
+}
 /* PNG scale slider */
 .export-scale-slider-wrap {
   display: flex;
