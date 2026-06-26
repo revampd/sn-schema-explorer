@@ -755,6 +755,38 @@ footer .footer-credits {
   margin-left: auto;
   line-height: 1;
 }
+
+/* Update-available badge (#45) — appended to the footer when a newer release exists */
+footer .update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+  padding: 2px 4px 2px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+footer .update-badge-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+footer .update-badge-link:hover {
+  text-decoration: underline;
+}
+footer .update-badge-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+footer .update-badge-close:hover {
+  color: var(--text);
+}
 footer .footer-instance {
   display: none;
   align-items: center;
