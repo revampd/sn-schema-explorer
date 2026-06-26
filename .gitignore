@@ -4,6 +4,10 @@ dist/
 # Coverage reports
 coverage/
 
+# Playwright test output
+test-results/
+playwright-report/
+
 # Dependencies
 node_modules/
 

@@ -30,7 +30,9 @@ vi.mock('../../src/viewer/core/state.js', () => {
     _lastInheritedSeeds: new Set(),
   };
   const diffState = { _diffData: null, _diffShowAll: false };
-  return { graphState, uiState, diffState };
+  const edgeSourceId = e => e.source?.id ?? e.source;
+  const edgeTargetId = e => e.target?.id ?? e.target;
+  return { graphState, uiState, diffState, edgeSourceId, edgeTargetId };
 });
 
 vi.mock('../../src/viewer/modules/settings/index.js', () => ({

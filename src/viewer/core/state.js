@@ -1,4 +1,4 @@
-export { graphState, buildScopeColorMap, nodeColor } from './graph-state.js';
+export { graphState, buildScopeColorMap, nodeColor, buildIndexes, edgeSourceId, edgeTargetId } from './graph-state.js';
 export { uiState } from './ui-state.js';
 export { diffState } from './diff-state.js';
 

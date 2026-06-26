@@ -993,7 +993,8 @@ export function getPngExportScale() {
 }
 export function setPngExportScale(n) {
   n = Math.max(1, Math.min(Settings.getMaxPngScale(), Math.round(n)));
-  try { localStorage.setItem(PNG_SCALE_KEY, String(n)); } catch (_) {}
+  try { localStorage.setItem(PNG_SCALE_KEY, String(n)); }
+  catch (e) { console.warn('Export: localStorage write failed', e); }
   const slider = document.getElementById('export-scale-slider');
   if (slider) slider.value = n;
   const valEl = document.getElementById('export-scale-val');
@@ -1011,7 +1012,8 @@ export function getExportBgColor() {
 }
 
 export function setExportBgColor(value) {
-  try { localStorage.setItem(EXPORT_BG_KEY, value); } catch (_) {}
+  try { localStorage.setItem(EXPORT_BG_KEY, value); }
+  catch (e) { console.warn('Export: localStorage write failed', e); }
   _syncBgUI();
 }
 
@@ -1109,7 +1111,8 @@ function _cpSyncOutput() {
     if (hexEl) { hexEl.value = hex; hexEl.classList.remove('invalid'); hexEl.placeholder = '#rrggbb'; }
   }
   _updateAlphaSliderBg();
-  try { localStorage.setItem(EXPORT_BG_KEY, stored); } catch (_) {}
+  try { localStorage.setItem(EXPORT_BG_KEY, stored); }
+  catch (e) { console.warn('Export: localStorage write failed', e); }
 }
 
 function _cpSyncFromHex(raw) {

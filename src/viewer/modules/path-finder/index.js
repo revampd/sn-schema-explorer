@@ -58,7 +58,8 @@ function pfLoadExcludedHops() {
 }
 
 function pfSaveExcludedHops() {
-  try { localStorage.setItem(PF_EXCLUDED_KEY, JSON.stringify([...uiState.pfExcludedHops])); } catch(e) {}
+  try { localStorage.setItem(PF_EXCLUDED_KEY, JSON.stringify([...uiState.pfExcludedHops])); }
+  catch (e) { console.warn('PathFinder: localStorage write failed', e); }
 }
 
 function pfRefreshExcludedChips() {
@@ -271,7 +272,8 @@ function pfLoadConfig() {
 }
 
 function pfSaveConfig() {
-  try { localStorage.setItem(PF_CONFIG_KEY, JSON.stringify(_pfConfig)); } catch(e) {}
+  try { localStorage.setItem(PF_CONFIG_KEY, JSON.stringify(_pfConfig)); }
+  catch (e) { console.warn('PathFinder: localStorage write failed', e); }
 }
 
 let _pfConfig = pfLoadConfig();

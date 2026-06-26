@@ -77,7 +77,8 @@ export const Settings = (() => {
   function setFontScale(pct) {
     pct = Math.max(80, Math.min(150, Math.round(pct / 10) * 10));
     document.documentElement.style.setProperty('--font-scale', pct / 100);
-    try { localStorage.setItem(FONT_SCALE_KEY, String(pct)); } catch {}
+    try { localStorage.setItem(FONT_SCALE_KEY, String(pct)); }
+    catch (e) { console.warn('Settings: localStorage write failed', e); }
     return pct;
   }
 
@@ -96,7 +97,8 @@ export const Settings = (() => {
   }
   function setMaxPngScale(n) {
     n = Math.max(10, Math.min(200, Math.round(n / 10) * 10));
-    try { localStorage.setItem(MAX_PNG_SCALE_KEY, String(n)); } catch {}
+    try { localStorage.setItem(MAX_PNG_SCALE_KEY, String(n)); }
+    catch (e) { console.warn('Settings: localStorage write failed', e); }
     return n;
   }
 
@@ -104,7 +106,8 @@ export const Settings = (() => {
     try { return localStorage.getItem(CUSTOM_PREFIXES_KEY) || DEFAULT_PREFIXES; } catch { return DEFAULT_PREFIXES; }
   }
   function setCustomPrefixes(val) {
-    try { localStorage.setItem(CUSTOM_PREFIXES_KEY, val || DEFAULT_PREFIXES); } catch {}
+    try { localStorage.setItem(CUSTOM_PREFIXES_KEY, val || DEFAULT_PREFIXES); }
+    catch (e) { console.warn('Settings: localStorage write failed', e); }
   }
   function isCustomName(name) {
     if (!name) return false;
