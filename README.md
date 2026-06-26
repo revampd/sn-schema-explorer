@@ -18,7 +18,7 @@ No installation, no server, no external dependencies.
 - Schema Diff — compare two exports to see added, removed, and changed tables/fields
 - Saved Views — snapshot and restore named view configurations
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML
-- Custom colour-coded export background with opacity control
+- Custom colour-coded export background with opacity control, plus an optional edge-type legend embedded in PNG/SVG exports
 - CMDB CI topology edges and ServiceNow Data Model Reference (CSDM 5)
 - Optional update check — a dismissible footer badge when a newer release is available (toggle in Settings; no telemetry)
 

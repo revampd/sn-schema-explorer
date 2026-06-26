@@ -9,6 +9,7 @@
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
+import { readFileSync } from 'fs';
 import { SCHEMA_OUTPUT } from '../fixtures/schema-output.js';
 import { SCHEMA_OUTPUT_B } from '../fixtures/schema-output-b.js';
 
@@ -63,6 +64,35 @@ test.describe('Export (image)', () => {
     await page.locator('#epb-png').click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.png$/);
+  });
+
+  test('edge-legend checkbox is off by default and embeds the legend when on', async ({ page }) => {
+    await loadApp(page);
+    await injectSchema(page, SCHEMA_OUTPUT);
+
+    await page.locator('#btn-export').click();
+    const cb = page.locator('#export-include-legend');
+    await expect(cb).not.toBeChecked();
+
+    // Baseline: legend NOT present in the export when unchecked.
+    const dl1 = page.waitForEvent('download');
+    await page.locator('#epb-svg').click();
+    const svgOff = readFileSync(await (await dl1).path(), 'utf8');
+    expect(svgOff).not.toContain('EDGE TYPES');
+
+    // Enable the legend and re-export — the legend group should be embedded.
+    await page.locator('#btn-export').click();
+    await page.locator('.export-toggle').click(); // styled switch wraps the input
+    await expect(cb).toBeChecked();
+    const dl2 = page.waitForEvent('download');
+    await page.locator('#epb-svg').click();
+    const svgOn = readFileSync(await (await dl2).path(), 'utf8');
+    expect(svgOn).toContain('EDGE TYPES');
+    // Only the edge types actually drawn appear. By default just outgoing
+    // references ("Reference to") are shown; inheritance is toggled off, so it
+    // must NOT appear — proving the "only what's drawn" behaviour.
+    expect(svgOn).toContain('Reference to');
+    expect(svgOn).not.toContain('Inheritance');
   });
 });
 
