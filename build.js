@@ -305,15 +305,26 @@ function buildExporter() {
   );
 
   const builder = readFileSync(join(root, 'shared/schema-builder.js'), 'utf8');
+  // bg serialisers live in a sibling source file and are spliced back into the
+  // single self-contained bg script (ES5/Rhino has no runtime module system).
+  const bgSerialisers = readFileSync(join(root, 'background/serialisers.bg.js'), 'utf8').replace(
+    /\n$/,
+    ''
+  );
 
   function spliceMarker(src) {
-    return src.replace(
-      /\/\/<SCHEMA_BUILDER>[\s\S]*?\/\/<\/SCHEMA_BUILDER>/,
-      '//<SCHEMA_BUILDER>\n' + builder + '\n//</SCHEMA_BUILDER>'
-    );
+    return src
+      .replace(
+        /\/\/<SCHEMA_BUILDER>[\s\S]*?\/\/<\/SCHEMA_BUILDER>/,
+        '//<SCHEMA_BUILDER>\n' + builder + '\n//</SCHEMA_BUILDER>'
+      )
+      .replace(
+        /\/\/<SERIALISERS>[\s\S]*?\/\/<\/SERIALISERS>/,
+        '//<SERIALISERS>\n' + bgSerialisers + '\n//</SERIALISERS>'
+      );
   }
 
-  // Background script — self-contained (schema-builder inlined)
+  // Background script — self-contained (schema-builder + serialisers inlined)
   const bg = readFileSync(join(root, 'background/sn-schema-export.bg.js'), 'utf8');
   writeFileSync(join(distDir, 'sn-schema-export.bg.js'), spliceMarker(bg));
 
