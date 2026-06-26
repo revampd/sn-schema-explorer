@@ -83,6 +83,23 @@ test.describe('Path Finder', () => {
     await expect(result).toContainText('task');
   });
 
+  test('hop exclusions render before the find button', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { pathFinding: true } });
+    await injectSchema(page, SCHEMA_OUTPUT);
+
+    await page.locator('#vms-path').click();
+    await expect(page.locator('#pf-sidebar')).toBeVisible();
+
+    // Hop exclusions section should precede the Find button in DOM order
+    // (Node.DOCUMENT_POSITION_FOLLOWING === 4).
+    const order = await page.evaluate(() => {
+      const excl = document.getElementById('pf-excluded-section');
+      const find = document.getElementById('pf-find');
+      return excl.compareDocumentPosition(find) & Node.DOCUMENT_POSITION_FOLLOWING;
+    });
+    expect(order).toBeTruthy();
+  });
+
   test('excluding the only intermediate hop removes the path', async ({ page }) => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
