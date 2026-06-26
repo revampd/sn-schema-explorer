@@ -36,7 +36,12 @@ const BUILD_VERSION_HTML = `<span class="footer-build">${_pkg.version}-${_buildD
 // ── Target definitions ───────────────────────────────────────────────────────
 
 const BASE_CSS = [
-  'src/viewer/styles/core.css',
+  // core styles split into cohesive partials (#73); order is the cascade order —
+  // keep these contiguous and in sequence.
+  'src/viewer/styles/base.css',
+  'src/viewer/styles/panels.css',
+  'src/viewer/styles/header.css',
+  'src/viewer/styles/footer.css',
   'src/viewer/modules/export/index.css',
   'src/viewer/modules/load/index.css',
   'src/viewer/modules/saved-views/index.css',
