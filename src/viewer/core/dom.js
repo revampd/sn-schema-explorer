@@ -1,5 +1,22 @@
+// Dev-only diagnostics: when the `snse:debug` localStorage flag is set to '1',
+// warn whenever a Dom id fails to resolve. This surfaces shell.html / dom.js
+// drift (a renamed id otherwise fails silently as `null` and only blows up later
+// with an opaque TypeError). Off by default, so the shipped build stays silent.
+const _DOM_DEBUG = (() => {
+  try {
+    return localStorage.getItem('snse:debug') === '1';
+  } catch {
+    return false;
+  }
+})();
+function _getById(id) {
+  const el = document.getElementById(id);
+  if (!el && _DOM_DEBUG) console.warn('[Dom] no element found for id #' + id);
+  return el;
+}
+
 export const Dom = (() => {
-  const g = id => document.getElementById(id);
+  const g = _getById;
   return {
     canvas: g('canvas'),
     graphEl: g('graph'),
@@ -71,12 +88,12 @@ export const Dom = (() => {
 })();
 
 export function initLateDom() {
-  Dom.refModal = document.getElementById('ref-modal');
-  Dom.guideModal = document.getElementById('guide-modal');
-  Dom.settingsModal = document.getElementById('settings-modal');
-  Dom.settingsModalBody = document.getElementById('settings-modal-body');
-  Dom.btnRefClose = document.getElementById('btn-ref-close');
-  Dom.btnGuideClose = document.getElementById('btn-guide-close');
-  Dom.btnSettings = document.getElementById('btn-settings');
-  Dom.btnSettingsClose = document.getElementById('btn-settings-close');
+  Dom.refModal = _getById('ref-modal');
+  Dom.guideModal = _getById('guide-modal');
+  Dom.settingsModal = _getById('settings-modal');
+  Dom.settingsModalBody = _getById('settings-modal-body');
+  Dom.btnRefClose = _getById('btn-ref-close');
+  Dom.btnGuideClose = _getById('btn-guide-close');
+  Dom.btnSettings = _getById('btn-settings');
+  Dom.btnSettingsClose = _getById('btn-settings-close');
 }

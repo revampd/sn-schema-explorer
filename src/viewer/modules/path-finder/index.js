@@ -13,7 +13,8 @@ import {
   initInspectorDeps,
 } from '../../shared/inspector.js';
 import { clearIndicators } from '../../shared/indicators.js';
-import { buildTableList, tlRenderVisible, tlSetSpacerHeight } from '../../shared/table-list.js';
+import { buildTableList } from '../../shared/table-list.js';
+import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
 
 // ── Settings registrations ───────────────────────────────────────────────────
@@ -702,47 +703,9 @@ onViewModeChange((mode, prevMode) => {
 // ── Sidebar sync ─────────────────────────────────────────────────────────────
 
 export function pfSyncSidebar() {
-  const pfSidebar = document.getElementById('pf-sidebar');
-  const tableList = document.getElementById('table-list');
-  const sortBar = document.getElementById('sort-bar');
-  const scopeGroup = document.getElementById('scope-info-group');
-  const filterBar = Dom.filterBar;
-  const densityG = document.getElementById('density-group') || Dom.densityGroup;
-  if (!pfSidebar) return;
-  // Search bar stays visible across all views — unified search paradigm.
-  // Placeholder text updates to clarify what searching does in the active view.
-  if (Dom.searchBox) {
-    Dom.searchBox.placeholder =
-      uiState.viewMode === 'path'
-        ? 'search tables…' // dims canvas nodes; no sidebar effect in path mode
-        : Dom.searchBox.dataset.mode === 'fields'
-          ? 'search fields…'
-          : 'search tables…';
-  }
-  if (uiState.viewMode === 'path') {
-    pfSidebar.style.display = 'flex';
-    if (tableList) tableList.style.display = 'none';
-    if (sortBar) sortBar.style.display = 'none';
-    if (scopeGroup) scopeGroup.style.display = 'none';
-    if (filterBar) filterBar.style.display = 'none'; // hide bar (overrides .open)
-    if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = 'none';
-    if (densityG) densityG.style.display = 'none';
-    pfValidate();
-  } else {
-    pfSidebar.style.display = 'none';
-    if (uiState.viewMode !== 'diff') {
-      if (tableList) tableList.style.display = '';
-      if (sortBar) sortBar.style.display = '';
-      if (scopeGroup) scopeGroup.style.display = '';
-      if (filterBar) filterBar.style.display = ''; // restore (class .open controls visibility)
-      if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
-      if (densityG) densityG.style.display = '';
-      requestAnimationFrame(() => {
-        tlSetSpacerHeight();
-        tlRenderVisible();
-      });
-    }
-  }
+  if (!document.getElementById('pf-sidebar')) return;
+  syncSidebarForMode();
+  if (uiState.viewMode === 'path') pfValidate();
 }
 
 // ── Canvas overlay sync ───────────────────────────────────────────────────────
