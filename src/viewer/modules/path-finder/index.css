@@ -6,6 +6,19 @@
   overflow-y: auto;
   flex: 1 1 auto;
 }
+#pf-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+#pf-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+#pf-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+#pf-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--sn-wasabi);
+}
 .pf-sidebar-section {
   display: flex;
   flex-direction: column;
