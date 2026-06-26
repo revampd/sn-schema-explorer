@@ -99,7 +99,7 @@ export function exportNeighbourhoodJSON() {
  * Convert one node to a Markdown section.
  * Includes: heading (with parent), fields table, outgoing refs, extended-by list.
  */
-function _nodeToMarkdown(node, data, opts) {
+export function _nodeToMarkdown(node, data, opts) {
   const etSet = new Set(
     (opts && opts.edgeTypes) || ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel']
   );
@@ -330,7 +330,7 @@ function _snTypeToXsd(type) {
   return _TYPE_XSD[type] || 'xsd:string';
 }
 
-function _nodeToJsonLd(node, data, opts) {
+export function _nodeToJsonLd(node, data, opts) {
   const etSet = new Set(
     (opts && opts.edgeTypes) || ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel']
   );
@@ -447,7 +447,7 @@ function _nodeToJsonLd(node, data, opts) {
   return cls;
 }
 
-function _schemaToJsonLd(nodes, data, opts) {
+export function _schemaToJsonLd(nodes, data, opts) {
   const inst = data?._instance?.instance_name || data?._instance?.instance_url || '';
   const context = {
     owl: 'http://www.w3.org/2002/07/owl#',
@@ -519,7 +519,7 @@ function _ttlBlock(subj, pairs) {
   return lines.join('\n') + '\n\n';
 }
 
-function _schemaToTurtle(nodes, data, opts) {
+export function _schemaToTurtle(nodes, data, opts) {
   const etSet = new Set(
     (opts && opts.edgeTypes) || ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel']
   );
@@ -758,7 +758,7 @@ function _yamlStr(s) {
   return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
 }
 
-function _schemaToOpenApi(nodes, data, opts) {
+export function _schemaToOpenApi(nodes, data, opts) {
   const etSet = new Set(
     (opts && opts.edgeTypes) || ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel']
   );
@@ -1222,7 +1222,7 @@ export function setExportBgColor(value) {
   _syncBgUI();
 }
 
-function _normaliseHex(raw) {
+export function _normaliseHex(raw) {
   let s = String(raw || '')
     .trim()
     .replace(/^#+/, '');
@@ -1240,7 +1240,7 @@ let _cpH = 200,
 let _cpA = 1; // opacity 0–1 (0 = transparent)
 let _cpDragging = false;
 
-function _hsvToRgb(h, s, v) {
+export function _hsvToRgb(h, s, v) {
   h = ((h % 360) + 360) % 360;
   const c = v * s,
     x = c * (1 - Math.abs(((h / 60) % 2) - 1)),
@@ -1274,7 +1274,7 @@ function _hsvToRgb(h, s, v) {
   };
 }
 
-function _rgbToHsv(r, g, b) {
+export function _rgbToHsv(r, g, b) {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -1290,7 +1290,7 @@ function _rgbToHsv(r, g, b) {
   return { h, s: max === 0 ? 0 : d / max, v: max };
 }
 
-function _rgbToHex(r, g, b) {
+export function _rgbToHex(r, g, b) {
   return (
     '#' +
     [r, g, b]
@@ -1504,10 +1504,13 @@ function detectCanvasLimit() {
   }
   return 4194304;
 }
-const PNG_MAX_PIXELS = detectCanvasLimit();
+// Guarded so the module can be imported in a non-DOM context (unit tests for the
+// pure serialisers). In the browser this is unchanged; in Node it skips the
+// canvas probe and uses a conservative default.
+const PNG_MAX_PIXELS = typeof document !== 'undefined' ? detectCanvasLimit() : 4194304;
 // Seed the Settings max-scale default based on what this browser can actually handle.
 // Only affects first-time users; stored preferences are always respected.
-Settings.initMaxPngScale(PNG_MAX_PIXELS);
+if (typeof document !== 'undefined') Settings.initMaxPngScale(PNG_MAX_PIXELS);
 export function rasteriseSvgToPng(svgText, logicalW, logicalH, requestedScale, filename) {
   let scale = requestedScale;
   let capped = false;
