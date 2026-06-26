@@ -36,9 +36,16 @@ backlog ([#38](https://github.com/revampd/sn-schema-explorer/issues/38),
   round-trip, pathfinding, schema builder, filter UI, the shared autocomplete,
   and e2e for export formats, Path Finder, Schema Diff, and the filter builder.
 - `CHANGELOG.md`, `CONTRIBUTING.md`, and `.editorconfig`.
+- Optional **edge-type legend in image exports** — a toggle in the Export menu
+  embeds the edge-type legend (only the types currently shown on the canvas) into
+  PNG and SVG exports; off by default
+  ([#89](https://github.com/revampd/sn-schema-explorer/issues/89)).
 
 ### Changed
 
+- Path Finder: the **Hop exclusions** section now sits above the _Find shortest
+  path_ button (exclusions constrain the search, so they belong with the inputs)
+  ([#89](https://github.com/revampd/sn-schema-explorer/issues/89)).
 - Internal refactor — large source files split into cohesive modules with **zero
   behaviour change** ([#73](https://github.com/revampd/sn-schema-explorer/issues/73)):
   the viewer/Node/Background export serialisers, the Path Finder config and
@@ -70,6 +77,12 @@ backlog ([#38](https://github.com/revampd/sn-schema-explorer/issues/38),
 
 ### Fixed
 
+- Background script: the JSON split thresholds are lowered to **10 MB** (both the
+  single-attachment trigger and the per-part size) to cap peak in-memory string
+  size and avoid memory pressure on large exports inside ServiceNow
+  ([#89](https://github.com/revampd/sn-schema-explorer/issues/89)).
+- Path Finder sidebar scrollbar is now styled to match the app's other custom
+  scrollbars ([#89](https://github.com/revampd/sn-schema-explorer/issues/89)).
 - Node extractor: pagination now has a safety cap (no infinite loop on
   misbehaving/duplicate pages) and HTTP responses are size-capped to avoid heap
   exhaustion.
