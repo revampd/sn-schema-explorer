@@ -3,16 +3,16 @@ import { h } from '../../core/template.js';
 import { Pathfinding } from './pathfinding.js';
 import { pfValidate, pfRunSearch, pfSetMode, onPfSetMode } from './index.js';
 import { Settings } from '../settings/index.js';
+import { attachAutocompleteKeys } from '../../shared/autocomplete-nav.js';
 
 // ── Autocomplete engine ───────────────────────────────────────────────────────
 
 function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
-  let activeIdx = -1;
   let currentItems = [];
 
   function renderList(items) {
     currentItems = items;
-    activeIdx = -1;
+    _nav.reset();
     dropdownEl.replaceChildren();
     if (!items.length) {
       dropdownEl.appendChild(h('div', { class: 'pf-ac-empty' }, 'No matches'));
@@ -50,15 +50,7 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
     dropdownEl.classList.remove('visible');
     dropdownEl.replaceChildren();
     currentItems = [];
-    activeIdx = -1;
-  }
-
-  function setActive(idx) {
-    const rows = dropdownEl.querySelectorAll('.pf-ac-item');
-    if (!rows.length) return;
-    activeIdx = ((idx % rows.length) + rows.length) % rows.length;
-    rows.forEach((r, i) => r.classList.toggle('active', i === activeIdx));
-    rows[activeIdx]?.scrollIntoView({ block: 'nearest' });
+    _nav.reset();
   }
 
   function accept(idx) {
@@ -82,6 +74,16 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
     renderList(items);
   }
 
+  // Shared keyboard nav (Arrow/Enter/Escape) — wraps around like before.
+  const _nav = attachAutocompleteKeys({
+    input: inputEl,
+    isOpen: () => dropdownEl.classList.contains('visible'),
+    getRows: () => [...dropdownEl.querySelectorAll('.pf-ac-item')],
+    onAccept: accept,
+    onClose: close,
+    wrap: true,
+  });
+
   inputEl.addEventListener('input', () => {
     refresh();
   });
@@ -90,24 +92,6 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
   });
   inputEl.addEventListener('blur', () => {
     setTimeout(close, 120);
-  });
-  inputEl.addEventListener('keydown', e => {
-    if (!dropdownEl.classList.contains('visible')) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActive(activeIdx + 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActive(activeIdx - 1);
-    } else if (e.key === 'Enter') {
-      if (activeIdx >= 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        accept(activeIdx);
-      }
-    } else if (e.key === 'Escape') {
-      close();
-    }
   });
 
   return { refresh, close };

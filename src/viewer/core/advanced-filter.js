@@ -1,6 +1,7 @@
 import { graphState, uiState } from './state.js';
 import { Settings } from '../modules/settings/index.js';
 import { h } from './template.js';
+import { attachAutocompleteKeys } from '../shared/autocomplete-nav.js';
 
 // ── Edge-set accessors keyed by the 8 hasEdge condition types ─────────────────
 
@@ -335,8 +336,6 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
   const dropdown = h('div', { class: 'fc-ac-drop', style: 'display:none' });
   document.body.appendChild(dropdown);
 
-  let _activeIdx = -1;
-
   function _itemValue(item) {
     return typeof item === 'string' ? item : item.value;
   }
@@ -357,7 +356,7 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
   function _update() {
     const term = input.value.toLowerCase().trim();
     const items = getSuggestions(term);
-    _activeIdx = -1;
+    _nav.reset();
     if (!items.length) {
       dropdown.style.display = 'none';
       return;
@@ -373,7 +372,7 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
           e.preventDefault();
           input.value = _itemValue(item);
           dropdown.style.display = 'none';
-          _activeIdx = -1;
+          _nav.reset();
           if (onPick) onPick(input.value);
           if (onInput) onInput(input.value);
         });
@@ -384,6 +383,23 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
     dropdown.style.display = 'block';
   }
 
+  // Shared keyboard nav (Arrow/Enter/Escape). Clamps at the ends (no wrap) to
+  // preserve the filter builder's previous behaviour; Enter replays the row's
+  // mousedown so the existing select handler runs.
+  const _nav = attachAutocompleteKeys({
+    input,
+    isOpen: () => dropdown.style.display !== 'none',
+    getRows: () => [...dropdown.querySelectorAll('.fc-ac-item')],
+    onAccept: idx => {
+      const rows = dropdown.querySelectorAll('.fc-ac-item');
+      rows[idx]?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    },
+    onClose: () => {
+      dropdown.style.display = 'none';
+    },
+    wrap: false,
+  });
+
   input.addEventListener('input', () => {
     _update();
     if (onInput) onInput(input.value);
@@ -392,29 +408,9 @@ function _makeAutocomplete({ inputProps = {}, getSuggestions, onInput, onPick } 
   input.addEventListener('blur', () =>
     setTimeout(() => {
       dropdown.style.display = 'none';
-      _activeIdx = -1;
+      _nav.reset();
     }, 150)
   );
-  input.addEventListener('keydown', e => {
-    if (dropdown.style.display === 'none') return;
-    const items = dropdown.querySelectorAll('.fc-ac-item');
-    if (!items.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      _activeIdx = Math.min(_activeIdx + 1, items.length - 1);
-      items.forEach((el, i) => el.classList.toggle('active', i === _activeIdx));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      _activeIdx = Math.max(_activeIdx - 1, 0);
-      items.forEach((el, i) => el.classList.toggle('active', i === _activeIdx));
-    } else if (e.key === 'Enter' && _activeIdx >= 0) {
-      e.preventDefault();
-      items[_activeIdx].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-    } else if (e.key === 'Escape') {
-      dropdown.style.display = 'none';
-      _activeIdx = -1;
-    }
-  });
 
   wrap.append(input);
   return { wrap, input };
