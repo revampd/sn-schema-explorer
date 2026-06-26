@@ -16,6 +16,8 @@ import { clearIndicators } from '../../shared/indicators.js';
 import { buildTableList } from '../../shared/table-list.js';
 import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
+import { getPfConfig, pfConfigSyncVisibility, pfConfigWireInputs } from './config.js';
+import { initExclusions } from './exclusions.js';
 
 // ── Settings registrations ───────────────────────────────────────────────────
 
@@ -47,333 +49,18 @@ let _pfActivePathIdx = 0;
 let _pfFieldName = null;
 let _pfSourceId = null;
 
-// ── Path Finder config (advancedPathFinder feature) ──────────────────────────
-
-const PF_CONFIG_KEY = 'snse:pfConfig:v1';
-const PF_CONFIG_DEFAULTS = { minSteps: 1, maxSteps: 10, maxResults: 5 };
-
-// ── Hop exclusions — tables skipped as intermediates in pathfinding ───────────
-
-const PF_EXCLUDED_KEY = 'snse:pfExcludedHops';
-
-function pfLoadExcludedHops() {
-  try {
-    const raw = localStorage.getItem(PF_EXCLUDED_KEY);
-    if (!raw) return;
-    const ids = JSON.parse(raw);
-    if (Array.isArray(ids)) ids.forEach(id => uiState.pfExcludedHops.add(id));
-  } catch (e) {}
-}
-
-function pfSaveExcludedHops() {
-  try {
-    localStorage.setItem(PF_EXCLUDED_KEY, JSON.stringify([...uiState.pfExcludedHops]));
-  } catch (e) {
-    console.warn('PathFinder: localStorage write failed', e);
-  }
-}
-
-function pfRefreshExcludedChips() {
-  const chips = document.getElementById('pf-excluded-chips');
-  const clearBtn = document.getElementById('pf-excluded-clear');
-  if (!chips) return;
-  const excluded = uiState.pfExcludedHops;
-  // "Clear all" only shown when there is something to clear
-  if (clearBtn) clearBtn.style.display = excluded.size > 0 ? '' : 'none';
-  chips.replaceChildren(
-    ...[...excluded].sort().map(id => {
-      const gd = graphState.graphData;
-      const isField = id.includes('.');
-      const chip = h('div', {
-        class: 'pf-excluded-chip' + (isField ? ' pf-excluded-chip-field' : ''),
-      });
-      let displayText;
-      if (isField) {
-        const dotIdx = id.indexOf('.');
-        const tbl = id.slice(0, dotIdx);
-        const fld = id.slice(dotIdx + 1);
-        const tblNode = gd?._nodeById?.get(tbl);
-        const fieldMeta = tblNode?.fields?.find(f => f.name === fld);
-        displayText =
-          fieldMeta?.label && fieldMeta.label !== fld ? `${tbl}.${fieldMeta.label} (${fld})` : id;
-      } else {
-        const node = gd?._nodeById?.get(id);
-        displayText = node?.label && node.label !== id ? `${node.label} (${id})` : id;
-      }
-      const name = h('span', { class: 'pf-excluded-chip-name', title: id }, displayText);
-      const rm = h(
-        'button',
-        {
-          class: 'pf-excluded-chip-remove',
-          title: `Remove ${id} from exclusions`,
-          onClick: () => {
-            uiState.pfExcludedHops.delete(id);
-            pfSaveExcludedHops();
-            pfRefreshExcludedChips();
-            pfAutoRefreshSearch();
-          },
-        },
-        '×'
-      );
-      chip.append(name, rm);
-      return chip;
-    })
-  );
-}
-
-function pfWireExclusionInput() {
-  const input = document.getElementById('pf-excluded-add');
-  const dropdown = document.getElementById('pf-excluded-ac');
-  if (!input || !dropdown) return;
-
-  let activeIdx = -1;
-  let currentItems = [];
-
-  function getSuggestions(query) {
-    if (!graphState.graphData) return [];
-    const raw = query || '';
-    const dotIdx = raw.indexOf('.');
-
-    if (dotIdx >= 0) {
-      // Field-exclusion mode: "table.refField" completions
-      const rawTable = raw.slice(0, dotIdx);
-      const fieldPart = raw.slice(dotIdx + 1).toLowerCase();
-      const tableNode =
-        graphState.graphData._nodeById?.get(rawTable) ??
-        graphState.graphData.nodes.find(n => n.id.toLowerCase() === rawTable.toLowerCase());
-      if (!tableNode) return [];
-      // Collect reference fields from the table and all its ancestors
-      const refFields = new Map();
-      const chain = [tableNode.id, ...Pathfinding.ancestorsOf(tableNode.id)];
-      for (const tid of chain) {
-        const t = graphState.graphData._nodeById?.get(tid);
-        for (const f of t?.fields ?? []) {
-          if (f.type === 'reference' && !refFields.has(f.name)) {
-            refFields.set(f.name, { label: f.label, source: tid });
-          }
-        }
-      }
-      const prefix = tableNode.id + '.';
-      const out = [];
-      for (const [fname, meta] of refFields) {
-        if (fieldPart && !fname.toLowerCase().includes(fieldPart)) continue;
-        out.push({
-          value: prefix + fname,
-          subtitle: meta.label && meta.label !== fname ? meta.label : null,
-          tag: meta.source !== tableNode.id ? `from ${meta.source}` : null,
-          isField: true,
-        });
-        if (out.length >= 50) break;
-      }
-      out.sort((a, b) => {
-        const av = a.value.slice(prefix.length).toLowerCase();
-        const bv = b.value.slice(prefix.length).toLowerCase();
-        const aP = av.startsWith(fieldPart);
-        const bP = bv.startsWith(fieldPart);
-        if (aP !== bP) return aP ? -1 : 1;
-        return av.localeCompare(bv);
-      });
-      return out;
-    }
-
-    // Table-exclusion mode
-    const q = raw.toLowerCase().trim();
-    const out = [];
-    for (const n of graphState.graphData.nodes) {
-      if (q && !n.id.toLowerCase().includes(q) && !(n.label || '').toLowerCase().includes(q))
-        continue;
-      out.push({ value: n.id, subtitle: n.label && n.label !== n.id ? n.label : null });
-      if (out.length >= 50) break;
-    }
-    out.sort((a, b) => {
-      const aP = a.value.toLowerCase().startsWith(q);
-      const bP = b.value.toLowerCase().startsWith(q);
-      if (aP !== bP) return aP ? -1 : 1;
-      return a.value.localeCompare(b.value);
-    });
-    return out;
-  }
-
-  function renderList(items) {
-    currentItems = items;
-    activeIdx = -1;
-    dropdown.replaceChildren();
-    if (!items.length) {
-      dropdown.appendChild(h('div', { class: 'pf-ac-empty' }, 'No matches'));
-      dropdown.classList.add('visible');
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    items.forEach((item, idx) => {
-      frag.appendChild(
-        h(
-          'div',
-          {
-            class: 'pf-ac-item' + (item.isField ? ' field-item' : ''),
-            onMousedown: e => {
-              e.preventDefault();
-              accept(idx);
-            },
-          },
-          h('span', { class: 'pf-ac-item-id' }, item.value),
-          item.subtitle ? h('span', { class: 'pf-ac-item-label' }, item.subtitle) : null,
-          item.tag ? h('span', { class: 'pf-ac-item-tag' }, item.tag) : null
-        )
-      );
-    });
-    dropdown.appendChild(frag);
-    dropdown.classList.add('visible');
-  }
-
-  function close() {
-    dropdown.classList.remove('visible');
-    dropdown.replaceChildren();
-    currentItems = [];
-    activeIdx = -1;
-  }
-
-  function setActive(idx) {
-    const rows = dropdown.querySelectorAll('.pf-ac-item');
-    if (!rows.length) return;
-    activeIdx = ((idx % rows.length) + rows.length) % rows.length;
-    rows.forEach((r, i) => r.classList.toggle('active', i === activeIdx));
-    rows[activeIdx]?.scrollIntoView({ block: 'nearest' });
-  }
-
-  function accept(idx) {
-    const item = currentItems[idx];
-    if (!item) return;
-    input.value = '';
-    close();
-    if (!uiState.pfExcludedHops.has(item.value)) {
-      uiState.pfExcludedHops.add(item.value);
-      pfSaveExcludedHops();
-      pfRefreshExcludedChips();
-      pfAutoRefreshSearch();
-    }
-  }
-
-  function refresh() {
-    const items = getSuggestions(input.value);
-    if (!items.length) {
-      if (input.value.trim()) renderList([]);
-      else close();
-      return;
-    }
-    renderList(items);
-  }
-
-  input.addEventListener('input', refresh);
-  input.addEventListener('focus', refresh);
-  input.addEventListener('blur', () => setTimeout(close, 120));
-  input.addEventListener('keydown', e => {
-    if (!dropdown.classList.contains('visible')) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActive(activeIdx + 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActive(activeIdx - 1);
-    } else if (e.key === 'Enter') {
-      if (activeIdx >= 0) {
-        e.preventDefault();
-        accept(activeIdx);
-      }
-    } else if (e.key === 'Escape') {
-      close();
-    }
-  });
-}
-
 // Auto-refresh the current search result whenever exclusions change (if inputs are filled)
 function pfAutoRefreshSearch() {
   const btn = document.getElementById('pf-find');
   if (btn && !btn.disabled) pfRunSearch();
 }
 
-// Listen for changes dispatched by interactions.js context menu
-document.addEventListener('pf-excluded-hops-changed', () => {
-  pfSaveExcludedHops();
-  pfRefreshExcludedChips();
-  pfAutoRefreshSearch();
-});
-
-function pfLoadConfig() {
-  try {
-    const raw = localStorage.getItem(PF_CONFIG_KEY);
-    if (!raw) return { ...PF_CONFIG_DEFAULTS };
-    const obj = JSON.parse(raw);
-    return {
-      minSteps: Math.max(1, Math.min(50, +obj.minSteps || PF_CONFIG_DEFAULTS.minSteps)),
-      maxSteps: Math.max(1, Math.min(50, +obj.maxSteps || PF_CONFIG_DEFAULTS.maxSteps)),
-      maxResults: Math.max(1, Math.min(20, +obj.maxResults || PF_CONFIG_DEFAULTS.maxResults)),
-    };
-  } catch (e) {
-    return { ...PF_CONFIG_DEFAULTS };
+// Re-run the current search after a config change, but only when results already show.
+function pfReRunIfActive() {
+  if (_pfPaths && _pfPaths.length) {
+    const findBtn = document.getElementById('pf-find');
+    if (findBtn && !findBtn.disabled) findBtn.click();
   }
-}
-
-function pfSaveConfig() {
-  try {
-    localStorage.setItem(PF_CONFIG_KEY, JSON.stringify(_pfConfig));
-  } catch (e) {
-    console.warn('PathFinder: localStorage write failed', e);
-  }
-}
-
-let _pfConfig = pfLoadConfig();
-
-function pfConfigSyncVisibility() {
-  const section = document.getElementById('pf-config-section');
-  if (!section) return;
-  const enabled = Settings.isEnabled('advancedPathFinder');
-  section.style.display = enabled ? '' : 'none';
-  if (enabled) pfConfigPopulateInputs();
-}
-
-function pfConfigPopulateInputs() {
-  const min = document.getElementById('pf-cfg-min');
-  const max = document.getElementById('pf-cfg-max');
-  const res = document.getElementById('pf-cfg-results');
-  if (min) min.value = _pfConfig.minSteps;
-  if (max) max.value = _pfConfig.maxSteps;
-  if (res) res.value = _pfConfig.maxResults;
-}
-
-function pfConfigWireInputs() {
-  const min = document.getElementById('pf-cfg-min');
-  const max = document.getElementById('pf-cfg-max');
-  const res = document.getElementById('pf-cfg-results');
-  const reset = document.getElementById('pf-config-reset');
-  const apply = () => {
-    let mn = Math.max(1, Math.min(50, parseInt(min.value, 10) || 1));
-    let mx = Math.max(1, Math.min(50, parseInt(max.value, 10) || 10));
-    let rs = Math.max(1, Math.min(20, parseInt(res.value, 10) || 5));
-    if (mn > mx) {
-      if (document.activeElement === min) mx = mn;
-      else mn = mx;
-    }
-    _pfConfig = { minSteps: mn, maxSteps: mx, maxResults: rs };
-    pfSaveConfig();
-    pfConfigPopulateInputs();
-    if (_pfPaths && _pfPaths.length) {
-      const findBtn = document.getElementById('pf-find');
-      if (findBtn && !findBtn.disabled) findBtn.click();
-    }
-  };
-  if (min) min.addEventListener('change', apply);
-  if (max) max.addEventListener('change', apply);
-  if (res) res.addEventListener('change', apply);
-  if (reset)
-    reset.addEventListener('click', () => {
-      _pfConfig = { ...PF_CONFIG_DEFAULTS };
-      pfSaveConfig();
-      pfConfigPopulateInputs();
-      if (_pfPaths && _pfPaths.length) {
-        const findBtn = document.getElementById('pf-find');
-        if (findBtn && !findBtn.disabled) findBtn.click();
-      }
-    });
 }
 
 // ── PATH VIEW RENDERER — DAG layout ─────────────────────────────────────────
@@ -817,9 +504,10 @@ export function pfRunSearch() {
   }
 
   const advanced = Settings.isEnabled('advancedPathFinder');
-  const minSteps = advanced ? _pfConfig.minSteps : 1;
-  const maxSteps = advanced ? _pfConfig.maxSteps : Infinity;
-  const wantCount = advanced ? _pfConfig.maxResults : 5;
+  const pfConfig = getPfConfig();
+  const minSteps = advanced ? pfConfig.minSteps : 1;
+  const maxSteps = advanced ? pfConfig.maxSteps : Infinity;
+  const wantCount = advanced ? pfConfig.maxResults : 5;
   const K = Math.min(20, wantCount + (minSteps > 1 ? 5 : 0));
   const filterAndTrim = rs =>
     rs.filter(r => r.steps.length >= minSteps && r.steps.length <= maxSteps).slice(0, wantCount);
@@ -1257,22 +945,14 @@ function makeInspectorPathLink(fieldName, tableId) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-pfConfigWireInputs();
+pfConfigWireInputs({ onApply: pfReRunIfActive });
 pfConfigSyncVisibility();
 pfSyncVisibility();
 Settings.onChange('pathFinding', pfSyncVisibility);
 Settings.onChange('advancedPathFinder', pfConfigSyncVisibility);
 
-// Hop exclusions — load persisted set, wire "Clear all" and the add-table input
-pfLoadExcludedHops();
-pfRefreshExcludedChips();
-pfWireExclusionInput();
-document.getElementById('pf-excluded-clear')?.addEventListener('click', () => {
-  uiState.pfExcludedHops.clear();
-  pfSaveExcludedHops();
-  pfRefreshExcludedChips();
-  pfAutoRefreshSearch();
-});
+// Hop exclusions — load persisted set, wire chips / add-input / "Clear all" / context-menu event
+initExclusions({ onChange: pfAutoRefreshSearch });
 
 // Inject the path-link factory into the inspector.
 initInspectorDeps({ makePathLink: makeInspectorPathLink });
