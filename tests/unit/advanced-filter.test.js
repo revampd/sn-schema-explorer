@@ -308,3 +308,47 @@ describe('syncSelectedScopes', () => {
     expect(uiState.selectedScopes.size).toBe(0);
   });
 });
+
+// ── Memoisation (Phase 3, M4) ───────────────────────────────────────────────
+//
+// filterOk caches per-node verdicts keyed by a signature of the conditions and
+// the graph reference. These tests verify the cache invalidates correctly so it
+// never returns a stale result.
+
+describe('filterOk memoisation', () => {
+  it('returns the same verdict on repeated calls (cache hit)', () => {
+    uiState.filterConditions = [{ type: 'scope', values: ['global'] }];
+    expect(filterOk(GLOBAL_NODE)).toBe(true);
+    expect(filterOk(GLOBAL_NODE)).toBe(true);
+    expect(filterOk(SCOPED_NODE)).toBe(false);
+    expect(filterOk(SCOPED_NODE)).toBe(false);
+  });
+
+  it('re-evaluates when conditions change (same graph)', () => {
+    uiState.filterConditions = [{ type: 'scope', values: ['global'] }];
+    expect(filterOk(SCOPED_NODE)).toBe(false); // primes the cache
+
+    // Widen the filter — the previously-cached "false" must not stick.
+    uiState.filterConditions = [{ type: 'scope', values: ['global', 'sn_hr_core'] }];
+    expect(filterOk(SCOPED_NODE)).toBe(true);
+  });
+
+  it('re-evaluates when the graph reference changes (same conditions, same id)', () => {
+    uiState.filterConditions = [{ type: 'scope', values: ['global'] }];
+    const original = { id: 'task', scope: 'global', _isView: false, fields: [] };
+    graphState.graphData = { nodes: [original] };
+    expect(filterOk(original)).toBe(true); // primes the cache for id 'task'
+
+    // New graph load: a different node reuses id 'task' but is out of scope.
+    const reused = { id: 'task', scope: 'sn_other', _isView: false, fields: [] };
+    graphState.graphData = { nodes: [reused] };
+    expect(filterOk(reused)).toBe(false);
+  });
+
+  it('falls back to true (and skips the cache) when conditions are cleared', () => {
+    uiState.filterConditions = [{ type: 'scope', values: ['global'] }];
+    expect(filterOk(SCOPED_NODE)).toBe(false);
+    uiState.filterConditions = [];
+    expect(filterOk(SCOPED_NODE)).toBe(true);
+  });
+});
