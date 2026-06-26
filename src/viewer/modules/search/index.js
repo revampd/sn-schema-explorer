@@ -1,7 +1,13 @@
 import { graphState, uiState } from '../../core/state.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { Dom } from '../../core/dom.js';
-import { tlSetSpacerHeight, tlRenderVisible, setTableData, getTableDataAll, setHintMode } from '../../shared/table-list.js';
+import {
+  tlSetSpacerHeight,
+  tlRenderVisible,
+  setTableData,
+  getTableDataAll,
+  setHintMode,
+} from '../../shared/table-list.js';
 import { root } from '../../engine/canvas.js';
 import { updateMinimap } from '../graph-view/minimap.js';
 
@@ -15,12 +21,19 @@ export function setSearchData(nodeById, fieldSearchIndex) {
 
 let _searchMode = 'tables';
 const _searchChangeListeners = [];
-export function onSearchChange(fn) { _searchChangeListeners.push(fn); }
-export function getSearchMode()    { return _searchMode; }
+export function onSearchChange(fn) {
+  _searchChangeListeners.push(fn);
+}
+export function getSearchMode() {
+  return _searchMode;
+}
 
 function debounce(fn, ms) {
   let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
 }
 
 function fieldSearchMatches(q) {
@@ -57,12 +70,18 @@ const _debouncedGraphDim = debounce(q => {
       root.selectAll('g.node-group').classed('dimmed', d => !hits.has(d.id));
       root.selectAll('g.domain-node').classed('dimmed', d => !hits.has(d.id));
     } else {
-      root.selectAll('g.node-group').classed('dimmed', d =>
-        !d.id.toLowerCase().includes(q) && !(d.label||'').toLowerCase().includes(q)
-      );
-      root.selectAll('g.domain-node').classed('dimmed', d =>
-        !d.id.toLowerCase().includes(q) && !(d.label||'').toLowerCase().includes(q)
-      );
+      root
+        .selectAll('g.node-group')
+        .classed(
+          'dimmed',
+          d => !d.id.toLowerCase().includes(q) && !(d.label || '').toLowerCase().includes(q)
+        );
+      root
+        .selectAll('g.domain-node')
+        .classed(
+          'dimmed',
+          d => !d.id.toLowerCase().includes(q) && !(d.label || '').toLowerCase().includes(q)
+        );
     }
   } else {
     root.selectAll('g.node-group').classed('dimmed', false);
@@ -82,15 +101,13 @@ export function applyTableFilter(q) {
     if (!filterOk(n)) return false;
     if (!queryRaw) return true;
     if (_searchMode === 'fields') return !!(hits && hits.has(n.id));
-    return n.id.includes(queryRaw) || (n.label||'').toLowerCase().includes(queryRaw);
+    return n.id.includes(queryRaw) || (n.label || '').toLowerCase().includes(queryRaw);
   });
 
   if (_searchMode === 'fields' && queryRaw) {
     for (const n of filtered) {
       const { shown, extra } = fieldsMatchingInTable(n.id, queryRaw);
-      n._fieldHints = shown.length
-        ? shown.join(', ') + (extra > 0 ? ` +${extra} more` : '')
-        : '';
+      n._fieldHints = shown.length ? shown.join(', ') + (extra > 0 ? ` +${extra} more` : '') : '';
     }
   } else {
     for (const n of tableDataAll) {
@@ -108,10 +125,11 @@ export function applyTableFilter(q) {
   if (Dom.tableCount) {
     const total = getTableDataAll().length;
     const hasActiveFilter = uiState.filterConditions.length > 0 || !!queryRaw;
-    Dom.tableCount.textContent = hasActiveFilter
-      ? `${filtered.length} / ${total}`
-      : String(total);
-    Dom.tableCount.classList.toggle('table-count--filtered', hasActiveFilter && filtered.length < total);
+    Dom.tableCount.textContent = hasActiveFilter ? `${filtered.length} / ${total}` : String(total);
+    Dom.tableCount.classList.toggle(
+      'table-count--filtered',
+      hasActiveFilter && filtered.length < total
+    );
   }
 }
 

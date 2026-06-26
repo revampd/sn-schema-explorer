@@ -1,0 +1,74 @@
+/* ── CONTEXT MENU ── */
+#ctx-menu {
+  position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 0;
+  display: none;
+  z-index: 300;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+.ctx-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.1s;
+}
+.ctx-item:hover {
+  background: rgba(0, 229, 255, 0.08);
+  color: var(--accent);
+}
+.ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
+/* ── ZOOM CONTROLS ── */
+#zoom-controls {
+  position: absolute;
+  bottom: 116px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+.zoom-btn {
+  width: 34px;
+  height: 34px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.zoom-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── MINIMAP ── */
+#minimap {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 140px;
+  height: 88px;
+  background: rgba(3, 45, 66, 0.85);
+  border: 1px solid var(--sn-border);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 14;
+  backdrop-filter: blur(6px);
+  cursor: crosshair;
+}

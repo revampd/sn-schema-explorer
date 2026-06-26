@@ -16,10 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let build, buildStreaming;
 
 beforeAll(() => {
-  const src = readFileSync(
-    join(__dirname, '../../src/exporter/shared/schema-builder.js'),
-    'utf8'
-  );
+  const src = readFileSync(join(__dirname, '../../src/exporter/shared/schema-builder.js'), 'utf8');
   const mod = { exports: {} };
   new Function('module', 'exports', src)(mod, mod.exports);
   ({ build, buildStreaming } = mod.exports);
@@ -105,10 +102,10 @@ describe('fields', () => {
     const task = nodeById(out, 'task');
     const sysId = task.fields.find(f => f.name === 'sys_id');
     expect(sysId).toMatchObject({
-      name:      'sys_id',
-      label:     'Sys ID',
-      type:      'GUID',
-      primary:   true,
+      name: 'sys_id',
+      label: 'Sys ID',
+      type: 'GUID',
+      primary: true,
       mandatory: false,
     });
   });
@@ -154,8 +151,8 @@ describe('edges — M2M', () => {
     const m2m = edgesOfType(out, 'm2m');
     expect(m2m).toHaveLength(1);
     expect(m2m[0]).toMatchObject({
-      source:   'incident',
-      target:   'sys_user',
+      source: 'incident',
+      target: 'sys_user',
       viaTable: 'incident_user',
     });
   });
@@ -175,6 +172,42 @@ describe('DB views', () => {
     // 5 tables + 1 view in fixture; _stats.counts.tables must not include the view
     expect(out._stats.counts.tables).toBe(5);
     expect(out._stats.counts.db_views).toBe(1);
+  });
+
+  it('produces a view membership edge from the view to its member table (#47.11)', () => {
+    const out = buildFrom();
+    const views = edgesOfType(out, 'view');
+    expect(views.length).toBeGreaterThanOrEqual(1);
+    const v = views.find(e => e.source === 'task_view' && e.target === 'task');
+    expect(v).toBeTruthy();
+    expect(v.type).toBe('view');
+  });
+});
+
+// ── 6b. Named relationships (sys_relationship) ────────────────────────────────
+describe('edges — named relationships', () => {
+  it('produces a rel edge for a resolvable sys_relationship (#47.11)', () => {
+    const out = buildFrom();
+    const rels = edgesOfType(out, 'rel');
+    expect(rels.length).toBeGreaterThanOrEqual(1);
+    const r = rels.find(e => e.source === 'incident' && e.target === 'sys_user');
+    expect(r).toBeTruthy();
+    expect(r.label).toBe('Task to User');
+  });
+
+  it('omits relationships whose endpoints do not resolve to known tables', () => {
+    const out = buildFrom({
+      sysRelationship: [
+        {
+          sys_id: 'rel_x',
+          name: 'Dangling',
+          basic_apply_to: 'incident',
+          query_from: "answer = 'does_not_exist';",
+        },
+      ],
+    });
+    const rels = edgesOfType(out, 'rel');
+    expect(rels.find(e => e.label === 'Dangling')).toBeFalsy();
   });
 });
 
@@ -232,8 +265,9 @@ describe('_stats', () => {
 
   it('package_private_tables count matches hints array length', () => {
     const out = buildFrom();
-    expect(out._stats.counts.package_private_tables)
-      .toBe(out._restrictedHints.packagePrivateTables.length);
+    expect(out._stats.counts.package_private_tables).toBe(
+      out._restrictedHints.packagePrivateTables.length
+    );
   });
 });
 

@@ -21,7 +21,7 @@ export function initCanvasUI() {
   Dom.btnInspectorCollapse.addEventListener('click', () => {
     document.body.classList.toggle('inspector-collapsed');
   });
-  document.querySelector('aside .panel-title').addEventListener('click', function(e) {
+  document.querySelector('aside .panel-title').addEventListener('click', function (e) {
     if (document.body.classList.contains('sidebar-collapsed') && !e.target.closest('button')) {
       document.body.classList.remove('sidebar-collapsed');
       requestAnimationFrame(() => {
@@ -30,7 +30,7 @@ export function initCanvasUI() {
       });
     }
   });
-  document.querySelector('#inspector .panel-title').addEventListener('click', function(e) {
+  document.querySelector('#inspector .panel-title').addEventListener('click', function (e) {
     if (document.body.classList.contains('inspector-collapsed') && !e.target.closest('button')) {
       document.body.classList.remove('inspector-collapsed');
     }
@@ -39,8 +39,10 @@ export function initCanvasUI() {
   // ── Resize handles (left sidebar + right inspector, persisted to localStorage) ──
 
   (function wireResizeHandles() {
-    const SIDEBAR_MIN = 180, SIDEBAR_MAX_PCT  = 0.45;
-    const INSPECT_MIN = 220, INSPECT_MAX_PCT  = 0.45;
+    const SIDEBAR_MIN = 180,
+      SIDEBAR_MAX_PCT = 0.45;
+    const INSPECT_MIN = 220,
+      INSPECT_MAX_PCT = 0.45;
     const STORAGE_KEY = 'snse:panelWidths:v1';
 
     try {
@@ -56,17 +58,28 @@ export function initCanvasUI() {
       }
     } catch (e) {}
 
-    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
 
     function saveWidths() {
-      const sidebarPx   = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w'));
-      const inspectorPx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--inspector-w'));
+      const sidebarPx = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w')
+      );
+      const inspectorPx = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--inspector-w')
+      );
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          sidebar:   Math.round(sidebarPx),
-          inspector: Math.round(inspectorPx)
-        }));
-      } catch (e) {}
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            sidebar: Math.round(sidebarPx),
+            inspector: Math.round(inspectorPx),
+          })
+        );
+      } catch (e) {
+        console.warn('canvas-ui: localStorage write failed', e);
+      }
     }
 
     function startDrag(handle, side) {
@@ -77,12 +90,15 @@ export function initCanvasUI() {
         document.body.classList.add('resizing');
 
         const startX = e.clientX;
-        const startW = parseFloat(getComputedStyle(document.documentElement)
-          .getPropertyValue(side === 'sidebar' ? '--sidebar-w' : '--inspector-w'));
+        const startW = parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            side === 'sidebar' ? '--sidebar-w' : '--inspector-w'
+          )
+        );
 
         const onMove = ev => {
           const winW = window.innerWidth || 1600;
-          const dx   = ev.clientX - startX;
+          const dx = ev.clientX - startX;
           let next;
           if (side === 'sidebar') {
             next = clamp(startW + dx, SIDEBAR_MIN, winW * SIDEBAR_MAX_PCT);
@@ -97,7 +113,7 @@ export function initCanvasUI() {
           handle.classList.remove('dragging');
           document.body.classList.remove('resizing');
           handle.removeEventListener('pointermove', onMove);
-          handle.removeEventListener('pointerup',   onUp);
+          handle.removeEventListener('pointerup', onUp);
           handle.removeEventListener('pointercancel', onUp);
           saveWidths();
           requestAnimationFrame(() => {
@@ -107,7 +123,7 @@ export function initCanvasUI() {
           if (graphState.graphData) fitGraph();
         };
         handle.addEventListener('pointermove', onMove);
-        handle.addEventListener('pointerup',   onUp);
+        handle.addEventListener('pointerup', onUp);
         handle.addEventListener('pointercancel', onUp);
       });
 
@@ -115,15 +131,17 @@ export function initCanvasUI() {
         document.documentElement.style.removeProperty(
           side === 'sidebar' ? '--sidebar-w' : '--inspector-w'
         );
-        try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {}
         requestAnimationFrame(saveWidths);
         if (graphState.graphData) fitGraph();
       });
     }
 
-    const sbHandle  = document.getElementById('sidebar-resize');
+    const sbHandle = document.getElementById('sidebar-resize');
     const insHandle = document.getElementById('inspector-resize');
-    if (sbHandle)  startDrag(sbHandle,  'sidebar');
+    if (sbHandle) startDrag(sbHandle, 'sidebar');
     if (insHandle) startDrag(insHandle, 'inspector');
   })();
 
@@ -131,7 +149,7 @@ export function initCanvasUI() {
 
   Dom.btnReset.addEventListener('click', fitGraph);
   Dom.btnFitM.addEventListener('click', fitGraph);
-  Dom.zIn.addEventListener('click',  () => svg.transition().call(zoom.scaleBy, 1.4));
+  Dom.zIn.addEventListener('click', () => svg.transition().call(zoom.scaleBy, 1.4));
   Dom.zOut.addEventListener('click', () => svg.transition().call(zoom.scaleBy, 0.7));
   Dom.zFit.addEventListener('click', fitGraph);
 
@@ -140,7 +158,9 @@ export function initCanvasUI() {
   let rTimer;
   window.addEventListener('resize', () => {
     clearTimeout(rTimer);
-    rTimer = setTimeout(() => { if (graphState.graphData) fitGraph(); }, 200);
+    rTimer = setTimeout(() => {
+      if (graphState.graphData) fitGraph();
+    }, 200);
     if (graphState.graphData) tlRenderVisible();
   });
 

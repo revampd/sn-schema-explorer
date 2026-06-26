@@ -11,6 +11,7 @@ import { showCtx, initInteractionsListeners } from '../modules/schema-map/intera
 import { initLoadOverlay } from '../modules/load/index.js';
 import { initModals } from '../core/modals.js';
 import { initReferenceInteractivity } from '../modules/reference/index.js';
+import { initUpdateCheck } from '../core/update-check.js';
 import {
   initHistoryListeners,
   setHistoryViewModeHook,
@@ -39,9 +40,9 @@ setRenderImports({
 });
 
 // ── History hooks (no circular imports: history ← these modules, not the reverse) ──
-setViewModeHistoryHook(pushHistory);   // view-mode.js calls pushHistory after setViewMode
-setHistoryViewModeHook(setViewMode);   // history uses setViewMode to sync DOM during restore
-setHistoryClearSelFn(clearSelection);  // history calls clearSelection for null-selection restores
+setViewModeHistoryHook(pushHistory); // view-mode.js calls pushHistory after setViewMode
+setHistoryViewModeHook(setViewMode); // history uses setViewMode to sync DOM during restore
+setHistoryClearSelFn(clearSelection); // history calls clearSelection for null-selection restores
 
 initLoadOverlay();
 initSearchListeners();
@@ -53,4 +54,5 @@ initCanvasUI();
 initInteractionsListeners();
 initModals();
 initReferenceInteractivity();
+initUpdateCheck();
 initHistoryListeners();

@@ -8,12 +8,12 @@
  *   node build.js all           → all of the above
  * ============================================================================ */
 import * as esbuild from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const rel   = (...p) => join(__dir, ...p);
+const rel = (...p) => join(__dir, ...p);
 
 // HTML-escape a string for safe embedding inside a <pre> element.
 function escHtml(s) {
@@ -21,29 +21,36 @@ function escHtml(s) {
 }
 
 // Inline D3 — read from node_modules so the output has zero CDN dependencies.
-const _d3Source = readFileSync(
-  rel('node_modules/d3/dist/d3.min.js'), 'utf8'
-);
+const _d3Source = readFileSync(rel('node_modules/d3/dist/d3.min.js'), 'utf8');
 const D3_INLINE = `<script>\n${_d3Source}\n</script>`;
 
 // Build version + timestamp — computed once so all targets share the same stamp.
-const _pkg       = JSON.parse(readFileSync(rel('package.json'), 'utf8'));
+const _pkg = JSON.parse(readFileSync(rel('package.json'), 'utf8'));
 const _buildDate = (() => {
   const d = new Date();
   const p = n => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
 })();
-const BUILD_VERSION_HTML =
-  `<span class="footer-build">${_pkg.version}-${_buildDate}</span>`;
+const BUILD_VERSION_HTML = `<span class="footer-build">${_pkg.version}-${_buildDate}</span>`;
 
 // ── Target definitions ───────────────────────────────────────────────────────
 
 const BASE_CSS = [
-  'src/viewer/styles/core.css',
+  // core styles split into cohesive partials (#73); order is the cascade order —
+  // keep these contiguous and in sequence.
+  'src/viewer/styles/base.css',
+  'src/viewer/styles/panels.css',
+  'src/viewer/styles/header.css',
+  'src/viewer/styles/footer.css',
   'src/viewer/modules/export/index.css',
   'src/viewer/modules/load/index.css',
   'src/viewer/modules/saved-views/index.css',
-  'src/viewer/modules/schema-map/index.css',
+  // schema-map styles split into cohesive partials (#73); order is the cascade
+  // order — keep these contiguous and in sequence.
+  'src/viewer/modules/schema-map/sidebar.css',
+  'src/viewer/modules/schema-map/canvas.css',
+  'src/viewer/modules/schema-map/edges.css',
+  'src/viewer/modules/schema-map/chrome.css',
   'src/viewer/shared/inspector.css',
   'src/viewer/modules/reference/index.css',
   'src/viewer/modules/guide/index.css',
@@ -56,25 +63,29 @@ const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
 
 const VIEWER_TARGETS = {
   app: {
-    entry:    rel('src/viewer/entries/full.js'),
-    css:      [...BASE_CSS, 'src/viewer/modules/path-finder/index.css', 'src/viewer/modules/schema-diff/index.css'],
+    entry: rel('src/viewer/entries/full.js'),
+    css: [
+      ...BASE_CSS,
+      'src/viewer/modules/path-finder/index.css',
+      'src/viewer/modules/schema-diff/index.css',
+    ],
     features: ['path-finder', 'schema-diff', 'setup'],
-    title:    'Schema Explorer',
-    output:   rel('dist/sn_schema_explorer.html'),
+    title: 'Schema Explorer',
+    output: rel('dist/sn_schema_explorer.html'),
   },
 };
 
 // HTML partials injected per feature
 const FEATURE_PARTIALS = {
   'path-finder': {
-    'toolbar':     'src/viewer/modules/path-finder/toolbar.html',
-    'pf-sidebar':  'src/viewer/modules/path-finder/sidebar.html',
+    toolbar: 'src/viewer/modules/path-finder/toolbar.html',
+    'pf-sidebar': 'src/viewer/modules/path-finder/sidebar.html',
   },
   'schema-diff': {
-    'toolbar':       'src/viewer/modules/schema-diff/toolbar.html',
-    'diff-sidebar':  'src/viewer/modules/schema-diff/sidebar.html',
+    toolbar: 'src/viewer/modules/schema-diff/toolbar.html',
+    'diff-sidebar': 'src/viewer/modules/schema-diff/sidebar.html',
   },
-  'setup': {
+  setup: {
     'setup-instructions': 'src/viewer/modules/load/setup-instructions.html',
   },
 };
@@ -94,22 +105,31 @@ const GUIDE_MODULES = [
 ];
 
 function assembleGuide(features) {
-  let tabs = '', panels = '', first = true;
+  let tabs = '',
+    panels = '',
+    first = true;
   const SEP = '<!-- GUIDE:PANEL -->';
   for (const m of GUIDE_MODULES) {
     if (m.feature && !features.includes(m.feature)) continue;
     let content;
-    try { content = readFileSync(rel(m.file), 'utf8'); } catch { continue; }
+    try {
+      content = readFileSync(rel(m.file), 'utf8');
+    } catch {
+      continue;
+    }
     const splitIdx = content.indexOf(SEP);
     if (splitIdx === -1) continue;
-    let tab   = content.slice(0, splitIdx).replace(/<!--\s*GUIDE:TAB\s*-->/, '').trim();
+    let tab = content
+      .slice(0, splitIdx)
+      .replace(/<!--\s*GUIDE:TAB\s*-->/, '')
+      .trim();
     let panel = content.slice(splitIdx + SEP.length).trim();
     if (first) {
-      tab   = tab.replace(/class="g-tab"/, 'class="g-tab active"');
+      tab = tab.replace(/class="g-tab"/, 'class="g-tab active"');
       panel = panel.replace(/class="g-panel"/, 'class="g-panel active"');
       first = false;
     }
-    tabs   += tab   + '\n';
+    tabs += tab + '\n';
     panels += panel + '\n';
   }
   return { tabs, panels };
@@ -119,21 +139,24 @@ function assembleGuide(features) {
 // Order matters: partials that contain sub-markers must come before those sub-markers.
 const BASE_PARTIALS = [
   // marker                     file path
-  ['export-toolbar',            'src/viewer/modules/export/toolbar.html'],
-  ['schema-map-sidebar',        'src/viewer/modules/schema-map/sidebar.html'],
-  ['load-overlay',              'src/viewer/modules/load/overlay.html'],
-  ['schema-map-overlays',       'src/viewer/modules/schema-map/canvas-overlays.html'],
-  ['context-menu',              'src/viewer/modules/schema-map/context-menu.html'],
-  ['reference-modal',           'src/viewer/modules/reference/modal.html'],
-  ['settings-modal',            'src/viewer/modules/settings/modal.html'],
-  ['guide-modal',               'src/viewer/modules/guide/modal.html'],
+  ['export-toolbar', 'src/viewer/modules/export/toolbar.html'],
+  ['schema-map-sidebar', 'src/viewer/modules/schema-map/sidebar.html'],
+  ['load-overlay', 'src/viewer/modules/load/overlay.html'],
+  ['schema-map-overlays', 'src/viewer/modules/schema-map/canvas-overlays.html'],
+  ['context-menu', 'src/viewer/modules/schema-map/context-menu.html'],
+  ['reference-modal', 'src/viewer/modules/reference/modal.html'],
+  ['settings-modal', 'src/viewer/modules/settings/modal.html'],
+  ['guide-modal', 'src/viewer/modules/guide/modal.html'],
 ];
 
 // ── Viewer build ─────────────────────────────────────────────────────────────
 
 async function buildViewer(targetName) {
   const t = VIEWER_TARGETS[targetName];
-  if (!t) { console.error(`Unknown target: ${targetName}`); process.exit(1); }
+  if (!t) {
+    console.error(`Unknown target: ${targetName}`);
+    process.exit(1);
+  }
 
   console.log(`Building ${targetName}...`);
 
@@ -142,12 +165,16 @@ async function buildViewer(targetName) {
   try {
     const result = await esbuild.build({
       entryPoints: [t.entry],
-      bundle:      true,
-      format:      'iife',
-      target:      'es2020',
-      minify:      false,
-      write:       false,
-      logLevel:    'warning',
+      bundle: true,
+      format: 'iife',
+      target: 'es2020',
+      minify: false,
+      write: false,
+      logLevel: 'warning',
+      // Inject the package version so the viewer can compare against the latest
+      // GitHub release (update-check). Replaced at build time; defaults to
+      // '0.0.0' in non-build contexts (e.g. unit tests) so the check is inert.
+      define: { __APP_VERSION__: JSON.stringify(_pkg.version) },
     });
     bundledJS = result.outputFiles[0].text;
   } catch (e) {
@@ -156,18 +183,16 @@ async function buildViewer(targetName) {
   }
 
   // 2. Assemble CSS
-  const css = t.css
-    .map(f => readFileSync(rel(f), 'utf8'))
-    .join('\n');
+  const css = t.css.map(f => readFileSync(rel(f), 'utf8')).join('\n');
 
   // 3. Read shell template
   let html = readFileSync(rel('src/viewer/html/shell.html'), 'utf8');
 
   // 4. Resolve feature HTML partials
-  const toolbarExtras    = resolvePartials(t.features, 'toolbar');
-  const pfSidebar        = resolvePartialFile(t.features, 'path-finder', 'pf-sidebar');
-  const diffSidebar      = resolvePartialFile(t.features, 'schema-diff', 'diff-sidebar');
-  const setupInstr       = resolvePartialFile(t.features, 'setup', 'setup-instructions');
+  const toolbarExtras = resolvePartials(t.features, 'toolbar');
+  const pfSidebar = resolvePartialFile(t.features, 'path-finder', 'pf-sidebar');
+  const diffSidebar = resolvePartialFile(t.features, 'schema-diff', 'diff-sidebar');
+  const setupInstr = resolvePartialFile(t.features, 'setup', 'setup-instructions');
 
   // 5. Inject all markers — base partials first (they may contain sub-markers),
   //    then feature partials, then footer + JS.
@@ -176,12 +201,12 @@ async function buildViewer(targetName) {
   // replacement patterns in the content ($&, $', $`, $1…) are never interpreted.
   // The injected partials (especially setup-instructions.html) contain exporter
   // JavaScript with bare $ characters that would otherwise corrupt the output.
-  const inj = (content) => () => content;
+  const inj = content => () => content;
 
   html = html
-    .replace('<!--INJECT:d3-->',             inj(D3_INLINE))
-    .replace('<!--INJECT:title-->',          inj(t.title))
-    .replace('<!--INJECT:css-->',            inj('\n' + css + '\n'))
+    .replace('<!--INJECT:d3-->', inj(D3_INLINE))
+    .replace('<!--INJECT:title-->', inj(t.title))
+    .replace('<!--INJECT:css-->', inj('\n' + css + '\n'))
     .replace('<!--INJECT:toolbar-extras-->', inj(toolbarExtras));
 
   // Base partials (always present)
@@ -194,21 +219,30 @@ async function buildViewer(targetName) {
 
   // Feature/variant partials resolved after base (some live inside base partials)
   html = html
-    .replace('<!--INJECT:pf-sidebar-->',           inj(pfSidebar))
-    .replace('<!--INJECT:diff-sidebar-->',          inj(diffSidebar))
-    .replace('<!--INJECT:setup-instructions-->',    inj(setupInstr))
-    .replace('<!--INJECT:guide-tabs-->',            inj(guideTabs))
-    .replace('<!--INJECT:guide-panels-->',          inj(guidePanels))
-    .replace('<!--INJECT:footer-disclaimer-->',     inj(FOOTER_DISCLAIMER))
-    .replace('<!--INJECT:build-version-->',         inj(BUILD_VERSION_HTML))
-    .replace('<!--INJECT:js-->',                    inj(`<script>\n${bundledJS}\n</script>`));
+    .replace('<!--INJECT:pf-sidebar-->', inj(pfSidebar))
+    .replace('<!--INJECT:diff-sidebar-->', inj(diffSidebar))
+    .replace('<!--INJECT:setup-instructions-->', inj(setupInstr))
+    .replace('<!--INJECT:guide-tabs-->', inj(guideTabs))
+    .replace('<!--INJECT:guide-panels-->', inj(guidePanels))
+    .replace('<!--INJECT:footer-disclaimer-->', inj(FOOTER_DISCLAIMER))
+    .replace('<!--INJECT:build-version-->', inj(BUILD_VERSION_HTML))
+    .replace('<!--INJECT:js-->', inj(`<script>\n${bundledJS}\n</script>`));
 
   // 6. Inject exporter scripts into <pre> blocks in the Setup Instructions tab
   if (t.features.includes('setup')) {
-    const bgSrc   = readFileSync(rel('dist/exporter/sn-schema-export.bg.js'), 'utf8');
-    const nodeSrc = readFileSync(rel('dist/exporter/sn-schema-export.node.standalone.js'), 'utf8');
+    const bgPath = rel('dist/exporter/sn-schema-export.bg.js');
+    const nodePath = rel('dist/exporter/sn-schema-export.node.standalone.js');
+    if (!existsSync(bgPath) || !existsSync(nodePath)) {
+      throw new Error(
+        'Exporter dist files are missing — the app build embeds them into the ' +
+          'Setup Instructions tab.\nRun `node build.js all` (or `node build.js exporter` ' +
+          'first) before building the app.'
+      );
+    }
+    const bgSrc = readFileSync(bgPath, 'utf8');
+    const nodeSrc = readFileSync(nodePath, 'utf8');
     html = html
-      .replace('<!--INJECT:exporter-bg-->',   inj(escHtml(bgSrc)))
+      .replace('<!--INJECT:exporter-bg-->', inj(escHtml(bgSrc)))
       .replace('<!--INJECT:exporter-node-->', inj(escHtml(nodeSrc)));
   }
 
@@ -227,7 +261,11 @@ function resolvePartials(features, key, readFile = false) {
     const val = defs[key];
     if (!val) continue;
     if (readFile || val.endsWith('.html')) {
-      try { parts.push(readFileSync(rel(val), 'utf8')); } catch { /* partial not yet created */ }
+      try {
+        parts.push(readFileSync(rel(val), 'utf8'));
+      } catch {
+        /* partial not yet created */
+      }
     } else {
       parts.push(val);
     }
@@ -240,41 +278,63 @@ function resolvePartialFile(features, featureName, key) {
   const defs = FEATURE_PARTIALS[featureName];
   if (!defs || !defs[key]) return '';
   const path = defs[key];
-  try { return readFileSync(rel(path), 'utf8'); } catch { return ''; }
+  try {
+    return readFileSync(rel(path), 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 // ── Exporter build ───────────────────────────────────────────────────────────
 
 function buildExporter() {
   console.log('Building exporter...');
-  const root    = rel('src/exporter');
+  const root = rel('src/exporter');
   const distDir = rel('dist/exporter');
-  mkdirSync(distDir,              { recursive: true });
+  mkdirSync(distDir, { recursive: true });
   mkdirSync(join(distDir, 'shared'), { recursive: true });
 
   // Remove stale output files that no longer have a source (e.g. removed exporters).
   // Without this, old files from previous builds persist in dist/ indefinitely.
   const staleExporterFiles = ['sn-schema-export.rest.js'];
   for (const f of staleExporterFiles) {
-    try { unlinkSync(join(distDir, f)); } catch (_) { /* already gone */ }
+    try {
+      unlinkSync(join(distDir, f));
+    } catch (_) {
+      /* already gone */
+    }
   }
 
   // Ensure Node.js treats all files in dist/exporter/ as CommonJS, regardless
   // of the root package.json "type":"module" setting.  Without this, Node.js
   // loads schema-builder.js as ESM (no `module` binding), the UMD CJS branch
   // never fires, and require() returns {} — making SchemaBuilder null/empty.
-  writeFileSync(join(distDir, 'package.json'), JSON.stringify({ type: 'commonjs' }, null, 2) + '\n');
+  writeFileSync(
+    join(distDir, 'package.json'),
+    JSON.stringify({ type: 'commonjs' }, null, 2) + '\n'
+  );
 
   const builder = readFileSync(join(root, 'shared/schema-builder.js'), 'utf8');
+  // bg serialisers live in a sibling source file and are spliced back into the
+  // single self-contained bg script (ES5/Rhino has no runtime module system).
+  const bgSerialisers = readFileSync(join(root, 'background/serialisers.bg.js'), 'utf8').replace(
+    /\n$/,
+    ''
+  );
 
   function spliceMarker(src) {
-    return src.replace(
-      /\/\/<SCHEMA_BUILDER>[\s\S]*?\/\/<\/SCHEMA_BUILDER>/,
-      '//<SCHEMA_BUILDER>\n' + builder + '\n//</SCHEMA_BUILDER>'
-    );
+    return src
+      .replace(
+        /\/\/<SCHEMA_BUILDER>[\s\S]*?\/\/<\/SCHEMA_BUILDER>/,
+        '//<SCHEMA_BUILDER>\n' + builder + '\n//</SCHEMA_BUILDER>'
+      )
+      .replace(
+        /\/\/<SERIALISERS>[\s\S]*?\/\/<\/SERIALISERS>/,
+        '//<SERIALISERS>\n' + bgSerialisers + '\n//</SERIALISERS>'
+      );
   }
 
-  // Background script — self-contained (schema-builder inlined)
+  // Background script — self-contained (schema-builder + serialisers inlined)
   const bg = readFileSync(join(root, 'background/sn-schema-export.bg.js'), 'utf8');
   writeFileSync(join(distDir, 'sn-schema-export.bg.js'), spliceMarker(bg));
 
@@ -282,20 +342,32 @@ function buildExporter() {
   const nodeSrc = readFileSync(join(root, 'node/sn-schema-export.node.js'), 'utf8');
   writeFileSync(
     join(distDir, 'sn-schema-export.node.js'),
-    nodeSrc.replace("require('../shared/schema-builder.js')", "require('./shared/schema-builder.js')")
+    nodeSrc.replace(
+      "require('../shared/schema-builder.js')",
+      "require('./shared/schema-builder.js')"
+    )
   );
-  copyFileSync(
-    join(root, 'shared/schema-builder.js'),
-    join(distDir, 'shared/schema-builder.js')
-  );
+  copyFileSync(join(root, 'shared/schema-builder.js'), join(distDir, 'shared/schema-builder.js'));
+  // Format serialisers ship next to the node script (required as ./serialisers.js — same dir).
+  copyFileSync(join(root, 'node/serialisers.js'), join(distDir, 'serialisers.js'));
 
-  // Node standalone — schema-builder inlined, zero external dependencies
-  const inlineNode = nodeSrc.replace(
-    "const SchemaBuilder = require('../shared/schema-builder.js');",
-    '// ── INLINED SchemaBuilder (see https://github.com/.../shared/schema-builder.js for source) ──\n' +
-    'const SchemaBuilder = (function(){ const module = { exports: {} }; \n' +
-    builder + '\nreturn module.exports; })();'
-  );
+  // Node standalone — schema-builder + serialisers inlined, zero external dependencies
+  const serialisers = readFileSync(join(root, 'node/serialisers.js'), 'utf8');
+  const inlineNode = nodeSrc
+    .replace(
+      "const SchemaBuilder = require('../shared/schema-builder.js');",
+      '// ── INLINED SchemaBuilder (see https://github.com/.../shared/schema-builder.js for source) ──\n' +
+        'const SchemaBuilder = (function(){ const module = { exports: {} }; \n' +
+        builder +
+        '\nreturn module.exports; })();'
+    )
+    .replace(
+      "const Serialisers = require('./serialisers.js');",
+      '// ── INLINED Serialisers (see https://github.com/.../node/serialisers.js for source) ──\n' +
+        'const Serialisers = (function(){ const module = { exports: {} }; \n' +
+        serialisers +
+        '\nreturn module.exports; })();'
+    );
   writeFileSync(join(distDir, 'sn-schema-export.node.standalone.js'), inlineNode);
 
   console.log(`  → dist/exporter/ (bg, node, node.standalone, shared/)`);
@@ -309,9 +381,7 @@ if (args.length === 0) {
   process.exit(1);
 }
 
-const targets = args.includes('all')
-  ? ['exporter', 'app']
-  : args;
+const targets = args.includes('all') ? ['exporter', 'app'] : args;
 
 // app reads dist/exporter/* for the Setup Instructions tab — build exporter first.
 if (targets.includes('app') && !targets.includes('exporter')) {

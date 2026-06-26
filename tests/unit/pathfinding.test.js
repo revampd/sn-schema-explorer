@@ -10,13 +10,21 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // vi.mock is hoisted by vitest, so this runs before any imports below.
 vi.mock('../../src/viewer/core/state.js', () => ({
   graphState: { graphData: { nodes: [], edges: [] } },
-  uiState:    { pfExcludedHops: new Set() },
+  uiState: { pfExcludedHops: new Set() },
 }));
 
 import { graphState, uiState } from '../../src/viewer/core/state.js';
-import { Pathfinding }  from '../../src/viewer/modules/path-finder/pathfinding.js';
+import { Pathfinding } from '../../src/viewer/modules/path-finder/pathfinding.js';
 
-const { tableToTable, tableToTableK, tableToField, fieldOwners, fieldDefinedAt, ancestorsOf } = Pathfinding;
+const {
+  tableToTable,
+  tableToTableK,
+  tableToField,
+  tableToFieldK,
+  fieldOwners,
+  fieldDefinedAt,
+  ancestorsOf,
+} = Pathfinding;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function setGraph(nodes, edges) {
@@ -55,10 +63,7 @@ describe('tableToTable', () => {
   });
 
   it('finds a direct reference edge', () => {
-    setGraph(
-      [node('task'), node('sys_user')],
-      [refEdge('task', 'sys_user', 'assigned_to')]
-    );
+    setGraph([node('task'), node('sys_user')], [refEdge('task', 'sys_user', 'assigned_to')]);
     const result = tableToTable('task', 'sys_user');
     expect(result).not.toBeNull();
     expect(result.path).toEqual(['task', 'sys_user']);
@@ -80,11 +85,7 @@ describe('tableToTable', () => {
     //   A → C (extends, cost 0)                 total cost 0
     setGraph(
       [node('A'), node('B'), node('C')],
-      [
-        refEdge('A', 'B', 'ref_b'),
-        refEdge('B', 'C', 'ref_c'),
-        extEdge('A', 'C'),
-      ]
+      [refEdge('A', 'B', 'ref_b'), refEdge('B', 'C', 'ref_c'), extEdge('A', 'C')]
     );
     const result = tableToTable('A', 'C');
     expect(result).not.toBeNull();
@@ -111,10 +112,7 @@ describe('tableToTableK', () => {
   });
 
   it('returns at least the shortest path', () => {
-    setGraph(
-      [node('task'), node('sys_user')],
-      [refEdge('task', 'sys_user')]
-    );
+    setGraph([node('task'), node('sys_user')], [refEdge('task', 'sys_user')]);
     const paths = tableToTableK('task', 'sys_user', 3);
     expect(paths.length).toBeGreaterThanOrEqual(1);
     expect(paths[0].path).toEqual(['task', 'sys_user']);
@@ -173,6 +171,69 @@ describe('tableToField', () => {
   });
 });
 
+// ── tableToFieldK (#47.4) ─────────────────────────────────────────────────────
+describe('tableToFieldK', () => {
+  it('returns an empty array when the field is unreachable', () => {
+    setGraph([nodeWithFields('task', 'sys_id')], []);
+    expect(tableToFieldK('task', 'nonexistent', 5)).toEqual([]);
+  });
+
+  it('returns a single zero-hop entry when the field is on the source itself', () => {
+    setGraph([nodeWithFields('task', 'sys_id', 'number')], []);
+    const paths = tableToFieldK('task', 'number', 5);
+    expect(paths).toHaveLength(1);
+    expect(paths[0].path).toEqual(['task']);
+    expect(paths[0].dotWalk).toBe('task.number');
+  });
+
+  it('returns a single path when only one route reaches the field', () => {
+    setGraph(
+      [nodeWithFields('task', 'assigned_to'), nodeWithFields('sys_user', 'email')],
+      [refEdge('task', 'sys_user', 'assigned_to')]
+    );
+    const paths = tableToFieldK('task', 'email', 5);
+    expect(paths).toHaveLength(1);
+    expect(paths[0].path).toEqual(['task', 'sys_user']);
+    expect(paths[0].dotWalk).toBe('task.assigned_to.email');
+  });
+
+  it('returns multiple ranked paths when alternative routes exist', () => {
+    // task can reach sys_user directly (assigned_to) or via company (manager)
+    setGraph(
+      [
+        nodeWithFields('task', 'assigned_to', 'company'),
+        nodeWithFields('company', 'manager'),
+        nodeWithFields('sys_user', 'email'),
+      ],
+      [
+        refEdge('task', 'sys_user', 'assigned_to'),
+        refEdge('task', 'company', 'company'),
+        refEdge('company', 'sys_user', 'manager'),
+      ]
+    );
+    const paths = tableToFieldK('task', 'email', 5);
+    expect(paths.length).toBeGreaterThanOrEqual(2);
+    // Ranked shortest-first
+    expect(paths[0].path).toEqual(['task', 'sys_user']);
+  });
+
+  it('respects table-level hop exclusions', () => {
+    setGraph(
+      [
+        nodeWithFields('task', 'company'),
+        nodeWithFields('company', 'manager'),
+        nodeWithFields('sys_user', 'email'),
+      ],
+      [refEdge('task', 'company', 'company'), refEdge('company', 'sys_user', 'manager')]
+    );
+    // Without exclusion, task → company → sys_user reaches email.
+    expect(tableToFieldK('task', 'email', 5).length).toBeGreaterThanOrEqual(1);
+    // Excluding the only intermediate removes the route.
+    uiState.pfExcludedHops.add('company');
+    expect(tableToFieldK('task', 'email', 5)).toEqual([]);
+  });
+});
+
 // ── hop exclusions — table-level ──────────────────────────────────────────────
 describe('hop exclusions — table-level', () => {
   it('skips an excluded intermediate table, routing around it', () => {
@@ -181,8 +242,8 @@ describe('hop exclusions — table-level', () => {
     setGraph(
       [node('A'), node('hub'), node('detour'), node('B')],
       [
-        refEdge('A', 'hub',    'via_hub'),
-        refEdge('hub', 'B',    'hub_to_b'),
+        refEdge('A', 'hub', 'via_hub'),
+        refEdge('hub', 'B', 'hub_to_b'),
         refEdge('A', 'detour', 'via_detour'),
         refEdge('detour', 'B', 'detour_to_b'),
       ]
@@ -204,15 +265,12 @@ describe('hop exclusions — table-level', () => {
     uiState.pfExcludedHops.add('hub');
 
     expect(tableToTable('A', 'hub')).not.toBeNull(); // hub as TARGET is still reachable
-    expect(tableToTable('A', 'B')).toBeNull();       // hub as INTERMEDIATE is blocked
+    expect(tableToTable('A', 'B')).toBeNull(); // hub as INTERMEDIATE is blocked
   });
 
   it('allows an excluded table to be the path target', () => {
     // The exclusion only prevents using hub as a waypoint, not as a destination.
-    setGraph(
-      [node('A'), node('hub')],
-      [refEdge('A', 'hub', 'ref')]
-    );
+    setGraph([node('A'), node('hub')], [refEdge('A', 'hub', 'ref')]);
     uiState.pfExcludedHops.add('hub');
 
     const result = tableToTable('A', 'hub');
@@ -221,10 +279,7 @@ describe('hop exclusions — table-level', () => {
   });
 
   it('allows an excluded table to be the path source', () => {
-    setGraph(
-      [node('hub'), node('B')],
-      [refEdge('hub', 'B', 'ref')]
-    );
+    setGraph([node('hub'), node('B')], [refEdge('hub', 'B', 'ref')]);
     uiState.pfExcludedHops.add('hub');
 
     // hub is the source — it is never visited as an intermediate
@@ -234,10 +289,7 @@ describe('hop exclusions — table-level', () => {
   });
 
   it('exclusion has no effect when no path passes through the excluded table', () => {
-    setGraph(
-      [node('A'), node('B'), node('unrelated')],
-      [refEdge('A', 'B', 'direct')]
-    );
+    setGraph([node('A'), node('B'), node('unrelated')], [refEdge('A', 'B', 'direct')]);
     uiState.pfExcludedHops.add('unrelated');
 
     const result = tableToTable('A', 'B');
@@ -250,9 +302,11 @@ describe('hop exclusions — table-level', () => {
     setGraph(
       [node('A'), node('hub'), node('mid'), node('B')],
       [
-        refEdge('A', 'B',   'direct'),
-        refEdge('A', 'hub', 'r1'), refEdge('hub', 'B', 'r2'),
-        refEdge('A', 'mid', 'r3'), refEdge('mid', 'B', 'r4'),
+        refEdge('A', 'B', 'direct'),
+        refEdge('A', 'hub', 'r1'),
+        refEdge('hub', 'B', 'r2'),
+        refEdge('A', 'mid', 'r3'),
+        refEdge('mid', 'B', 'r4'),
       ]
     );
     uiState.pfExcludedHops.add('hub');
@@ -269,10 +323,7 @@ describe('hop exclusions — field-level', () => {
     // task.opened_by   → sys_user  (allowed)
     setGraph(
       [node('task'), node('sys_user')],
-      [
-        refEdge('task', 'sys_user', 'assigned_to'),
-        refEdge('task', 'sys_user', 'opened_by'),
-      ]
+      [refEdge('task', 'sys_user', 'assigned_to'), refEdge('task', 'sys_user', 'opened_by')]
     );
     uiState.pfExcludedHops.add('task.assigned_to');
 
@@ -284,10 +335,7 @@ describe('hop exclusions — field-level', () => {
   });
 
   it('returns null when the only reference field to the target is excluded', () => {
-    setGraph(
-      [node('task'), node('sys_user')],
-      [refEdge('task', 'sys_user', 'assigned_to')]
-    );
+    setGraph([node('task'), node('sys_user')], [refEdge('task', 'sys_user', 'assigned_to')]);
     uiState.pfExcludedHops.add('task.assigned_to');
 
     expect(tableToTable('task', 'sys_user')).toBeNull();
@@ -297,15 +345,12 @@ describe('hop exclusions — field-level', () => {
     // incident.assigned_to excluded; task.assigned_to still allowed
     setGraph(
       [node('task'), node('incident'), node('sys_user')],
-      [
-        refEdge('task',     'sys_user', 'assigned_to'),
-        refEdge('incident', 'sys_user', 'assigned_to'),
-      ]
+      [refEdge('task', 'sys_user', 'assigned_to'), refEdge('incident', 'sys_user', 'assigned_to')]
     );
     uiState.pfExcludedHops.add('incident.assigned_to');
 
-    expect(tableToTable('task', 'sys_user')).not.toBeNull();      // unaffected
-    expect(tableToTable('incident', 'sys_user')).toBeNull();      // blocked
+    expect(tableToTable('task', 'sys_user')).not.toBeNull(); // unaffected
+    expect(tableToTable('incident', 'sys_user')).toBeNull(); // blocked
   });
 
   it('table exclusion and field exclusion can coexist', () => {
@@ -313,10 +358,11 @@ describe('hop exclusions — field-level', () => {
     setGraph(
       [node('A'), node('hub'), node('mid'), node('B')],
       [
-        refEdge('A',   'hub', 'r1'),   refEdge('hub', 'B', 'r2'),
-        refEdge('A',   'mid', 'assigned_to'),
-        refEdge('A',   'mid', 'other'),
-        refEdge('mid', 'B',   'r5'),
+        refEdge('A', 'hub', 'r1'),
+        refEdge('hub', 'B', 'r2'),
+        refEdge('A', 'mid', 'assigned_to'),
+        refEdge('A', 'mid', 'other'),
+        refEdge('mid', 'B', 'r5'),
       ]
     );
     uiState.pfExcludedHops.add('hub');
@@ -335,10 +381,7 @@ describe('hop exclusions — field-level', () => {
     // but this test confirms extends traversal is not broken by a field exclusion
     setGraph(
       [node('incident'), node('task'), node('sys_user')],
-      [
-        extEdge('incident', 'task'),
-        refEdge('task', 'sys_user', 'assigned_to'),
-      ]
+      [extEdge('incident', 'task'), refEdge('task', 'sys_user', 'assigned_to')]
     );
     uiState.pfExcludedHops.add('task.assigned_to');
 
@@ -355,10 +398,7 @@ describe('ancestorsOf', () => {
   });
 
   it('returns the direct parent of a child table', () => {
-    setGraph(
-      [node('task'), node('incident')],
-      [extEdge('incident', 'task')]
-    );
+    setGraph([node('task'), node('incident')], [extEdge('incident', 'task')]);
     expect(ancestorsOf('incident')).toEqual(['task']);
   });
 
@@ -395,7 +435,11 @@ describe('fieldDefinedAt', () => {
   it('returns the deepest ancestor that defines the field', () => {
     // Chain: sub_task → task → sys_template; 'number' defined on sys_template
     setGraph(
-      [nodeWithFields('sys_template', 'number'), nodeWithFields('task', 'state'), nodeWithFields('sub_task', 'order')],
+      [
+        nodeWithFields('sys_template', 'number'),
+        nodeWithFields('task', 'state'),
+        nodeWithFields('sub_task', 'order'),
+      ],
       [extEdge('task', 'sys_template'), extEdge('sub_task', 'task')]
     );
     expect(fieldDefinedAt('sub_task', 'number')).toBe('sys_template');
@@ -435,7 +479,7 @@ describe('fieldOwners', () => {
       [extEdge('incident', 'task')]
     );
     const owners = fieldOwners('number');
-    const taskEntry     = owners.find(o => o.tableId === 'task');
+    const taskEntry = owners.find(o => o.tableId === 'task');
     const incidentEntry = owners.find(o => o.tableId === 'incident');
 
     expect(taskEntry.isOwn).toBe(true);
@@ -448,5 +492,29 @@ describe('fieldOwners', () => {
     expect(fieldOwners('number')).toEqual([]);
     // Restore for subsequent tests
     setGraph([], []);
+  });
+});
+
+// ── adjacency cache invalidation (#46.4) ─────────────────────────────────────
+// The diff graft rebuilds indexes in place (same graphData object) and bumps
+// data._indexVersion. The adjacency cache must key on that version, not just
+// object identity, or Path Finder would serve pre-graft results.
+describe('adjacency cache invalidation on in-place rebuild', () => {
+  it('reflects edges grafted into the same graphData object after a version bump', () => {
+    const nodes = [node('a'), node('b'), node('c')];
+    const edges = [refEdge('a', 'b')];
+    graphState.graphData = { nodes, edges, _indexVersion: 1 };
+
+    // Primes the adjacency cache; no a→c path exists yet.
+    expect(tableToTable('a', 'c')).toBeNull();
+
+    // Graft b→c IN PLACE (do not replace the object) and bump the version,
+    // mimicking buildIndexes() during a diff graft.
+    edges.push(refEdge('b', 'c'));
+    graphState.graphData._indexVersion = 2;
+
+    const result = tableToTable('a', 'c');
+    expect(result).not.toBeNull();
+    expect(result.path).toEqual(['a', 'b', 'c']);
   });
 });

@@ -16,7 +16,7 @@
   </div>
   <div class="guide-card">
     <h4>Exporting data &amp; views</h4>
-    <p>The <strong>Export ▾</strong> menu in the header offers several options:</p>
+    <p>The <strong>Export</strong> menu in the header offers several options:</p>
     <div class="guide-kv"><span class="guide-key">Schema as JSON</span><span class="guide-val">The full loaded dataset. Share with a colleague — they load it via the Load File tab to see exactly what you see.</span></div>
     <div class="guide-kv"><span class="guide-key">Neighbourhood as JSON</span><span class="guide-val">Just the selected table and its currently-visible neighbours (respects scope, edge-type toggles, hop depth, and hidden tables). Great for a focused ticket or doc attachment.</span></div>
     <div class="guide-kv"><span class="guide-key">Schema as Markdown</span><span class="guide-val">Every table in the loaded schema rendered as a Markdown document — one <code>##</code> heading per table with a field table (field name, type, label), plus sections for references, inheritance ("extended by"), M2M relationships, named relationships, CI topology, and DB view membership. Downloads as a <code>.md</code> file. Paste into Confluence, Notion, or any Markdown-aware wiki.</span></div>
@@ -36,7 +36,7 @@
   <div class="guide-card">
     <h4>Performance tips</h4>
     <p>For large datasets (5 000+ tables), keep Max Nodes below 50 and Hop Depth at 1 or 2. The force simulation is heavier with more nodes.</p>
-    <p>Use the <strong>Scope filter</strong> to narrow the dataset before selecting tables. This keeps neighbourhoods focused and reduces rendering time significantly.</p>
+    <p>Use the <strong>Filter</strong> button in the header (e.g. an Application Scope condition) to narrow the dataset before selecting tables. This keeps neighbourhoods focused and reduces rendering time significantly.</p>
     <p>Turn off <strong>Expanded field view</strong> when working with large flattened-schema tables — tables like <code>cmdb_ci_service</code> can have hundreds of fields and expand node sizes dramatically.</p>
     <div class="guide-tip"><p>Use <strong>⏹ Freeze layout</strong> (appears during simulation) to stop the physics engine early once the layout looks good enough.</p></div>
   </div>

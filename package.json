@@ -1,6 +1,6 @@
 {
   "name": "sn-schema-explorer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Visualise your ServiceNow table schema in a single self-contained HTML file.",
   "homepage": "https://github.com/revampd/sn-schema-explorer",
   "repository": {
@@ -11,18 +11,32 @@
     "url": "https://github.com/revampd/sn-schema-explorer/issues"
   },
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node build.js all",
     "build:app": "node build.js app",
     "build:export": "node build.js exporter",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.60.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "d3": "^7.9.0",
     "esbuild": "^0.25.0",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.8.5",
     "vitest": "^4.1.7"
   }
 }

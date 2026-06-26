@@ -42,8 +42,6 @@
           <div class="pf-autocomplete" id="pf-target-ac"></div>
         </div>
       </div>
-      <button class="pf-find-btn" id="pf-find" disabled>Find shortest path</button>
-      <div id="pf-result"></div>
     </div>
     <!-- Hop exclusions — wired by pfRefreshExcludedChips() + pfWireExclusionInput() in index.js -->
     <div class="pf-sidebar-section pf-excluded-section" id="pf-excluded-section">
@@ -58,5 +56,9 @@
         <div class="pf-autocomplete" id="pf-excluded-ac"></div>
       </div>
       <div class="pf-excluded-hint">Type <code>table</code> to skip a table entirely, or <code>table.field</code> to exclude a specific reference hop.</div>
+    </div>
+    <div class="pf-sidebar-section">
+      <button class="pf-find-btn" id="pf-find" disabled>Find shortest path</button>
+      <div id="pf-result"></div>
     </div>
   </div>

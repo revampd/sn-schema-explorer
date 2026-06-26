@@ -2,15 +2,21 @@ import { graphState, uiState } from '../core/state.js';
 import { root } from './canvas.js';
 import { render, updateInstancePill } from './render.js';
 
-const _listeners  = []; // (mode, prevMode) => void
+const _listeners = []; // (mode, prevMode) => void
 const _validators = []; // (mode) => bool — returning false blocks the transition
 
-export function onViewModeChange(fn)      { _listeners.push(fn); }
-export function registerModeValidator(fn) { _validators.push(fn); }
+export function onViewModeChange(fn) {
+  _listeners.push(fn);
+}
+export function registerModeValidator(fn) {
+  _validators.push(fn);
+}
 
 // Injected by entries/lite.js to avoid a circular import (history → render → …)
 let _historyHook = null;
-export function setViewModeHistoryHook(fn) { _historyHook = fn; }
+export function setViewModeHistoryHook(fn) {
+  _historyHook = fn;
+}
 
 export function setViewMode(mode, opts = {}) {
   if (mode !== 'force' && mode !== 'path' && mode !== 'diff') return;
@@ -21,7 +27,7 @@ export function setViewMode(mode, opts = {}) {
   // Capture current view's node positions into the per-mode cache
   if (graphState.graphData && (prevMode === 'force' || prevMode === 'diff') && prevMode !== mode) {
     const snap = new Map();
-    root.selectAll('g.node-group').each(function(d) {
+    root.selectAll('g.node-group').each(function (d) {
       if (d && d.id && typeof d.x === 'number' && typeof d.y === 'number')
         snap.set(d.id, { x: d.x, y: d.y });
     });
@@ -38,9 +44,8 @@ export function setViewMode(mode, opts = {}) {
   // Sync sidebar title
   const titleEl = document.getElementById('sidebar-title');
   if (titleEl) {
-    titleEl.textContent = mode === 'path' ? 'Path Finder'
-                        : mode === 'diff' ? 'Schema Diff'
-                        : 'Tables';
+    titleEl.textContent =
+      mode === 'path' ? 'Path Finder' : mode === 'diff' ? 'Schema Diff' : 'Tables';
   }
 
   // Notify all registered listeners
@@ -52,7 +57,10 @@ export function setViewMode(mode, opts = {}) {
     if (snap) {
       graphState.graphData.nodes.forEach(n => {
         const pos = snap.get(n.id);
-        if (pos) { n.x = pos.x; n.y = pos.y; }
+        if (pos) {
+          n.x = pos.x;
+          n.y = pos.y;
+        }
       });
     }
   }

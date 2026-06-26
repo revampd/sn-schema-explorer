@@ -13,7 +13,8 @@ async function loadAndInject(page) {
   await page.goto(APP_URL);
   await page.waitForLoadState('domcontentloaded');
   await page.locator('#file-input').setInputFiles({
-    name: 'schema.json', mimeType: 'application/json',
+    name: 'schema.json',
+    mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
   await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
@@ -69,7 +70,9 @@ test('changing hop-depth slider updates the displayed value', async ({ page }) =
   await expect(valEl).toHaveText(newVal, { timeout: 3_000 });
 });
 
-test('reducing hop-depth to 1 shows a lower or equal node count than hop-depth max', async ({ page }) => {
+test('reducing hop-depth to 1 shows a lower or equal node count than hop-depth max', async ({
+  page,
+}) => {
   await loadAndInject(page);
   // Select a node first to trigger hop-depth-based BFS
   await page.locator('#graph-root g.node-group').first().click();

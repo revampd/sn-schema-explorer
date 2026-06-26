@@ -18,7 +18,8 @@ async function loadAndInject(page) {
   await page.goto(APP_URL);
   await page.waitForLoadState('domcontentloaded');
   await page.locator('#file-input').setInputFiles({
-    name: 'schema.json', mimeType: 'application/json',
+    name: 'schema.json',
+    mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
   // Wait for at least one node-group to appear in the SVG

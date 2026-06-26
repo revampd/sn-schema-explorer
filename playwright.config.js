@@ -13,7 +13,5 @@ export default defineConfig({
     // Pass built HTML as a file:// URL — the app is fully self-contained
     baseURL: `file://${join(__dirname, 'dist').replace(/\\/g, '/')}`,
   },
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });

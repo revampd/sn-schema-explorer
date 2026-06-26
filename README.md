@@ -11,15 +11,16 @@ No installation, no server, no external dependencies.
 ## Features
 
 - Force-directed Schema Map with adjustable hop depth, max nodes, and edge-type filters
-- Advanced filter builder — narrow the canvas by scope, table type, name, field, edge type, field count, or custom prefix
+- Advanced filter builder — narrow the canvas by scope, table type, table access, name, field, edge type, field count, or custom prefix
 - Inspect any table's fields, types, inheritance chain, references, M2M links, and CMDB CI topology
 - Search by table name **or** field name across the full dataset
 - Path Finder — shortest dot-walk path between any two tables or to a specific field; hop exclusions to suppress hub tables
 - Schema Diff — compare two exports to see added, removed, and changed tables/fields
 - Saved Views — snapshot and restore named view configurations
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML
-- Custom colour-coded export background with opacity control
+- Custom colour-coded export background with opacity control, plus an optional edge-type legend embedded in PNG/SVG exports
 - CMDB CI topology edges and ServiceNow Data Model Reference (CSDM 5)
+- Optional update check — a dismissible footer badge when a newer release is available (toggle in Settings; no telemetry)
 
 ![Schema Map](screenshots/screenshot-feature-schema_map.jpg)
 ![Diff](screenshots/screenshot-feature-diff.jpg)
@@ -45,40 +46,51 @@ Requires the `admin` role. No instance-side configuration needed.
 5. Click **Run script** — takes 45–90 s on a typical instance
 6. The output is saved as a JSON attachment on your user record; download it from **Self-Service → My Profile → Attachments**
 
+> The Background Script supports `json`, `markdown`, and `jsonld` output only.
+> OWL/Turtle and OpenAPI are unavailable here (their serialisers are too complex
+> for the ES5/Rhino engine) — export JSON and convert in the viewer
+> (**Export → OWL/Turtle** or **OpenAPI**), or use the Node.js extractor with
+> `--format=owl|openapi`.
+
 ### Option B — Node.js extractor
 
 Requires Node.js 18+ and network access to your instance.
 
+> **Secrets are passed via environment variables, not flags.** The extractor
+> refuses `--password` / `--apikey` on the command line because they leak into
+> shell history and process listings. Use `SN_PASSWORD` / `SN_APIKEY` instead.
+
 ```bash
 # Basic Auth
-node sn-schema-export.node.standalone.js \
+SN_PASSWORD='***' node sn-schema-export.node.standalone.js \
   --instance=https://your-instance.service-now.com \
-  --user=admin --password=*** \
+  --user=admin \
   --output=schema.json
 
 # API key auth (alternative to user/password)
-node sn-schema-export.node.standalone.js \
+SN_APIKEY='<sn_api_key>' node sn-schema-export.node.standalone.js \
   --instance=https://your-instance.service-now.com \
-  --apikey=<sn_api_key> \
   --output=schema.json
 ```
 
 Key flags:
 
-| Flag | Default | Description |
-|---|---|---|
-| `--instance` | — | Instance URL (required) |
-| `--user` / `--password` | — | Basic Auth credentials |
-| `--apikey` | — | API key auth (alternative to user+password) |
-| `--output` | *(format-dependent)* | Output file path |
-| `--format` | `json` | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi` |
-| `--edge-types` | all six | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
-| `--include-record-counts` | off | Add per-table record counts (adds 5–15 min) |
-| `--page-size` | `1000` | Rows per API request |
+| Flag                      | Default              | Description                                                         |
+| ------------------------- | -------------------- | ------------------------------------------------------------------- |
+| `--instance`              | —                    | Instance URL (required)                                             |
+| `--user`                  | —                    | Basic Auth username (password via `SN_PASSWORD`)                    |
+| `--output`                | _(format-dependent)_ | Output file path                                                    |
+| `--format`                | `json`               | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi`   |
+| `--edge-types`            | all six              | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
+| `--include-record-counts` | off                  | Add per-table record counts (adds 5–15 min)                         |
+| `--page-size`             | `1000`               | Rows per API request                                                |
+
+Credentials are supplied through environment variables only: `SN_PASSWORD`
+(Basic auth) or `SN_APIKEY` (API key auth).
 
 When `--output` is omitted the filename is derived from the format: `sn_schema_export.json`, `.md`, `.jsonld`, `.ttl`, or `.yaml`.
 
-Environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_PASSWORD`, `SN_APIKEY`, `SN_OUTPUT`, `SN_FORMAT`, `SN_EDGE_TYPES`, `SN_PAGE_SIZE`.
+Other environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_OUTPUT`, `SN_FORMAT`, `SN_EDGE_TYPES`, `SN_PAGE_SIZE`.
 
 Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_explorer.html`, or find it in `dist/exporter/` after a build.
 
@@ -95,7 +107,8 @@ Large schemas are split into a manifest + `.part*.json` files — drop all files
 
 ## Build from source
 
-Prerequisites: Node.js 18+, npm
+Prerequisites: Node.js 20+ (the dev toolchain requires it; the standalone
+exporter artifact still runs on Node 18+), npm
 
 ```bash
 git clone https://github.com/revampd/sn-schema-explorer.git
@@ -110,6 +123,19 @@ Output lands in `dist/`. Individual targets:
 npm run build:app      # dist/sn_schema_explorer.html
 npm run build:export   # dist/exporter/* (bg script + node extractor)
 ```
+
+## Development
+
+```bash
+npm run lint           # ESLint
+npm run test:unit      # vitest unit tests
+npm run test:coverage  # unit tests with coverage
+npm run test:e2e       # Playwright e2e (build first; needs `npx playwright install chromium`)
+npm test               # unit + e2e
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow, and
+[CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Disclaimer
 
