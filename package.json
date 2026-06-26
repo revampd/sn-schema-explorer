@@ -11,6 +11,9 @@
     "url": "https://github.com/revampd/sn-schema-explorer/issues"
   },
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node build.js all",
     "build:app": "node build.js app",
