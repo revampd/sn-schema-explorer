@@ -37,14 +37,17 @@ export const Pathfinding = (() => {
   function ancestorsOf(tableId) {
     const out = [];
     if (!graphState.graphData) return out;
+    // Use the cached adjacency (O(degree) per hop) rather than scanning every
+    // edge per ancestor level — ancestorsOf is called once per node inside
+    // fieldOwners, so the old O(edges) find() was O(N x depth x edges).
+    const adj = getAdjacency();
     const seen = new Set([tableId]);
     let cur = tableId;
     for (let depth = 0; depth < 20; depth++) {
-      const ext = graphState.graphData.edges.find(
-        e => (e.source?.id ?? e.source) === cur && e.type === 'extends'
-      );
+      // extends edge child→parent is stored as an 'out' entry on the child.
+      const ext = (adj.get(cur) || []).find(e => e.edge.type === 'extends' && e.dir === 'out');
       if (!ext) break;
-      const parent = ext.target?.id ?? ext.target;
+      const parent = ext.to;
       if (seen.has(parent)) break;
       seen.add(parent);
       out.push(parent);
@@ -203,6 +206,10 @@ export const Pathfinding = (() => {
         })
         .join('>>');
 
+    // Track every key already accepted (A) or queued (B) so candidate
+    // deduplication is O(1) instead of re-scanning + re-keying both arrays.
+    const seenKeys = new Set([pathKey(first)]);
+
     for (let kth = 1; kth < k; kth++) {
       const prevPath = A[kth - 1];
       for (let i = 0; i < prevPath.path.length - 1; i++) {
@@ -240,9 +247,10 @@ export const Pathfinding = (() => {
         const candidate = { path: fullPath, edges: fullEdges, totalCost };
 
         const key = pathKey(candidate);
-        const inB = B.some(b => pathKey(b) === key);
-        const inA = A.some(a => pathKey(a) === key);
-        if (!inB && !inA) B.push(candidate);
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          B.push(candidate);
+        }
       }
 
       if (B.length === 0) break;

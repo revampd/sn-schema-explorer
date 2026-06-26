@@ -994,7 +994,7 @@ export function renderGraph() {
     .attr('x', -NW / 2 + 22)
     .attr('y', d => -nHeight(d) / 2 + NH_BASE / 2 - 5)
     .style('display', uiState.compactMode ? 'none' : null)
-    .text(d => (d.label.length > 17 ? d.label.slice(0, 16) + '…' : d.label));
+    .text(d => (d.label.length > 17 ? d.label.slice(0, 17) + '…' : d.label));
 
   nodeSel
     .append('text')
