@@ -473,3 +473,61 @@ describe('re-insertion direction guard', () => {
     expect(visNodeIds.has('D')).toBe(false); // D must not be added via bad incoming edge A→B
   });
 });
+
+// ── 6. _adj fast path (#47.3) ────────────────────────────────────────────────
+// Every other test leaves graphData._adj = null, exercising the edges.forEach
+// fallback. In production _adj is always built (buildIndexes) and compute takes
+// the adjacency-indexed branch. Re-run representative assertions with _adj set
+// to guard the fast path against regressions.
+describe('fast path (_adj populated)', () => {
+  function populateAdj() {
+    const data = graphState.graphData;
+    const adj = new Map();
+    data.nodes.forEach(n => adj.set(n.id, { out: [], in: [] }));
+    for (const e of data.edges) {
+      const s = e.source?.id ?? e.source;
+      const t = e.target?.id ?? e.target;
+      if (adj.has(s)) adj.get(s).out.push(e);
+      if (adj.has(t)) adj.get(t).in.push(e);
+    }
+    data._adj = adj;
+  }
+
+  beforeEach(populateAdj);
+
+  it('hop depth 1 from incident includes only direct neighbours (fast path)', () => {
+    uiState.selectedNode = 'incident';
+    uiState.hopDepth = 1;
+    const { visNodeIds } = computeNeighbourhood();
+    expect(visNodeIds.has('incident')).toBe(true);
+    expect(visNodeIds.has('task')).toBe(true);
+    expect(visNodeIds.has('change_request')).toBe(false);
+    expect(visNodeIds.has('sys_user')).toBe(false);
+  });
+
+  it('hop depth 2 from incident reaches the full graph (fast path)', () => {
+    uiState.selectedNode = 'incident';
+    uiState.hopDepth = 2;
+    const { visNodeIds } = computeNeighbourhood();
+    expect(visNodeIds.has('change_request')).toBe(true);
+    expect(visNodeIds.has('sys_user')).toBe(true);
+  });
+
+  it('disabling reference edges prevents traversal to referenced tables (fast path)', () => {
+    uiState.selectedNode = 'task';
+    uiState.showRefTo = false;
+    uiState.showRefFrom = false;
+    uiState.hopDepth = 1;
+    const { visNodeIds } = computeNeighbourhood();
+    expect(visNodeIds.has('incident')).toBe(true);
+    expect(visNodeIds.has('change_request')).toBe(true);
+    expect(visNodeIds.has('sys_user')).toBe(false);
+  });
+
+  it('matches the fallback path result for the no-selection case', () => {
+    const fast = computeNeighbourhood().visNodeIds;
+    graphState.graphData._adj = null; // force fallback
+    const fallback = computeNeighbourhood().visNodeIds;
+    expect([...fast].sort()).toEqual([...fallback].sort());
+  });
+});

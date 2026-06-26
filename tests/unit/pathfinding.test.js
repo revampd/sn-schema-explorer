@@ -16,8 +16,15 @@ vi.mock('../../src/viewer/core/state.js', () => ({
 import { graphState, uiState } from '../../src/viewer/core/state.js';
 import { Pathfinding } from '../../src/viewer/modules/path-finder/pathfinding.js';
 
-const { tableToTable, tableToTableK, tableToField, fieldOwners, fieldDefinedAt, ancestorsOf } =
-  Pathfinding;
+const {
+  tableToTable,
+  tableToTableK,
+  tableToField,
+  tableToFieldK,
+  fieldOwners,
+  fieldDefinedAt,
+  ancestorsOf,
+} = Pathfinding;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function setGraph(nodes, edges) {
@@ -161,6 +168,69 @@ describe('tableToField', () => {
   it('returns null when the field does not exist anywhere reachable', () => {
     setGraph([nodeWithFields('task', 'sys_id')], []);
     expect(tableToField('task', 'nonexistent_field')).toBeNull();
+  });
+});
+
+// ── tableToFieldK (#47.4) ─────────────────────────────────────────────────────
+describe('tableToFieldK', () => {
+  it('returns an empty array when the field is unreachable', () => {
+    setGraph([nodeWithFields('task', 'sys_id')], []);
+    expect(tableToFieldK('task', 'nonexistent', 5)).toEqual([]);
+  });
+
+  it('returns a single zero-hop entry when the field is on the source itself', () => {
+    setGraph([nodeWithFields('task', 'sys_id', 'number')], []);
+    const paths = tableToFieldK('task', 'number', 5);
+    expect(paths).toHaveLength(1);
+    expect(paths[0].path).toEqual(['task']);
+    expect(paths[0].dotWalk).toBe('task.number');
+  });
+
+  it('returns a single path when only one route reaches the field', () => {
+    setGraph(
+      [nodeWithFields('task', 'assigned_to'), nodeWithFields('sys_user', 'email')],
+      [refEdge('task', 'sys_user', 'assigned_to')]
+    );
+    const paths = tableToFieldK('task', 'email', 5);
+    expect(paths).toHaveLength(1);
+    expect(paths[0].path).toEqual(['task', 'sys_user']);
+    expect(paths[0].dotWalk).toBe('task.assigned_to.email');
+  });
+
+  it('returns multiple ranked paths when alternative routes exist', () => {
+    // task can reach sys_user directly (assigned_to) or via company (manager)
+    setGraph(
+      [
+        nodeWithFields('task', 'assigned_to', 'company'),
+        nodeWithFields('company', 'manager'),
+        nodeWithFields('sys_user', 'email'),
+      ],
+      [
+        refEdge('task', 'sys_user', 'assigned_to'),
+        refEdge('task', 'company', 'company'),
+        refEdge('company', 'sys_user', 'manager'),
+      ]
+    );
+    const paths = tableToFieldK('task', 'email', 5);
+    expect(paths.length).toBeGreaterThanOrEqual(2);
+    // Ranked shortest-first
+    expect(paths[0].path).toEqual(['task', 'sys_user']);
+  });
+
+  it('respects table-level hop exclusions', () => {
+    setGraph(
+      [
+        nodeWithFields('task', 'company'),
+        nodeWithFields('company', 'manager'),
+        nodeWithFields('sys_user', 'email'),
+      ],
+      [refEdge('task', 'company', 'company'), refEdge('company', 'sys_user', 'manager')]
+    );
+    // Without exclusion, task → company → sys_user reaches email.
+    expect(tableToFieldK('task', 'email', 5).length).toBeGreaterThanOrEqual(1);
+    // Excluding the only intermediate removes the route.
+    uiState.pfExcludedHops.add('company');
+    expect(tableToFieldK('task', 'email', 5)).toEqual([]);
   });
 });
 

@@ -173,6 +173,42 @@ describe('DB views', () => {
     expect(out._stats.counts.tables).toBe(5);
     expect(out._stats.counts.db_views).toBe(1);
   });
+
+  it('produces a view membership edge from the view to its member table (#47.11)', () => {
+    const out = buildFrom();
+    const views = edgesOfType(out, 'view');
+    expect(views.length).toBeGreaterThanOrEqual(1);
+    const v = views.find(e => e.source === 'task_view' && e.target === 'task');
+    expect(v).toBeTruthy();
+    expect(v.type).toBe('view');
+  });
+});
+
+// ── 6b. Named relationships (sys_relationship) ────────────────────────────────
+describe('edges — named relationships', () => {
+  it('produces a rel edge for a resolvable sys_relationship (#47.11)', () => {
+    const out = buildFrom();
+    const rels = edgesOfType(out, 'rel');
+    expect(rels.length).toBeGreaterThanOrEqual(1);
+    const r = rels.find(e => e.source === 'incident' && e.target === 'sys_user');
+    expect(r).toBeTruthy();
+    expect(r.label).toBe('Task to User');
+  });
+
+  it('omits relationships whose endpoints do not resolve to known tables', () => {
+    const out = buildFrom({
+      sysRelationship: [
+        {
+          sys_id: 'rel_x',
+          name: 'Dangling',
+          basic_apply_to: 'incident',
+          query_from: "answer = 'does_not_exist';",
+        },
+      ],
+    });
+    const rels = edgesOfType(out, 'rel');
+    expect(rels.find(e => e.label === 'Dangling')).toBeFalsy();
+  });
 });
 
 // ── 7. Restricted hints ───────────────────────────────────────────────────────

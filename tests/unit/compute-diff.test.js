@@ -173,3 +173,40 @@ describe('output maps', () => {
     expect(baseMap.has('incident')).toBe(false);
   });
 });
+
+// ── Edge-set outputs: allAddedEdges / allRemovedEdges (#47.10) ────────────────
+describe('edge-set outputs', () => {
+  const nodes = [makeNode('task'), makeNode('sys_user')];
+
+  it('reports an edge present only in compare as added', () => {
+    const base = makeSchema(nodes, []);
+    const compare = makeSchema(nodes, [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
+    const { allAddedEdges, allRemovedEdges } = computeDiff(base, compare);
+    expect(allAddedEdges).toHaveLength(1);
+    expect(allAddedEdges[0]).toMatchObject({
+      source: 'task',
+      target: 'sys_user',
+      type: 'reference',
+    });
+    expect(allRemovedEdges).toHaveLength(0);
+  });
+
+  it('reports an edge present only in base as removed', () => {
+    const base = makeSchema(nodes, [makeEdge('task', 'sys_user', 'reference', 'assigned_to')]);
+    const compare = makeSchema(nodes, []);
+    const { allAddedEdges, allRemovedEdges } = computeDiff(base, compare);
+    expect(allRemovedEdges).toHaveLength(1);
+    expect(allRemovedEdges[0]).toMatchObject({ source: 'task', target: 'sys_user' });
+    expect(allAddedEdges).toHaveLength(0);
+  });
+
+  it('reports neither when the edge set is identical', () => {
+    const edges = [makeEdge('task', 'sys_user', 'reference', 'assigned_to')];
+    const { allAddedEdges, allRemovedEdges } = computeDiff(
+      makeSchema(nodes, edges),
+      makeSchema(nodes, edges)
+    );
+    expect(allAddedEdges).toHaveLength(0);
+    expect(allRemovedEdges).toHaveLength(0);
+  });
+});
