@@ -10,22 +10,22 @@ import { graphState, uiState } from '../../src/viewer/core/state.js';
 
 vi.mock('../../src/viewer/core/state.js', () => {
   const graphState = {
-    graphData: { nodes: [], edges: [], _adj: null, _nodeById: null, _edgeCnt: {} }
+    graphData: { nodes: [], edges: [], _adj: null, _nodeById: null, _edgeCnt: {} },
   };
   const uiState = {
-    selectedNode:   null,
-    hopDepth:       2,
-    maxNodes:       50,
+    selectedNode: null,
+    hopDepth: 2,
+    maxNodes: 50,
     selectedScopes: new Set(),
-    showRefTo:      true,
-    showRefFrom:    true,
-    showExt:        true,
-    showM2M:        true,
-    showRel:        true,
-    showView:       true,
-    showCmdbRel:    true,
-    hiddenNodes:    new Set(),
-    viewMode:       'force',
+    showRefTo: true,
+    showRefFrom: true,
+    showExt: true,
+    showM2M: true,
+    showRel: true,
+    showView: true,
+    showCmdbRel: true,
+    hiddenNodes: new Set(),
+    viewMode: 'force',
     connectedNodes: new Set(),
     _lastInheritedSeeds: new Set(),
   };
@@ -48,17 +48,22 @@ vi.mock('../../src/viewer/modules/settings/index.js', () => ({
 //                         sys_user
 
 const NODES = [
-  { id: 'task',           scope: 'Global' },
-  { id: 'incident',       scope: 'Global' },
+  { id: 'task', scope: 'Global' },
+  { id: 'incident', scope: 'Global' },
   { id: 'change_request', scope: 'Global' },
-  { id: 'sys_user',       scope: 'Global' },
+  { id: 'sys_user', scope: 'Global' },
 ];
 
 const EDGES = [
-  { source: 'incident',       target: 'task',     type: 'extends'   },
-  { source: 'change_request', target: 'task',     type: 'extends'   },
-  { source: 'task',           target: 'sys_user', type: 'reference',
-    field: 'assigned_to', label: 'Assigned to' },
+  { source: 'incident', target: 'task', type: 'extends' },
+  { source: 'change_request', target: 'task', type: 'extends' },
+  {
+    source: 'task',
+    target: 'sys_user',
+    type: 'reference',
+    field: 'assigned_to',
+    label: 'Assigned to',
+  },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -70,19 +75,19 @@ function resetState() {
     _nodeById: null,
     _edgeCnt: {},
   };
-  uiState.selectedNode   = null;
-  uiState.hopDepth       = 2;
-  uiState.maxNodes       = 50;
+  uiState.selectedNode = null;
+  uiState.hopDepth = 2;
+  uiState.maxNodes = 50;
   uiState.selectedScopes = new Set();
-  uiState.showRefTo      = true;
-  uiState.showRefFrom    = true;
-  uiState.showExt        = true;
-  uiState.showM2M        = true;
-  uiState.showRel        = true;
-  uiState.showView       = true;
-  uiState.showCmdbRel    = true;
-  uiState.hiddenNodes    = new Set();
-  uiState.viewMode       = 'force';
+  uiState.showRefTo = true;
+  uiState.showRefFrom = true;
+  uiState.showExt = true;
+  uiState.showM2M = true;
+  uiState.showRel = true;
+  uiState.showView = true;
+  uiState.showCmdbRel = true;
+  uiState.hiddenNodes = new Set();
+  uiState.viewMode = 'force';
   uiState.connectedNodes = new Set();
   uiState._lastInheritedSeeds = new Set();
 }
@@ -124,29 +129,29 @@ describe('no selection', () => {
 describe('selection with hop depth', () => {
   it('hop depth 1 from incident includes only direct neighbours', () => {
     uiState.selectedNode = 'incident';
-    uiState.hopDepth     = 1;
+    uiState.hopDepth = 1;
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('incident')).toBe(true);
-    expect(visNodeIds.has('task')).toBe(true);       // extends edge hop 1
+    expect(visNodeIds.has('task')).toBe(true); // extends edge hop 1
     expect(visNodeIds.has('change_request')).toBe(false);
     expect(visNodeIds.has('sys_user')).toBe(false);
   });
 
   it('hop depth 2 from incident reaches the full graph', () => {
     uiState.selectedNode = 'incident';
-    uiState.hopDepth     = 2;
+    uiState.hopDepth = 2;
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('incident')).toBe(true);
     expect(visNodeIds.has('task')).toBe(true);
     expect(visNodeIds.has('change_request')).toBe(true); // hop 2 via task
-    expect(visNodeIds.has('sys_user')).toBe(true);       // hop 2 via task ref
+    expect(visNodeIds.has('sys_user')).toBe(true); // hop 2 via task ref
   });
 
   it('selected node is always in visNodeIds regardless of filters', () => {
     uiState.selectedNode = 'incident';
-    uiState.showExt      = false;
-    uiState.showRefTo    = false;
-    uiState.showRefFrom  = false;
+    uiState.showExt = false;
+    uiState.showRefTo = false;
+    uiState.showRefFrom = false;
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('incident')).toBe(true);
   });
@@ -156,8 +161,8 @@ describe('selection with hop depth', () => {
 describe('edge type filtering', () => {
   it('disabling extends edges prevents traversal via extends', () => {
     uiState.selectedNode = 'incident';
-    uiState.showExt      = false;
-    uiState.hopDepth     = 2;
+    uiState.showExt = false;
+    uiState.hopDepth = 2;
     const { visNodeIds } = computeNeighbourhood();
     // incident has no non-extends outbound edges → stays isolated
     expect(visNodeIds.has('task')).toBe(false);
@@ -166,9 +171,9 @@ describe('edge type filtering', () => {
 
   it('disabling reference edges prevents traversal to referenced tables', () => {
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = false;
-    uiState.showRefFrom  = false;
-    uiState.hopDepth     = 1;
+    uiState.showRefTo = false;
+    uiState.showRefFrom = false;
+    uiState.hopDepth = 1;
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('task')).toBe(true);
     // extends edges still work — incident and change_request are reachable
@@ -182,30 +187,30 @@ describe('edge type filtering', () => {
 describe('reference directionality', () => {
   it('showRefTo follows source→target direction', () => {
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = true;
-    uiState.showRefFrom  = false;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showRefTo = true;
+    uiState.showRefFrom = false;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { visNodeIds } = computeNeighbourhood();
-    expect(visNodeIds.has('sys_user')).toBe(true);  // task → sys_user
+    expect(visNodeIds.has('sys_user')).toBe(true); // task → sys_user
   });
 
   it('showRefFrom follows target←source direction', () => {
     uiState.selectedNode = 'sys_user';
-    uiState.showRefTo    = false;
-    uiState.showRefFrom  = true;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showRefTo = false;
+    uiState.showRefFrom = true;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { visNodeIds } = computeNeighbourhood();
-    expect(visNodeIds.has('task')).toBe(true);      // sys_user ← task
+    expect(visNodeIds.has('task')).toBe(true); // sys_user ← task
   });
 
   it('both ref directions disabled prevents any ref traversal', () => {
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = false;
-    uiState.showRefFrom  = false;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 2;
+    uiState.showRefTo = false;
+    uiState.showRefFrom = false;
+    uiState.showExt = false;
+    uiState.hopDepth = 2;
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('sys_user')).toBe(false);
   });
@@ -215,14 +220,24 @@ describe('reference directionality', () => {
 describe('multi-reference edge collapse', () => {
   it('collapses two ref edges to same target into one with _count=2', () => {
     graphState.graphData.edges = [
-      { source: 'task', target: 'sys_user', type: 'reference',
-        field: 'assigned_to', label: 'Assigned to' },
-      { source: 'task', target: 'sys_user', type: 'reference',
-        field: 'closed_by', label: 'Closed by' },
+      {
+        source: 'task',
+        target: 'sys_user',
+        type: 'reference',
+        field: 'assigned_to',
+        label: 'Assigned to',
+      },
+      {
+        source: 'task',
+        target: 'sys_user',
+        type: 'reference',
+        field: 'closed_by',
+        label: 'Closed by',
+      },
     ];
     uiState.selectedNode = 'task';
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { visEdges } = computeNeighbourhood();
     expect(visEdges).toHaveLength(1);
     expect(visEdges[0]._count).toBe(2);
@@ -230,14 +245,24 @@ describe('multi-reference edge collapse', () => {
 
   it('tracks _fields and _fieldLabels on collapsed edge', () => {
     graphState.graphData.edges = [
-      { source: 'task', target: 'sys_user', type: 'reference',
-        field: 'assigned_to', label: 'Assigned to' },
-      { source: 'task', target: 'sys_user', type: 'reference',
-        field: 'closed_by', label: 'Closed by' },
+      {
+        source: 'task',
+        target: 'sys_user',
+        type: 'reference',
+        field: 'assigned_to',
+        label: 'Assigned to',
+      },
+      {
+        source: 'task',
+        target: 'sys_user',
+        type: 'reference',
+        field: 'closed_by',
+        label: 'Closed by',
+      },
     ];
     uiState.selectedNode = 'task';
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { visEdges } = computeNeighbourhood();
     expect(visEdges[0]._fields).toEqual(['assigned_to', 'closed_by']);
     expect(visEdges[0]._fieldLabels).toEqual(['Assigned to', 'Closed by']);
@@ -245,8 +270,8 @@ describe('multi-reference edge collapse', () => {
 
   it('single edge has _count=1', () => {
     uiState.selectedNode = 'task';
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { visEdges } = computeNeighbourhood();
     const refEdge = visEdges.find(e => e.type === 'reference');
     expect(refEdge._count).toBe(1);
@@ -265,10 +290,7 @@ describe('hidden nodes', () => {
 // ── 7. Self-loops ──────────────────────────────────────────────────────────────
 describe('self-loops', () => {
   it('excludes self-loop edges from visEdges', () => {
-    graphState.graphData.edges = [
-      ...EDGES,
-      { source: 'task', target: 'task', type: 'extends' },
-    ];
+    graphState.graphData.edges = [...EDGES, { source: 'task', target: 'task', type: 'extends' }];
     const { visEdges } = computeNeighbourhood();
     for (const e of visEdges) {
       const s = typeof e.source === 'object' ? e.source.id : e.source;
@@ -305,7 +327,7 @@ describe('hopDist', () => {
 
   it('assigns hopDist 1 to direct neighbours', () => {
     uiState.selectedNode = 'task';
-    uiState.hopDepth     = 1;
+    uiState.hopDepth = 1;
     const { hopDist } = computeNeighbourhood();
     // task → sys_user (reference), incident → task and change_request → task (extends)
     expect(hopDist['sys_user']).toBe(1);
@@ -315,17 +337,17 @@ describe('hopDist', () => {
 
   it('assigns hopDist 2 to two-hop neighbours', () => {
     uiState.selectedNode = 'incident';
-    uiState.hopDepth     = 2;
+    uiState.hopDepth = 2;
     const { hopDist } = computeNeighbourhood();
     expect(hopDist['incident']).toBe(0);
-    expect(hopDist['task']).toBe(1);       // incident → task (extends)
-    expect(hopDist['sys_user']).toBe(2);   // task → sys_user (reference, hop 2)
+    expect(hopDist['task']).toBe(1); // incident → task (extends)
+    expect(hopDist['sys_user']).toBe(2); // task → sys_user (reference, hop 2)
     expect(hopDist['change_request']).toBe(2); // change_request → task (hop 2 via task)
   });
 
   it('respects hopDepth — nodes beyond the limit have no hopDist entry', () => {
     uiState.selectedNode = 'incident';
-    uiState.hopDepth     = 1;
+    uiState.hopDepth = 1;
     const { hopDist } = computeNeighbourhood();
     expect(hopDist['task']).toBe(1);
     expect(hopDist['sys_user']).toBeUndefined(); // hop 2, beyond depth 1
@@ -333,14 +355,14 @@ describe('hopDist', () => {
 
   it('showRefTo only — sys_user reachable from task with correct hop', () => {
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = true;
-    uiState.showRefFrom  = false;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 1;
+    uiState.showRefTo = true;
+    uiState.showRefFrom = false;
+    uiState.showExt = false;
+    uiState.hopDepth = 1;
     const { hopDist } = computeNeighbourhood();
     expect(hopDist['task']).toBe(0);
-    expect(hopDist['sys_user']).toBe(1);   // task → sys_user
-    expect(hopDist['incident']).toBeUndefined();       // not reachable without extends
+    expect(hopDist['sys_user']).toBe(1); // task → sys_user
+    expect(hopDist['incident']).toBeUndefined(); // not reachable without extends
     expect(hopDist['change_request']).toBeUndefined(); // not reachable without extends
   });
 });
@@ -371,34 +393,34 @@ describe('re-insertion direction guard', () => {
   function setupBackEdgeGraph() {
     graphState.graphData.nodes = [
       { id: 'task', scope: 'Global' },
-      { id: 'A',    scope: 'Global' },
-      { id: 'B',    scope: 'Global' },
-      { id: 'D',    scope: 'Global' },
+      { id: 'A', scope: 'Global' },
+      { id: 'B', scope: 'Global' },
+      { id: 'D', scope: 'Global' },
     ];
     // B→D is listed FIRST so the fallback path encounters it before A→B
     graphState.graphData.edges = [
-      { source: 'B',    target: 'D',    type: 'reference', field: 'back', label: 'Back'  },
-      { source: 'task', target: 'A',    type: 'reference', field: 'f1',   label: 'F1'    },
-      { source: 'A',    target: 'B',    type: 'reference', field: 'f2',   label: 'F2'    },
-      { source: 'task', target: 'D',    type: 'reference', field: 'f3',   label: 'F3'    },
+      { source: 'B', target: 'D', type: 'reference', field: 'back', label: 'Back' },
+      { source: 'task', target: 'A', type: 'reference', field: 'f1', label: 'F1' },
+      { source: 'A', target: 'B', type: 'reference', field: 'f2', label: 'F2' },
+      { source: 'task', target: 'D', type: 'reference', field: 'f3', label: 'F3' },
     ];
     graphState.graphData._edgeCnt = { B: 10, D: 1 };
-    graphState.graphData._adj     = null;
+    graphState.graphData._adj = null;
     graphState.graphData._nodeById = null;
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = true;
-    uiState.showRefFrom  = false;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 2;
-    uiState.maxNodes     = 2;   // {task, B} — A and D cut
+    uiState.showRefTo = true;
+    uiState.showRefFrom = false;
+    uiState.showExt = false;
+    uiState.hopDepth = 2;
+    uiState.maxNodes = 2; // {task, B} — A and D cut
   }
 
   it('re-inserts the valid connector (A), not the back-edge target (D)', () => {
     setupBackEdgeGraph();
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('B')).toBe(true);
-    expect(visNodeIds.has('A')).toBe(true);   // correctly re-inserted via A→B in-edge
-    expect(visNodeIds.has('D')).toBe(false);  // must NOT be re-inserted via B→D back-edge
+    expect(visNodeIds.has('A')).toBe(true); // correctly re-inserted via A→B in-edge
+    expect(visNodeIds.has('D')).toBe(false); // must NOT be re-inserted via B→D back-edge
   });
 
   it('re-inserted connector gives B a visible edge (not orphaned)', () => {
@@ -419,35 +441,35 @@ describe('re-insertion direction guard', () => {
     // We verify the mirror of the showRefTo case.
     graphState.graphData.nodes = [
       { id: 'task', scope: 'Global' },
-      { id: 'A',    scope: 'Global' },
-      { id: 'B',    scope: 'Global' },
-      { id: 'D',    scope: 'Global' },
+      { id: 'A', scope: 'Global' },
+      { id: 'B', scope: 'Global' },
+      { id: 'D', scope: 'Global' },
     ];
     // A→task (A references task), B→A (B references A), D→task (D references task)
     // back-edge: A→B (incoming to B, i.e., shallow→deep — wrong for showRefFrom)
     graphState.graphData.edges = [
-      { source: 'A', target: 'B',    type: 'reference', field: 'bad',  label: 'Bad'  },
-      { source: 'A', target: 'task', type: 'reference', field: 'f1',   label: 'F1'   },
-      { source: 'B', target: 'A',    type: 'reference', field: 'f2',   label: 'F2'   },
-      { source: 'D', target: 'task', type: 'reference', field: 'f3',   label: 'F3'   },
+      { source: 'A', target: 'B', type: 'reference', field: 'bad', label: 'Bad' },
+      { source: 'A', target: 'task', type: 'reference', field: 'f1', label: 'F1' },
+      { source: 'B', target: 'A', type: 'reference', field: 'f2', label: 'F2' },
+      { source: 'D', target: 'task', type: 'reference', field: 'f3', label: 'F3' },
     ];
     // BFS showRefFrom from task: follows na.in (edges where task is target)
     //   hop1: A (A→task), D (D→task)
     //   hop2: B (B→A)
     // _edgeCnt: B=10 → sorted [task, B(10), D(1), A(0)], maxNodes=2 → {task, B}
     graphState.graphData._edgeCnt = { B: 10, D: 1 };
-    graphState.graphData._adj     = null;
+    graphState.graphData._adj = null;
     graphState.graphData._nodeById = null;
     uiState.selectedNode = 'task';
-    uiState.showRefTo    = false;
-    uiState.showRefFrom  = true;
-    uiState.showExt      = false;
-    uiState.hopDepth     = 2;
-    uiState.maxNodes     = 2;
+    uiState.showRefTo = false;
+    uiState.showRefFrom = true;
+    uiState.showExt = false;
+    uiState.hopDepth = 2;
+    uiState.maxNodes = 2;
 
     const { visNodeIds } = computeNeighbourhood();
     expect(visNodeIds.has('B')).toBe(true);
-    expect(visNodeIds.has('A')).toBe(true);   // A is B's connector: B→A (outgoing from B, valid for showRefFrom)
-    expect(visNodeIds.has('D')).toBe(false);  // D must not be added via bad incoming edge A→B
+    expect(visNodeIds.has('A')).toBe(true); // A is B's connector: B→A (outgoing from B, valid for showRefFrom)
+    expect(visNodeIds.has('D')).toBe(false); // D must not be added via bad incoming edge A→B
   });
 });

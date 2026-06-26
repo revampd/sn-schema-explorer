@@ -19,7 +19,10 @@ export function initModals() {
     body.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     const panel = body.querySelector('#panel-' + tab.dataset.panel);
-    if (panel) { panel.classList.add('active'); body.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (panel) {
+      panel.classList.add('active');
+      body.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   });
 
   // ── Guide modal ───────────────────────────────────────────────────────────
@@ -37,7 +40,10 @@ export function initModals() {
     body.querySelectorAll('.g-panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     const panel = body.querySelector('#gpanel-' + tab.dataset.gpanel);
-    if (panel) { panel.classList.add('active'); body.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (panel) {
+      panel.classList.add('active');
+      body.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   });
 
   // ── Settings modal ────────────────────────────────────────────────────────

@@ -10,27 +10,35 @@ import { updateMaxNodesSlider } from '../../shared/density-controls.js';
 // Module-specific state (e.g. diffState fields) is captured via registered hooks.
 
 const MAX = 10;
-let _stack       = [];   // JSON strings — each is serializeState() output + extras
-let _ptr         = -1;   // current position; -1 = empty
+let _stack = []; // JSON strings — each is serializeState() output + extras
+let _ptr = -1; // current position; -1 = empty
 let _isRestoring = false;
 
-const _extractors = [];  // (snapObj) => void  — add module-specific keys before stringify
-const _restorers  = [];  // (snapObj) => void  — read those keys back during restore
+const _extractors = []; // (snapObj) => void  — add module-specific keys before stringify
+const _restorers = []; // (snapObj) => void  — read those keys back during restore
 
 // Cross-module hooks injected from entries/lite.js to avoid circular imports
-let _viewModeHook = null;  // setViewMode fn
-let _clearSelFn   = null;  // clearSelection fn
+let _viewModeHook = null; // setViewMode fn
+let _clearSelFn = null; // clearSelection fn
 
-export function registerHistoryExtractor(fn) { _extractors.push(fn); }
-export function registerHistoryRestorer(fn)  { _restorers.push(fn); }
-export function setHistoryViewModeHook(fn)   { _viewModeHook = fn; }
-export function setHistoryClearSelFn(fn)     { _clearSelFn = fn; }
+export function registerHistoryExtractor(fn) {
+  _extractors.push(fn);
+}
+export function registerHistoryRestorer(fn) {
+  _restorers.push(fn);
+}
+export function setHistoryViewModeHook(fn) {
+  _viewModeHook = fn;
+}
+export function setHistoryClearSelFn(fn) {
+  _clearSelFn = fn;
+}
 
 // ── Core push / back / forward ────────────────────────────────────────────────
 
 export function pushHistory() {
-  if (_isRestoring)            return;
-  if (!graphState.graphData)   return;   // nothing loaded yet
+  if (_isRestoring) return;
+  if (!graphState.graphData) return; // nothing loaded yet
 
   const snap = JSON.parse(serializeState());
   _extractors.forEach(fn => fn(snap));
@@ -39,7 +47,11 @@ export function pushHistory() {
   if (_ptr < _stack.length - 1) _stack = _stack.slice(0, _ptr + 1);
 
   _stack.push(JSON.stringify(snap));
-  if (_stack.length > MAX) { _stack.shift(); } else { _ptr++; }
+  if (_stack.length > MAX) {
+    _stack.shift();
+  } else {
+    _ptr++;
+  }
 
   _updateButtons();
 }
@@ -57,8 +69,8 @@ export function historyForward() {
 }
 
 export function resetHistory() {
-  _stack       = [];
-  _ptr         = -1;
+  _stack = [];
+  _ptr = -1;
   _isRestoring = false;
   _updateButtons();
 }
@@ -96,10 +108,10 @@ function _doRestore(json) {
   //    restoreState writes uiState.hopDepth / uiState.maxNodes but never touches the DOM.
   //    updateMaxNodesSlider recomputes the slider ceiling for the restored selection/filters
   //    and sets slMaxNodes.value; we also force the text labels to match.
-  Dom.slHopDepth.value          = uiState.hopDepth;
-  Dom.valHopDepth.textContent   = uiState.hopDepth;
+  Dom.slHopDepth.value = uiState.hopDepth;
+  Dom.valHopDepth.textContent = uiState.hopDepth;
   updateMaxNodesSlider();
-  Dom.valMaxNodes.textContent   = uiState.maxNodes;  // updateMaxNodesSlider skips this when not capping
+  Dom.valMaxNodes.textContent = uiState.maxNodes; // updateMaxNodesSlider skips this when not capping
 
   _isRestoring = false;
   _updateButtons();
@@ -109,14 +121,14 @@ function _doRestore(json) {
 
 function _updateButtons() {
   const back = Dom.btnHistBack;
-  const fwd  = Dom.btnHistFwd;
+  const fwd = Dom.btnHistFwd;
   if (!back || !fwd) return;
   const canBack = _ptr > 0;
-  const canFwd  = _ptr < _stack.length - 1;
+  const canFwd = _ptr < _stack.length - 1;
   back.disabled = !canBack;
-  fwd.disabled  = !canFwd;
+  fwd.disabled = !canFwd;
   back.classList.toggle('btn-nav-disabled', !canBack);
-  fwd.classList.toggle('btn-nav-disabled',  !canFwd);
+  fwd.classList.toggle('btn-nav-disabled', !canFwd);
 }
 
 // ── Listener wiring (called once from entries/lite.js) ────────────────────────
@@ -125,12 +137,18 @@ export function initHistoryListeners() {
   _updateButtons();
 
   Dom.btnHistBack?.addEventListener('click', historyBack);
-  Dom.btnHistFwd?.addEventListener('click',  historyForward);
+  Dom.btnHistFwd?.addEventListener('click', historyForward);
 
   document.addEventListener('keydown', e => {
     if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); historyBack(); }
-      if (e.key === 'ArrowRight') { e.preventDefault(); historyForward(); }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        historyBack();
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        historyForward();
+      }
     }
   });
 }

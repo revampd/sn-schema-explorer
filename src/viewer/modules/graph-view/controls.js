@@ -8,13 +8,48 @@ import { render } from '../../engine/render.js';
 // without duplicating the mapping.
 
 export const LEGEND_TYPE_MAP = {
-  'ref-to':  { get: () => uiState.showRefTo,   set: v => { uiState.showRefTo   = v; } },
-  'ref-from':{ get: () => uiState.showRefFrom, set: v => { uiState.showRefFrom = v; } },
-  ext:       { get: () => uiState.showExt,     set: v => { uiState.showExt     = v; } },
-  m2m:       { get: () => uiState.showM2M,     set: v => { uiState.showM2M     = v; } },
-  rel:       { get: () => uiState.showRel,     set: v => { uiState.showRel     = v; } },
-  view:      { get: () => uiState.showView,    set: v => { uiState.showView    = v; } },
-  cmdbrel:   { get: () => uiState.showCmdbRel, set: v => { uiState.showCmdbRel = v; } },
+  'ref-to': {
+    get: () => uiState.showRefTo,
+    set: v => {
+      uiState.showRefTo = v;
+    },
+  },
+  'ref-from': {
+    get: () => uiState.showRefFrom,
+    set: v => {
+      uiState.showRefFrom = v;
+    },
+  },
+  ext: {
+    get: () => uiState.showExt,
+    set: v => {
+      uiState.showExt = v;
+    },
+  },
+  m2m: {
+    get: () => uiState.showM2M,
+    set: v => {
+      uiState.showM2M = v;
+    },
+  },
+  rel: {
+    get: () => uiState.showRel,
+    set: v => {
+      uiState.showRel = v;
+    },
+  },
+  view: {
+    get: () => uiState.showView,
+    set: v => {
+      uiState.showView = v;
+    },
+  },
+  cmdbrel: {
+    get: () => uiState.showCmdbRel,
+    set: v => {
+      uiState.showCmdbRel = v;
+    },
+  },
 };
 
 // ── Graph-view overlay controls ───────────────────────────────────────────────
@@ -32,19 +67,27 @@ export function syncLegendRows() {
 
 export function updateActiveFilter() {
   const panel = Dom.activeFilter;
-  const body  = Dom.activeFilterBody;
-  if (!graphState.graphData || !uiState.selectedNode) { panel.style.display = 'none'; return; }
+  const body = Dom.activeFilterBody;
+  if (!graphState.graphData || !uiState.selectedNode) {
+    panel.style.display = 'none';
+    return;
+  }
 
   const nodeMap = {};
-  graphState.graphData.nodes.forEach(n => { nodeMap[n.id] = n; });
+  graphState.graphData.nodes.forEach(n => {
+    nodeMap[n.id] = n;
+  });
 
   const selNode = nodeMap[uiState.selectedNode];
-  if (!selNode) { panel.style.display = 'none'; return; }
+  if (!selNode) {
+    panel.style.display = 'none';
+    return;
+  }
 
   const nbrs = [...uiState.connectedNodes]
     .filter(id => id !== uiState.selectedNode && nodeMap[id])
     .map(id => nodeMap[id])
-    .sort((a,b) => (a.label||a.id).localeCompare(b.label||b.id));
+    .sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id));
 
   function makeRow(d, isSelected) {
     const hidden = !isSelected && uiState.hiddenNodes.has(d.id);
@@ -68,12 +111,14 @@ export function updateActiveFilter() {
   body.innerHTML = '';
 
   const selLbl = document.createElement('div');
-  selLbl.className = 'af-section-label'; selLbl.textContent = 'Selected';
+  selLbl.className = 'af-section-label';
+  selLbl.textContent = 'Selected';
   body.appendChild(selLbl);
   body.appendChild(makeRow(selNode, true));
 
   if (nbrs.length) {
-    const sep = document.createElement('div'); sep.className = 'af-sep';
+    const sep = document.createElement('div');
+    sep.className = 'af-sep';
     body.appendChild(sep);
     const nbrLbl = document.createElement('div');
     nbrLbl.className = 'af-section-label';

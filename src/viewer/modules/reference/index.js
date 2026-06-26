@@ -14,11 +14,9 @@ export function refreshReferenceTableLinks() {
   if (!modal) return;
   modal.querySelectorAll('.ref-tbl[data-table]').forEach(el => {
     const id = el.dataset.table;
-    const available = !!(graphState.graphData?._nodeById?.has(id));
+    const available = !!graphState.graphData?._nodeById?.has(id);
     el.classList.toggle('available', available);
-    el.title = available
-      ? `Navigate to ${id} in schema map ↗`
-      : `${id} — not in current schema`;
+    el.title = available ? `Navigate to ${id} in schema map ↗` : `${id} — not in current schema`;
   });
 }
 

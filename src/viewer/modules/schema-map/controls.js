@@ -5,7 +5,11 @@ import { render } from '../../engine/render.js';
 import { applyTableFilter } from '../search/index.js';
 import { fillInspector } from '../../shared/inspector.js';
 import { syncLegendRows, LEGEND_TYPE_MAP } from '../graph-view/controls.js';
-import { updateMaxNodesSlider, updateHopDepthSlider, initDensityControls } from '../../shared/density-controls.js';
+import {
+  updateMaxNodesSlider,
+  updateHopDepthSlider,
+  initDensityControls,
+} from '../../shared/density-controls.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { pushHistory } from '../history/index.js';
 
@@ -64,12 +68,18 @@ export function initControlsListeners() {
   if (Dom.fieldLegend) Dom.fieldLegend.classList.toggle('visible', uiState.showFields);
   Settings.onChange('showEdgeLabels', v => {
     uiState.showLabels = !!v;
-    if (graphState.graphData) { render(); pushHistory(); }
+    if (graphState.graphData) {
+      render();
+      pushHistory();
+    }
   });
   Settings.onChange('expandedFields', v => {
     uiState.showFields = !!v;
     if (Dom.fieldLegend) Dom.fieldLegend.classList.toggle('visible', uiState.showFields);
-    if (graphState.graphData) { render(); pushHistory(); }
+    if (graphState.graphData) {
+      render();
+      pushHistory();
+    }
   });
   Settings.onChange('dimOnHover', () => {});
   Settings.onChange('customHighlight', () => {
@@ -86,7 +96,9 @@ export function initControlsListeners() {
     }
   });
   Settings.onChange('inheritedRefsCanvas', () => {
-    if (graphState.graphData) { render(); pushHistory(); }
+    if (graphState.graphData) {
+      render();
+      pushHistory();
+    }
   });
 }
-

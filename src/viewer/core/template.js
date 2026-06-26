@@ -4,16 +4,17 @@ const Template = (() => {
     if (props) {
       for (const [k, v] of Object.entries(props)) {
         if (v == null) continue;
-        if (k === 'class')      el.className = v;
+        if (k === 'class') el.className = v;
         else if (k === 'style') {
           if (typeof v === 'string') el.style.cssText = v;
           else Object.assign(el.style, v);
-        }
-        else if (k.startsWith('data') && k.length > 4) {
-          const name = k.slice(4).replace(/[A-Z]/g, m => '-' + m.toLowerCase()).replace(/^-/, '');
+        } else if (k.startsWith('data') && k.length > 4) {
+          const name = k
+            .slice(4)
+            .replace(/[A-Z]/g, m => '-' + m.toLowerCase())
+            .replace(/^-/, '');
           el.setAttribute('data-' + name, v);
-        }
-        else if (k.startsWith('on') && typeof v === 'function') {
+        } else if (k.startsWith('on') && typeof v === 'function') {
           el.addEventListener(k.slice(2).toLowerCase(), v);
         }
         // Boolean DOM properties — must be set via property, not setAttribute.
@@ -21,8 +22,7 @@ const Template = (() => {
         // presence of the attribute is what counts in HTML.
         else if (k === 'disabled' || k === 'checked' || k === 'selected') {
           el[k] = !!v;
-        }
-        else el.setAttribute(k, v);
+        } else el.setAttribute(k, v);
       }
     }
     const append = c => {

@@ -21,18 +21,24 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
     }
     const frag = document.createDocumentFragment();
     items.forEach((item, idx) => {
-      const row = h('div', {
-        class: 'pf-ac-item' + (item.kind === 'field' ? ' field-item' : ''),
-        dataIdx: idx,
-        onMousedown: (e) => {
-          e.preventDefault();
-          accept(idx);
-        }
-      },
-        h('span', { class: 'pf-ac-item-id' }, item.value,
-          item.custom ? h('span', { class: 'ti-custom-badge' }, 'custom') : null),
+      const row = h(
+        'div',
+        {
+          class: 'pf-ac-item' + (item.kind === 'field' ? ' field-item' : ''),
+          dataIdx: idx,
+          onMousedown: e => {
+            e.preventDefault();
+            accept(idx);
+          },
+        },
+        h(
+          'span',
+          { class: 'pf-ac-item-id' },
+          item.value,
+          item.custom ? h('span', { class: 'ti-custom-badge' }, 'custom') : null
+        ),
         item.subtitle ? h('span', { class: 'pf-ac-item-label' }, item.subtitle) : null,
-        item.tag      ? h('span', { class: 'pf-ac-item-tag' },   item.tag)      : null
+        item.tag ? h('span', { class: 'pf-ac-item-tag' }, item.tag) : null
       );
       frag.appendChild(row);
     });
@@ -76,17 +82,32 @@ function createAutocomplete(inputEl, dropdownEl, getSuggestions) {
     renderList(items);
   }
 
-  inputEl.addEventListener('input',  () => { refresh(); });
-  inputEl.addEventListener('focus',  () => { refresh(); });
-  inputEl.addEventListener('blur',   () => { setTimeout(close, 120); });
-  inputEl.addEventListener('keydown', (e) => {
+  inputEl.addEventListener('input', () => {
+    refresh();
+  });
+  inputEl.addEventListener('focus', () => {
+    refresh();
+  });
+  inputEl.addEventListener('blur', () => {
+    setTimeout(close, 120);
+  });
+  inputEl.addEventListener('keydown', e => {
     if (!dropdownEl.classList.contains('visible')) return;
-    if      (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }
-    else if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(activeIdx - 1); }
-    else if (e.key === 'Enter') {
-      if (activeIdx >= 0) { e.preventDefault(); e.stopPropagation(); accept(activeIdx); }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(activeIdx + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(activeIdx - 1);
+    } else if (e.key === 'Enter') {
+      if (activeIdx >= 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        accept(activeIdx);
+      }
+    } else if (e.key === 'Escape') {
+      close();
     }
-    else if (e.key === 'Escape') { close(); }
   });
 
   return { refresh, close };
@@ -99,9 +120,14 @@ function tableSuggestions(query) {
   const q = (query || '').toLowerCase().trim();
   const out = [];
   for (const n of graphState.graphData.nodes) {
-    if (q && !n.id.toLowerCase().includes(q) && !(n.label || '').toLowerCase().includes(q)) continue;
-    out.push({ value: n.id, subtitle: n.label && n.label !== n.id ? n.label : null, kind: 'table',
-      custom: Settings.isEnabled('customHighlight') && Settings.isCustomName(n.id) });
+    if (q && !n.id.toLowerCase().includes(q) && !(n.label || '').toLowerCase().includes(q))
+      continue;
+    out.push({
+      value: n.id,
+      subtitle: n.label && n.label !== n.id ? n.label : null,
+      kind: 'table',
+      custom: Settings.isEnabled('customHighlight') && Settings.isCustomName(n.id),
+    });
     if (out.length >= 50) break;
   }
   out.sort((a, b) => {
@@ -115,13 +141,13 @@ function tableSuggestions(query) {
 
 function fieldSuggestions(query) {
   if (!graphState.graphData) return [];
-  const raw    = (query || '').trim();
+  const raw = (query || '').trim();
   const dotIdx = raw.lastIndexOf('.');
 
   if (dotIdx >= 0) {
-    const segments    = raw.slice(0, dotIdx).split('.').filter(Boolean);
-    const partial     = raw.slice(dotIdx + 1).toLowerCase();
-    let currentTable  = segments[0];
+    const segments = raw.slice(0, dotIdx).split('.').filter(Boolean);
+    const partial = raw.slice(dotIdx + 1).toLowerCase();
+    let currentTable = segments[0];
     if (!graphState.graphData.nodes.find(n => n.id === currentTable)) return [];
     for (let i = 1; i < segments.length; i++) {
       const fname = segments[i];
@@ -135,12 +161,12 @@ function fieldSuggestions(query) {
     const node = graphState.graphData.nodes.find(n => n.id === currentTable);
     if (!node) return [];
     const fields = new Map();
-    for (const f of (node.fields || [])) {
+    for (const f of node.fields || []) {
       fields.set(f.name, { label: f.label, type: f.type, source: currentTable, isOwn: true });
     }
     for (const ancId of Pathfinding.ancestorsOf(currentTable)) {
       const anc = graphState.graphData.nodes.find(n => n.id === ancId);
-      for (const f of (anc?.fields || [])) {
+      for (const f of anc?.fields || []) {
         if (!fields.has(f.name)) {
           fields.set(f.name, { label: f.label, type: f.type, source: ancId, isOwn: false });
         }
@@ -152,13 +178,13 @@ function fieldSuggestions(query) {
       if (partial && !fname.toLowerCase().includes(partial)) continue;
       const isRef = meta.type === 'reference';
       out.push({
-        value:    prefix + fname,
-        insert:   prefix + fname + (isRef ? '.' : ''),
+        value: prefix + fname,
+        insert: prefix + fname + (isRef ? '.' : ''),
         subtitle: meta.label,
-        tag:      isRef ? `${meta.type} →` : meta.type,
-        kind:     'field',
+        tag: isRef ? `${meta.type} →` : meta.type,
+        kind: 'field',
         continue: isRef,
-        custom:   Settings.isEnabled('customHighlight') && Settings.isCustomName(fname),
+        custom: Settings.isEnabled('customHighlight') && Settings.isCustomName(fname),
       });
       if (out.length >= 80) break;
     }
@@ -174,20 +200,20 @@ function fieldSuggestions(query) {
   }
 
   // No dot — match field names across all tables
-  const q    = raw.toLowerCase();
+  const q = raw.toLowerCase();
   const seen = new Set();
-  const out  = [];
+  const out = [];
   for (const n of graphState.graphData.nodes) {
-    for (const f of (n.fields || [])) {
+    for (const f of n.fields || []) {
       if (seen.has(f.name)) continue;
       if (q && !f.name.toLowerCase().includes(q)) continue;
       seen.add(f.name);
       out.push({
-        value:    f.name,
+        value: f.name,
         subtitle: f.label && f.label !== f.name ? f.label : null,
-        tag:      f.type,
-        kind:     'field',
-        custom:   Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name),
+        tag: f.type,
+        kind: 'field',
+        custom: Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name),
       });
       if (out.length >= 50) break;
     }
@@ -213,7 +239,7 @@ const _pfSourceAc = createAutocomplete(
 let _pfTargetAc = null;
 
 export function pfBindTargetAutocomplete() {
-  const targetInput    = document.getElementById('pf-target');
+  const targetInput = document.getElementById('pf-target');
   const targetDropdown = document.getElementById('pf-target-ac');
   if (!targetInput || !targetDropdown) return;
   // Clone to remove previous event listeners
@@ -228,9 +254,11 @@ export function pfBindTargetAutocomplete() {
   );
   fresh.addEventListener('input', pfValidate);
   fresh.addEventListener('keydown', e => {
-    if (e.key === 'Enter'
-        && !document.getElementById('pf-find').disabled
-        && !document.getElementById('pf-target-ac').classList.contains('visible')) {
+    if (
+      e.key === 'Enter' &&
+      !document.getElementById('pf-find').disabled &&
+      !document.getElementById('pf-target-ac').classList.contains('visible')
+    ) {
       pfRunSearch();
     }
   });
@@ -253,9 +281,11 @@ document.getElementById('pf-mode-field').addEventListener('click', () => pfSetMo
 document.getElementById('pf-source').addEventListener('input', pfValidate);
 document.getElementById('pf-find').addEventListener('click', pfRunSearch);
 document.getElementById('pf-source').addEventListener('keydown', e => {
-  if (e.key === 'Enter'
-      && !document.getElementById('pf-find').disabled
-      && !document.getElementById('pf-source-ac').classList.contains('visible')) {
+  if (
+    e.key === 'Enter' &&
+    !document.getElementById('pf-find').disabled &&
+    !document.getElementById('pf-source-ac').classList.contains('visible')
+  ) {
     pfRunSearch();
   }
 });

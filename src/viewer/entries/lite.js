@@ -39,9 +39,9 @@ setRenderImports({
 });
 
 // ── History hooks (no circular imports: history ← these modules, not the reverse) ──
-setViewModeHistoryHook(pushHistory);   // view-mode.js calls pushHistory after setViewMode
-setHistoryViewModeHook(setViewMode);   // history uses setViewMode to sync DOM during restore
-setHistoryClearSelFn(clearSelection);  // history calls clearSelection for null-selection restores
+setViewModeHistoryHook(pushHistory); // view-mode.js calls pushHistory after setViewMode
+setHistoryViewModeHook(setViewMode); // history uses setViewMode to sync DOM during restore
+setHistoryClearSelFn(clearSelection); // history calls clearSelection for null-selection restores
 
 initLoadOverlay();
 initSearchListeners();

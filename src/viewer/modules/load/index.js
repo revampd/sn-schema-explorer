@@ -1,4 +1,10 @@
-import { graphState, uiState, diffState, buildScopeColorMap, buildIndexes } from '../../core/state.js';
+import {
+  graphState,
+  uiState,
+  diffState,
+  buildScopeColorMap,
+  buildIndexes,
+} from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { Settings } from '../settings/index.js';
 import { render, updateInstancePill, updateStats } from '../../engine/render.js';
@@ -25,7 +31,8 @@ export function injectCiRelEdges(data) {
   data.edges = (data.edges || []).filter(e => e.type !== 'cmdb_rel');
   if (!Array.isArray(data._ciRelationships) || !data._ciRelationships.length) return;
   const nodeIdSet = new Set((data.nodes || []).map(n => n.id));
-  let injected = 0, skipped = 0;
+  let injected = 0,
+    skipped = 0;
   for (const r of data._ciRelationships) {
     if (!r || !r.parentClass || !r.childClass) continue;
     if (!nodeIdSet.has(r.parentClass) || !nodeIdSet.has(r.childClass)) {
@@ -35,11 +42,11 @@ export function injectCiRelEdges(data) {
     data.edges.push({
       source: r.parentClass,
       target: r.childClass,
-      type:   'cmdb_rel',
-      parentLabel:    r.parentLabel    || r.relTypeDisplay || '',
-      childLabel:     r.childLabel     || r.relTypeDisplay || '',
+      type: 'cmdb_rel',
+      parentLabel: r.parentLabel || r.relTypeDisplay || '',
+      childLabel: r.childLabel || r.relTypeDisplay || '',
       relTypeDisplay: r.relTypeDisplay || '',
-      label:          r.parentLabel    || r.relTypeDisplay || ''
+      label: r.parentLabel || r.relTypeDisplay || '',
     });
     injected++;
   }
@@ -54,7 +61,11 @@ export function loadGraph(data) {
     s = String(s || '').trim();
     if (!s) return '';
     if (/^https?:\/\//i.test(s)) {
-      try { return new URL(s).origin; } catch (_) { return ''; }
+      try {
+        return new URL(s).origin;
+      } catch (_) {
+        return '';
+      }
     }
     if (!s.includes('.') && !s.includes('/')) {
       return 'https://' + s + '.service-now.com';
@@ -76,7 +87,7 @@ export function loadGraph(data) {
   diffState._diffData = null;
   diffState._diffShowAll = false;
   uiState._viewPositionCache.force = null;
-  uiState._viewPositionCache.diff  = null;
+  uiState._viewPositionCache.diff = null;
   SavedViews.setFingerprint(SavedViews.fingerprint(data));
 
   injectCiRelEdges(data);
@@ -109,36 +120,73 @@ export function loadGraph(data) {
   setSearchData(data._nodeById, _fieldSearchIndex);
 
   // Pre-compute edge-membership sets for the dynamic filter
-  const _refOutIds = new Set(), _refInIds = new Set();
-  const _extOutIds = new Set(), _extInIds = new Set();
-  const _m2mIds = new Set(), _relIds = new Set();
-  const _viewIds = new Set(), _cmdbRelIds = new Set();
+  const _refOutIds = new Set(),
+    _refInIds = new Set();
+  const _extOutIds = new Set(),
+    _extInIds = new Set();
+  const _m2mIds = new Set(),
+    _relIds = new Set();
+  const _viewIds = new Set(),
+    _cmdbRelIds = new Set();
   const _childrenOf = new Map();
 
   for (const e of data.edges) {
-    const s = e._sourceId, t = e._targetId;
-    if (e.type === 'reference') { _refOutIds.add(s); _refInIds.add(t); }
-    if (e.type === 'extends')   {
-      _extOutIds.add(s); _extInIds.add(t);
+    const s = e._sourceId,
+      t = e._targetId;
+    if (e.type === 'reference') {
+      _refOutIds.add(s);
+      _refInIds.add(t);
+    }
+    if (e.type === 'extends') {
+      _extOutIds.add(s);
+      _extInIds.add(t);
       if (!_childrenOf.has(t)) _childrenOf.set(t, []);
       _childrenOf.get(t).push(s);
     }
-    if (e.type === 'm2m')       { _m2mIds.add(s);    _m2mIds.add(t); }
-    if (e.type === 'rel')       { _relIds.add(s);     _relIds.add(t); }
-    if (e.type === 'view')      { _viewIds.add(s);    _viewIds.add(t); }
-    if (e.type === 'cmdb_rel')  { _cmdbRelIds.add(s); _cmdbRelIds.add(t); }
+    if (e.type === 'm2m') {
+      _m2mIds.add(s);
+      _m2mIds.add(t);
+    }
+    if (e.type === 'rel') {
+      _relIds.add(s);
+      _relIds.add(t);
+    }
+    if (e.type === 'view') {
+      _viewIds.add(s);
+      _viewIds.add(t);
+    }
+    if (e.type === 'cmdb_rel') {
+      _cmdbRelIds.add(s);
+      _cmdbRelIds.add(t);
+    }
   }
   // BFS from cmdb_ci to collect the full CI hierarchy (for tableType:'cmdb' filter)
   const _cmdbCiIds = new Set();
   if (data._nodeById.has('cmdb_ci')) {
-    const q = ['cmdb_ci'], seen = new Set(q);
+    const q = ['cmdb_ci'],
+      seen = new Set(q);
     while (q.length) {
-      const id = q.shift(); _cmdbCiIds.add(id);
-      (_childrenOf.get(id) || []).forEach(c => { if (!seen.has(c)) { seen.add(c); q.push(c); } });
+      const id = q.shift();
+      _cmdbCiIds.add(id);
+      (_childrenOf.get(id) || []).forEach(c => {
+        if (!seen.has(c)) {
+          seen.add(c);
+          q.push(c);
+        }
+      });
     }
   }
-  Object.assign(data, { _refOutIds, _refInIds, _extOutIds, _extInIds,
-                        _m2mIds, _relIds, _viewIds, _cmdbRelIds, _cmdbCiIds });
+  Object.assign(data, {
+    _refOutIds,
+    _refInIds,
+    _extOutIds,
+    _extInIds,
+    _m2mIds,
+    _relIds,
+    _viewIds,
+    _cmdbRelIds,
+    _cmdbCiIds,
+  });
 
   // Scope display (sidebar) + filter panel (grid row below header)
   buildScopeDisplay(Dom.scopeInfoList, { onApply: applyFilters });
@@ -156,7 +204,7 @@ export function loadGraph(data) {
     Dom.filterOpenBtn._filterListenerAdded = true;
 
     const _closeBar = () => Dom.filterBar?.classList.remove('open');
-    const _openBar  = () => {
+    const _openBar = () => {
       Dom.filterBar?.classList.add('open');
       if (Dom.filterBody?._rebuildFilterPanel) Dom.filterBody._rebuildFilterPanel();
     };
@@ -166,7 +214,9 @@ export function loadGraph(data) {
     });
 
     // Escape key closes the bar
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') _closeBar(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') _closeBar();
+    });
   }
 
   updateMaxNodesSlider();
@@ -175,23 +225,28 @@ export function loadGraph(data) {
   // Enable all view-mode buttons + nav controls now that data is present.
   // Each feature module controls its own button's *visibility*; the load
   // module is only responsible for the enabled/disabled state.
-  document.querySelectorAll('#view-mode-seg .vms-btn, #btn-refresh, #btn-reset, #btn-export')
-    .forEach(btn => { btn.disabled = false; btn.classList.remove('btn-nav-disabled'); });
+  document
+    .querySelectorAll('#view-mode-seg .vms-btn, #btn-refresh, #btn-reset, #btn-export')
+    .forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('btn-nav-disabled');
+    });
   Dom.edgeLegend.style.display = 'block';
   syncLegendRows();
   Dom.densityGroup.style.display = 'block';
   Dom.sortBar.style.display = 'flex';
 
-  const preselect = data._nodeById.get('task') ||
-    data.nodes.slice()
-      .sort((a, b) => (data._edgeCnt[b.id] || 0) - (data._edgeCnt[a.id] || 0))[0];
+  const preselect =
+    data._nodeById.get('task') ||
+    data.nodes.slice().sort((a, b) => (data._edgeCnt[b.id] || 0) - (data._edgeCnt[a.id] || 0))[0];
   if (preselect) focusTable(preselect.id);
   refreshReferenceTableLinks();
 }
 
 export function promptMultiPartLoad(manifest) {
   const expected = manifest.parts.map(p => p.fileName).sort();
-  const msg = `This is a multi-part schema export (${manifest.parts.length} parts, ${(manifest.totalBytes/1048576).toFixed(1)} MB total).\n\n` +
+  const msg =
+    `This is a multi-part schema export (${manifest.parts.length} parts, ${(manifest.totalBytes / 1048576).toFixed(1)} MB total).\n\n` +
     `Select all of these part files in the next dialog:\n  ${expected.join('\n  ')}\n\n` +
     `Tip: in the file picker you can multi-select with Ctrl+click (Cmd+click on Mac).`;
   if (!confirm(msg + '\n\nOK to pick the part files now?')) return;
@@ -204,10 +259,13 @@ export function promptMultiPartLoad(manifest) {
     if (!files.length) return;
     const byName = new Map(files.map(f => [f.name, f]));
     const missing = expected.filter(name => !byName.has(name));
-    if (missing.length) { alert('Missing part files:\n' + missing.join('\n')); return; }
+    if (missing.length) {
+      alert('Missing part files:\n' + missing.join('\n'));
+      return;
+    }
     (async () => {
       try {
-        const ordered = manifest.parts.slice().sort((a,b) => a.idx - b.idx);
+        const ordered = manifest.parts.slice().sort((a, b) => a.idx - b.idx);
         const texts = [];
         for (const p of ordered) texts.push(await byName.get(p.fileName).text());
         const parsed = JSON.parse(texts.join(''));
@@ -236,7 +294,7 @@ async function loadFileList(files) {
           return;
         }
         loadGraph(parsed);
-      } catch(err) {
+      } catch (err) {
         const msg = err.message || String(err);
         const posMatch = msg.match(/position (\d+)/i);
         let detail = msg;
@@ -244,7 +302,7 @@ async function loadFileList(files) {
           const pos = parseInt(posMatch[1]);
           const start = Math.max(0, pos - 40);
           const snippet = raw.slice(start, pos + 40).replace(/\n/g, '↵');
-          const arrow   = ' '.repeat(Math.min(pos - start, 40)) + '▲';
+          const arrow = ' '.repeat(Math.min(pos - start, 40)) + '▲';
           detail = `${msg}\n\nNear position ${pos}:\n"…${snippet}…"\n  ${arrow}`;
         }
         alert('Could not load JSON file:\n\n' + detail);
@@ -267,8 +325,11 @@ async function loadFileList(files) {
       return;
     }
     const missing = manifest.parts.map(p => p.fileName).filter(n => !byName.has(n));
-    if (missing.length) { alert('Missing part files:\n' + missing.join('\n')); return; }
-    const ordered = manifest.parts.slice().sort((a,b) => a.idx - b.idx);
+    if (missing.length) {
+      alert('Missing part files:\n' + missing.join('\n'));
+      return;
+    }
+    const ordered = manifest.parts.slice().sort((a, b) => a.idx - b.idx);
     const texts = [];
     for (const p of ordered) texts.push(await byName.get(p.fileName).text());
     const parsed = JSON.parse(texts.join(''));
@@ -288,20 +349,25 @@ function toggleSetupGuide(btn) {
 
 function copyCode(btn) {
   const pre = btn.closest('.code-block').querySelector('pre');
-  navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = '✓ Copied';
-    btn.style.color = 'var(--sn-wasabi)';
-    btn.style.borderColor = 'var(--sn-wasabi)';
-    setTimeout(() => {
-      btn.textContent = orig;
-      btn.style.color = '';
-      btn.style.borderColor = '';
-    }, 1800);
-  }).catch(() => {
-    btn.textContent = 'Error';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-  });
+  navigator.clipboard
+    .writeText(pre.textContent.trim())
+    .then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.style.color = 'var(--sn-wasabi)';
+      btn.style.borderColor = 'var(--sn-wasabi)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 1800);
+    })
+    .catch(() => {
+      btn.textContent = 'Error';
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+      }, 1500);
+    });
 }
 
 export function initLoadOverlay() {
@@ -312,10 +378,14 @@ export function initLoadOverlay() {
   });
 
   const dz = Dom.dropZone;
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.classList.add('dragover');
+  });
   dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
   dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('dragover');
+    e.preventDefault();
+    dz.classList.remove('dragover');
     loadFileList(e.dataTransfer.files);
   });
 
@@ -329,8 +399,10 @@ export function initLoadOverlay() {
   });
 
   // Setup guide toggle + code copy (file tab)
-  document.getElementById('sg-toggle-file')
+  document
+    .getElementById('sg-toggle-file')
     ?.addEventListener('click', e => toggleSetupGuide(e.currentTarget));
-  document.querySelectorAll('.code-copy-btn')
+  document
+    .querySelectorAll('.code-copy-btn')
     .forEach(btn => btn.addEventListener('click', e => copyCode(e.currentTarget)));
 }
