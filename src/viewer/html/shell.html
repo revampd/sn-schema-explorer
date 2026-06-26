@@ -100,6 +100,12 @@
         <button class="export-fmt-btn" id="epb-png" data-fmt="png" data-cat="image">↓ PNG</button>
         <button class="export-fmt-btn" id="epb-svg" data-fmt="svg" data-cat="image">↓ SVG</button>
       </div>
+      <label class="export-toggle"
+             title="Draw the edge-type legend into the exported PNG/SVG (only the edge types currently shown)">
+        <input type="checkbox" id="export-include-legend">
+        <span class="export-toggle-track"></span>
+        <span class="export-toggle-label">Edge legend</span>
+      </label>
     </div>
     <!-- Row 2: PNG resolution + background colour -->
     <div class="export-settings-row">
@@ -122,14 +128,6 @@
                  title="Hex color value — type #rrggbb or paste any 3/6-digit hex">
         </div>
       </div>
-    </div>
-    <!-- Image settings: include the edge-type legend in PNG/SVG exports -->
-    <div class="export-settings-row">
-      <label class="export-legend-toggle"
-             title="Draw the edge-type legend into the exported PNG/SVG (only the edge types currently shown)">
-        <input type="checkbox" id="export-include-legend">
-        <span class="export-scale-label">Include edge legend</span>
-      </label>
     </div>
     <!-- Color picker — expands inline when swatch is clicked -->
     <div id="export-color-picker" class="export-color-picker" hidden>
