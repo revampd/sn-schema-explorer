@@ -2,6 +2,7 @@ import { graphState, uiState } from '../core/state.js';
 import { Dom } from '../core/dom.js';
 import { computeNeighbourhood } from '../engine/compute.js';
 import { filterOk } from '../core/advanced-filter.js';
+import { h } from '../core/template.js';
 
 // ── Pure DOM updaters (no render.js import — render.js can import these directly) ──
 
@@ -20,9 +21,41 @@ export function updateDensityInfo() {
         )
         .join(', ');
       const ownTotal = total;
-      el.innerHTML = `Showing <strong>${shown}</strong> of <strong>${ownTotal}</strong> reachable tables for <strong>${uiState.selectedNode}</strong> <span style="opacity:.6;font-style:italic">(includes inherited from: ${ancNames})</span>. Raise Max nodes to see more.`;
+      // Built with h() so schema-derived values (selectedNode, ancNames) become
+      // text nodes — never interpreted as HTML.
+      el.replaceChildren(
+        h(
+          'span',
+          null,
+          'Showing ',
+          h('strong', null, shown),
+          ' of ',
+          h('strong', null, ownTotal),
+          ' reachable tables for ',
+          h('strong', null, uiState.selectedNode),
+          ' ',
+          h(
+            'span',
+            { style: 'opacity:.6;font-style:italic' },
+            `(includes inherited from: ${ancNames})`
+          ),
+          '. Raise Max nodes to see more.'
+        )
+      );
     } else {
-      el.innerHTML = `Showing <strong>${shown}</strong> of <strong>${total}</strong> neighbours for <strong>${uiState.selectedNode}</strong>.`;
+      el.replaceChildren(
+        h(
+          'span',
+          null,
+          'Showing ',
+          h('strong', null, shown),
+          ' of ',
+          h('strong', null, total),
+          ' neighbours for ',
+          h('strong', null, uiState.selectedNode),
+          '.'
+        )
+      );
     }
   } else {
     const scopePassing = graphState.graphData.nodes.filter(filterOk).length;

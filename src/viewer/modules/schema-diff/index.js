@@ -12,6 +12,7 @@ import {
 } from '../../shared/inspector.js';
 import { buildTableList, tlRenderVisible, tlSetSpacerHeight } from '../../shared/table-list.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
+import { h } from '../../core/template.js';
 import {
   registerHistoryExtractor,
   registerHistoryRestorer,
@@ -285,10 +286,17 @@ function diffBuildList() {
         row.className = 'diff-edge-item';
         row.dataset.id = otherId;
         row.title = otherId;
-        row.innerHTML =
-          `<span class="diff-edge-sign ${signCls}">${sign}</span>` +
-          `<span class="diff-edge-type">${e.type}</span>` +
-          `<span class="diff-edge-target">${s} → ${t}${e.field ? ' (' + e.field + ')' : ''}</span>`;
+        // Built with h() so schema-derived edge fields (type, source, target,
+        // field) become text nodes — never interpreted as HTML.
+        row.append(
+          h('span', { class: `diff-edge-sign ${signCls}` }, sign),
+          h('span', { class: 'diff-edge-type' }, e.type),
+          h(
+            'span',
+            { class: 'diff-edge-target' },
+            `${s} → ${t}${e.field ? ' (' + e.field + ')' : ''}`
+          )
+        );
         wrap.appendChild(row);
       }
     };

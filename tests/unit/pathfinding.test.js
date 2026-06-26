@@ -424,3 +424,27 @@ describe('fieldOwners', () => {
     setGraph([], []);
   });
 });
+
+// ── adjacency cache invalidation (#46.4) ─────────────────────────────────────
+// The diff graft rebuilds indexes in place (same graphData object) and bumps
+// data._indexVersion. The adjacency cache must key on that version, not just
+// object identity, or Path Finder would serve pre-graft results.
+describe('adjacency cache invalidation on in-place rebuild', () => {
+  it('reflects edges grafted into the same graphData object after a version bump', () => {
+    const nodes = [node('a'), node('b'), node('c')];
+    const edges = [refEdge('a', 'b')];
+    graphState.graphData = { nodes, edges, _indexVersion: 1 };
+
+    // Primes the adjacency cache; no a→c path exists yet.
+    expect(tableToTable('a', 'c')).toBeNull();
+
+    // Graft b→c IN PLACE (do not replace the object) and bump the version,
+    // mimicking buildIndexes() during a diff graft.
+    edges.push(refEdge('b', 'c'));
+    graphState.graphData._indexVersion = 2;
+
+    const result = tableToTable('a', 'c');
+    expect(result).not.toBeNull();
+    expect(result.path).toEqual(['a', 'b', 'c']);
+  });
+});

@@ -9,9 +9,15 @@ export const Pathfinding = (() => {
     view: 2,
   };
 
-  let _adjCache = { graph: null, adj: null };
+  let _adjCache = { graph: null, version: null, adj: null };
   function getAdjacency() {
-    if (_adjCache.graph === graphState.graphData) return _adjCache.adj;
+    // Key on both the graphData reference AND its _indexVersion: the diff graft
+    // rebuilds indexes in place (same object), so identity alone would serve a
+    // stale adjacency until the user re-selected a node.
+    const version = graphState.graphData?._indexVersion ?? null;
+    if (_adjCache.graph === graphState.graphData && _adjCache.version === version) {
+      return _adjCache.adj;
+    }
     const adj = new Map();
     if (graphState.graphData) {
       for (const n of graphState.graphData.nodes) adj.set(n.id, []);
@@ -24,7 +30,7 @@ export const Pathfinding = (() => {
         adj.get(t).push({ to: s, edge: e, dir: 'in' });
       }
     }
-    _adjCache = { graph: graphState.graphData, adj };
+    _adjCache = { graph: graphState.graphData, version, adj };
     return adj;
   }
 
