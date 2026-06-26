@@ -341,6 +341,40 @@ describe('syncSelectedScopes', () => {
   });
 });
 
+// ── access (Table Access) condition (#41) ────────────────────────────────────
+
+describe('access condition', () => {
+  const PP_NODE = {
+    id: 'pp_table',
+    label: 'PP',
+    scope: 'sn_app',
+    access: 'package_private',
+    fields: [],
+  };
+  const PUB_NODE = { id: 'pub_table', label: 'Pub', scope: 'global', access: 'public', fields: [] };
+  const NULL_NODE = { id: 'plain', label: 'Plain', scope: 'global', access: null, fields: [] };
+
+  it('package_private matches only package_private tables', () => {
+    uiState.filterConditions = [{ type: 'access', value: 'package_private' }];
+    expect(filterOk(PP_NODE)).toBe(true);
+    expect(filterOk(PUB_NODE)).toBe(false);
+    expect(filterOk(NULL_NODE)).toBe(false);
+  });
+
+  it('public matches everything that is not package_private (incl. null access)', () => {
+    uiState.filterConditions = [{ type: 'access', value: 'public' }];
+    expect(filterOk(PP_NODE)).toBe(false);
+    expect(filterOk(PUB_NODE)).toBe(true);
+    expect(filterOk(NULL_NODE)).toBe(true);
+  });
+
+  it('passes all nodes when no value is selected', () => {
+    uiState.filterConditions = [{ type: 'access', value: '' }];
+    expect(filterOk(PP_NODE)).toBe(true);
+    expect(filterOk(NULL_NODE)).toBe(true);
+  });
+});
+
 // ── Memoisation (Phase 3, M4) ───────────────────────────────────────────────
 //
 // filterOk caches per-node verdicts keyed by a signature of the conditions and
