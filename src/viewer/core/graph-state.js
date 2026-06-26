@@ -55,4 +55,10 @@ export function buildIndexes(data) {
     if (adj.has(e._targetId)) adj.get(e._targetId).in.push(e);
   }
   data._adj = adj;
+
+  // Monotonic stamp so consumers that cache derived structures keyed by the
+  // graphData object reference (e.g. Path Finder's adjacency cache) can detect
+  // an in-place rebuild — the diff graft mutates the same object rather than
+  // replacing it, so reference identity alone is not enough to invalidate.
+  data._indexVersion = (data._indexVersion || 0) + 1;
 }

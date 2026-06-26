@@ -91,4 +91,14 @@ describe('buildIndexes', () => {
     expect(g._adj.get('task').in).toHaveLength(1);
     expect(g._adj.get('task').out).toHaveLength(1);
   });
+
+  it('bumps a monotonic _indexVersion on every rebuild', () => {
+    const g = sampleGraph();
+    buildIndexes(g);
+    expect(g._indexVersion).toBe(1);
+    buildIndexes(g);
+    expect(g._indexVersion).toBe(2);
+    buildIndexes(g);
+    expect(g._indexVersion).toBe(3);
+  });
 });
