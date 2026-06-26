@@ -104,6 +104,13 @@ export default [
         JSON: 'readonly',
         // SchemaBuilder is inlined into the bg script at build time.
         SchemaBuilder: 'readonly',
+        // CONFIG is the run-config object declared in sn-schema-export.bg.js;
+        // the spliced-in serialisers (serialisers.bg.js) read it.
+        CONFIG: 'readonly',
+        // Serialiser entry points live in serialisers.bg.js and are spliced into
+        // the bg script at build time; the main script calls them.
+        serializeMarkdownBg: 'readonly',
+        serializeJsonLdBg: 'readonly',
       },
     },
     rules: { 'no-redeclare': 'off' },
