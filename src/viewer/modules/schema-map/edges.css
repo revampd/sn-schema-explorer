@@ -1,0 +1,103 @@
+/* ── EDGE STYLES ── */
+/* reference outgoing from focal node — warm green */
+.edge-ref-to {
+  stroke: var(--edge-ref-to);
+  stroke-opacity: 0.55;
+  stroke-width: 1.3;
+  fill: none;
+  marker-end: url(#arrow-ref-to);
+}
+/* reference incoming to focal node — cool violet */
+.edge-ref-from {
+  stroke: var(--edge-ref-from);
+  stroke-opacity: 0.55;
+  stroke-width: 1.3;
+  fill: none;
+  marker-end: url(#arrow-ref-from);
+}
+/* fallback when no selection (purple) */
+.edge-ref {
+  stroke: var(--edge-ref);
+  stroke-opacity: 0.5;
+  stroke-width: 1.2;
+  fill: none;
+  marker-end: url(#arrow-ref);
+}
+/* inheritance (blue dashed) */
+.edge-extends {
+  stroke: var(--edge-ext);
+  stroke-opacity: 0.7;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 5 3;
+  marker-end: url(#arrow-ext);
+}
+/* many-to-many (teal dotted) */
+.edge-m2m {
+  stroke: var(--edge-m2m);
+  stroke-opacity: 0.55;
+  stroke-width: 1.4;
+  fill: none;
+  stroke-dasharray: 2 4;
+  marker-end: url(#arrow-m2m);
+}
+/* named relationship / related list (orange) */
+.edge-rel {
+  stroke: var(--edge-rel);
+  stroke-opacity: 0.55;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-dasharray: 6 2 2 2;
+  marker-end: url(#arrow-rel);
+}
+/* DB view membership (yellow, wide dash) */
+.edge-view {
+  stroke: var(--edge-view);
+  stroke-opacity: 0.5;
+  stroke-width: 1.2;
+  fill: none;
+  stroke-dasharray: 8 3;
+  marker-end: url(#arrow-view);
+}
+/* CI topology — runtime cmdb_rel_type_suggest class-to-class relationship.
+     Distinct double-dash pattern + arrow head signal this is NOT a schema-
+     level dot-walkable edge. Dimmer at rest; lights up on hover/selection. */
+.edge-cmdbrel {
+  stroke: var(--edge-cmdbrel);
+  stroke-opacity: 0.5;
+  stroke-width: 1.3;
+  fill: none;
+  stroke-dasharray: 2 2 6 2;
+  marker-end: url(#arrow-cmdbrel);
+}
+
+.edge-ref-to.highlighted,
+.edge-ref-from.highlighted,
+.edge-ref.highlighted,
+.edge-extends.highlighted,
+.edge-m2m.highlighted,
+.edge-rel.highlighted,
+.edge-view.highlighted,
+.edge-cmdbrel.highlighted {
+  stroke-opacity: 1;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.edge-ref-to.dimmed,
+.edge-ref-from.dimmed,
+.edge-ref.dimmed,
+.edge-extends.dimmed,
+.edge-m2m.dimmed,
+.edge-rel.dimmed,
+.edge-view.dimmed,
+.edge-cmdbrel.dimmed {
+  stroke-opacity: 0.04;
+}
+
+.edge-label {
+  fill: var(--muted);
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 8px;
+  pointer-events: none;
+}

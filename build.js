@@ -40,7 +40,12 @@ const BASE_CSS = [
   'src/viewer/modules/export/index.css',
   'src/viewer/modules/load/index.css',
   'src/viewer/modules/saved-views/index.css',
-  'src/viewer/modules/schema-map/index.css',
+  // schema-map styles split into cohesive partials (#73); order is the cascade
+  // order — keep these contiguous and in sequence.
+  'src/viewer/modules/schema-map/sidebar.css',
+  'src/viewer/modules/schema-map/canvas.css',
+  'src/viewer/modules/schema-map/edges.css',
+  'src/viewer/modules/schema-map/chrome.css',
   'src/viewer/shared/inspector.css',
   'src/viewer/modules/reference/index.css',
   'src/viewer/modules/guide/index.css',
