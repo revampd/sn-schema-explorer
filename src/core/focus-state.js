@@ -76,9 +76,6 @@ export const focusState = {
   get instanceId() {
     return instancesState.selectedId;
   },
-  get compareId() {
-    return diffState._compareId;
-  },
   get table() {
     return uiState.selectedNode;
   },
@@ -87,4 +84,23 @@ export const focusState = {
     uiState.selectedNode = id;
     notifyFocusChange();
   },
+  get compareId() {
+    return diffState._compareId;
+  },
+  set compareId(id) {
+    setCompareId(id);
+  },
 };
+
+/**
+ * The single writer for the comparison instance — the "compare against" side
+ * shared by Schema Diff and the config-drift layer (#138). Writes through to
+ * diffState and fires the change event when the value actually changes, so any
+ * lens reacting to `onFocusChange` re-hydrates against the new comparison.
+ */
+export function setCompareId(id) {
+  const next = id == null ? null : id;
+  if (diffState._compareId === next) return;
+  diffState._compareId = next;
+  notifyFocusChange();
+}

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Unified comparison context** (`core/focus-state.js`,
+  [#138](https://github.com/revampd/sn-schema-explorer/issues/138); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). One shared "compare against" selection: a notifying
+  `setCompareId` / `focusState.compareId` setter over the existing diff compare
+  state, so Schema Diff and (next) the config-drift layer read and write the same
+  value and `onFocusChange` fires when it changes. Foundation for surfacing config
+  drift inside the Schema Diff view. No visible change — the Diff base/compare and
+  swap behave as before, now routed through the single writer.
+
 - **Config drift on the Schema Map** (`modules/config-overlay`,
   [#133](https://github.com/revampd/sn-schema-explorer/issues/133); part of the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated

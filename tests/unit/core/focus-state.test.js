@@ -13,6 +13,7 @@ import {
   onFocusChange,
   focusSnapshot,
   notifyFocusChange,
+  setCompareId,
 } from '../../../src/core/focus-state.js';
 import { instancesState } from '../../../src/core/instances-state.js';
 import { diffState } from '../../../src/core/diff-state.js';
@@ -59,6 +60,39 @@ describe('focusState.table setter', () => {
     focusState.table = 'task';
     expect(spy).not.toHaveBeenCalled();
     off();
+  });
+});
+
+describe('setCompareId — the single writer for the compare instance', () => {
+  it('writes through to diffState and notifies on change', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareId('i_prod');
+    expect(diffState._compareId).toBe('i_prod');
+    expect(focusState.compareId).toBe('i_prod');
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ compareId: 'i_prod' }));
+    off();
+  });
+  it('is a no-op (no notify) when unchanged', () => {
+    setCompareId('i_prod');
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareId('i_prod');
+    expect(spy).not.toHaveBeenCalled();
+    off();
+  });
+  it('the facade setter routes through setCompareId', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    focusState.compareId = 'i_x';
+    expect(diffState._compareId).toBe('i_x');
+    expect(spy).toHaveBeenCalledTimes(1);
+    off();
+  });
+  it('clears with null', () => {
+    setCompareId('i_a');
+    setCompareId(null);
+    expect(focusState.compareId).toBeNull();
   });
 });
 
