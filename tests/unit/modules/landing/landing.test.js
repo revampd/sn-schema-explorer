@@ -76,17 +76,17 @@ describe('instance cards', () => {
     expect(document.querySelector('.add-card')).toBeTruthy();
   });
 
-  it('shows section status with counts present / dash absent', () => {
+  it('shows count chips with counts present / dash absent', () => {
     addInstance({ label: 'dev1', data: PLUGIN_DATA });
     renderInstances();
-    const rows = [...document.querySelectorAll('.ic-sec')].map(r => [
-      r.querySelector('.ic-sec-label').textContent,
-      r.querySelector('.ic-sec-val').textContent,
-      r.classList.contains('absent'),
-    ]);
-    const byLabel = Object.fromEntries(rows.map(([l, v, a]) => [l, { v, a }]));
-    expect(byLabel['Plugins']).toEqual({ v: '2', a: false });
-    expect(byLabel['Custom apps'].a).toBe(true); // absent
+    const chips = [...document.querySelectorAll('.ic-chip')];
+    // chips have title=label and text=count
+    const byLabel = Object.fromEntries(
+      chips.map(c => [c.title, { v: c.textContent.replace(/\s/g, ''), absent: c.classList.contains('absent') }])
+    );
+    expect(byLabel['Plugins'].v).toBe('2');
+    expect(byLabel['Plugins'].absent).toBe(false);
+    expect(byLabel['Custom apps'].absent).toBe(true);
     expect(byLabel['Custom apps'].v).toBe('—');
   });
 
@@ -96,28 +96,29 @@ describe('instance cards', () => {
     expect(document.querySelector('.ic-title').textContent).toBe('Prod');
   });
 
-  it('renders a disambiguating subtitle (build · export date) when metadata is present', () => {
+  it('renders meta rows (build · export date) when metadata is present', () => {
     addInstance({
       label: 'dev1',
       data: SCHEMA_DATA,
       meta: {
         instance_name: 'dev1',
+        instance_url: 'https://dev1.service-now.com',
         build_name: 'Washington',
         exported_at: '2026-06-20T10:00:00Z',
       },
     });
     renderInstances();
-    const sub = document.querySelector('.ic-sub');
-    expect(sub).toBeTruthy();
-    expect(sub.textContent).toContain('Washington');
-    // The date portion is locale-formatted; just assert the build joined with it.
-    expect(sub.textContent).toContain('·');
+    const metas = [...document.querySelectorAll('.ic-meta')];
+    expect(metas.length).toBeGreaterThanOrEqual(1);
+    const text = metas.map(m => m.textContent).join(' ');
+    expect(text).toContain('Washington');
+    expect(text).toContain('·');
   });
 
-  it('omits the subtitle when no useful metadata is present', () => {
+  it('omits meta rows when no useful metadata is present', () => {
     addInstance({ label: 'dev1', data: { nodes: [{ id: 'task' }], edges: [] }, meta: {} });
     renderInstances();
-    expect(document.querySelector('.ic-sub')).toBeNull();
+    expect(document.querySelector('.ic-meta')).toBeNull();
   });
 });
 

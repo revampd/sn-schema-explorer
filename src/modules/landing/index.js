@@ -254,23 +254,15 @@ function toolIcon(tool, entry) {
   );
 }
 
-function sectionStatus(entry, def) {
+function sectionCount(entry, def) {
   const has = !!(entry.capabilities && entry.capabilities[def.key]);
-  let val = '—';
-  if (has) {
-    const c = entry.data ? def.count(entry) : null;
-    val = c != null ? String(c) : '✓';
-  }
+  const c = has && entry.data ? def.count(entry) : null;
+  const val = c != null ? String(c) : has ? '✓' : '—';
   return h(
-    'div',
-    { class: 'ic-sec' + (has ? '' : ' absent') },
-    h(
-      'span',
-      { class: 'ic-sec-label' },
-      h('span', { class: 'ic-dot' + (has ? ' on' : '') }),
-      def.label
-    ),
-    h('span', { class: 'ic-sec-val' }, val)
+    'span',
+    { class: 'ic-chip' + (has ? '' : ' absent'), title: def.label },
+    h('span', { class: 'ic-dot' + (has ? ' on' : '') }),
+    val
   );
 }
 
@@ -310,6 +302,7 @@ function startInlineRename(entry, titleEl) {
 
 function instanceCard(entry) {
   const restored = !entry.data; // persisted placeholder — needs a re-drop
+  const meta = entry.meta || {};
   const titleEl = h('div', { class: 'ic-title', title: entry.label }, entry.label);
   return h(
     'div',
@@ -318,11 +311,6 @@ function instanceCard(entry) {
       'div',
       { class: 'ic-head' },
       titleEl,
-      h(
-        'div',
-        { class: 'ic-tools' },
-        _tools.map(t => toolIcon(t, entry))
-      ),
       h(
         'button',
         {
@@ -349,16 +337,17 @@ function instanceCard(entry) {
         '×'
       )
     ),
+    meta.instance_url
+      ? h('div', { class: 'ic-meta ic-meta-url', title: meta.instance_url }, meta.instance_url)
+      : null,
     (() => {
-      const sub = instanceSubtitle(entry.meta);
-      return sub ? h('div', { class: 'ic-sub', title: sub }, sub) : null;
+      const sub = instanceSubtitle(meta);
+      return sub ? h('div', { class: 'ic-meta', title: sub }, sub) : null;
     })(),
-    h(
-      'div',
-      { class: 'ic-body' },
-      SECTION_DEFS.map(d => sectionStatus(entry, d))
-    ),
-    restored ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore') : null
+    h('div', { class: 'ic-counts' }, SECTION_DEFS.map(d => sectionCount(entry, d))),
+    restored
+      ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore')
+      : h('div', { class: 'ic-tools' }, _tools.map(t => toolIcon(t, entry)))
   );
 }
 
