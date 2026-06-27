@@ -310,7 +310,10 @@ header > * {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  /* Grow to fill the header (don't shrink buttons) so the .header-spring inside
+     has free space to consume — that's what right-anchors the global-action
+     cluster consistently across views and the landing page. */
+  flex: 1 0 auto;
 }
 /* Uniform control height across the header cluster, so the text buttons (Home,
    swap, Refresh, Fit, Reference, Guide, Settings) line up with the 26px instance
@@ -322,6 +325,13 @@ header > * {
   display: inline-flex;
   align-items: center;
   box-sizing: border-box;
+}
+/* Flex spring: pushes the global-action cluster (history, refresh, fit, export,
+   reference, guide, settings) to the right so those actions hold the same position
+   across views and on the landing page, independent of the variable instance /
+   compare / swap / switcher controls to its left. Zero-width, never hidden. */
+.header-spring {
+  margin-left: auto;
 }
 
 .btn {
