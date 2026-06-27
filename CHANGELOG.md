@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Configuration block in the Schema Diff sidebar** (`schema-diff/config-list.js`,
+  [#139](https://github.com/revampd/sn-schema-explorer/issues/139); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). Completes the config-drift layer's third pillar: a **Configuration**
+  summary (In sync / Drift / Missing / State counts, clickable to filter) plus a
+  navigable list of the **apps that changed** between base and compare, with each
+  side's version. Picking an app brings the tables it owns into view and highlights
+  them — so a table that drifted **only** in configuration (and so never appears in
+  the structural diff list) is now reachable. Opt-in like the rest of the layer:
+  the block is hidden unless both instances exported store/custom app metadata.
+
 - **Config drift in the Schema Diff inspector** (`schema-diff/config-drift.js`,
   [#139](https://github.com/revampd/sn-schema-explorer/issues/139); part of the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
