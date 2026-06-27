@@ -118,6 +118,7 @@
 }
 .diff-summary.visible {
   display: flex;
+  flex-wrap: wrap;
 }
 .diff-stat {
   flex: 1;
@@ -717,80 +718,54 @@ circle.cfg-node-badge.cfgb-state {
   fill: var(--cfg-state);
 }
 
-/* ── Config-drift sidebar block (#139b) ──────────────────────────────────── */
-#diff-config {
-  margin-top: 10px;
-  border-top: 1px solid var(--sn-border);
-  padding-top: 8px;
-}
-.diff-config-header {
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 2px 4px 6px;
-}
-.diff-config-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-bottom: 6px;
-}
-.diff-config-stat {
+/* ── Unified Differences report (#150/#149) — config tiles + app rows ──────── */
+/* Config-drift tiles share the summary strip with the table tiles; they wrap to
+   their own row beneath. */
+.diff-cfg-tiles {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 4px 2px;
-  border-radius: 6px;
-  border: 1px solid var(--sn-border);
-  cursor: pointer;
-  font-size: 8px;
+  gap: 4px;
+  flex-basis: 100%;
 }
-.diff-config-stat.active {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--sn-accent, #2dd4bf);
-}
-.dcs-n {
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-.dcs-drift .dcs-n {
+.diff-stat.dcs-drift {
   color: var(--diff-changed);
+  background: var(--diff-changed-dim);
 }
-.dcs-missing .dcs-n {
+.diff-stat.dcs-missing {
   color: var(--diff-removed);
+  background: var(--diff-removed-dim);
 }
-.dcs-active .dcs-n {
+.diff-stat.dcs-state {
+  color: var(--cfg-state);
+  background: rgba(96, 165, 250, 0.13);
+}
+.diff-stat.dcs-sync {
+  color: var(--diff-added);
+  background: var(--diff-added-dim);
+}
+/* Group header for the config section of the unified list. */
+.diff-group-header.dgh-config {
+  color: var(--muted);
+}
+/* Type tag (table | app) leading each unified-list row. */
+.diff-type-tag {
+  font-size: 7px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 1px 4px;
+  margin-right: 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.dtt-table {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+.dtt-app {
+  background: rgba(96, 165, 250, 0.15);
   color: var(--cfg-state);
 }
-.dcs-sync .dcs-n {
-  color: var(--diff-added);
-}
-.dcs-label {
-  opacity: 0.7;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.diff-config-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.diff-config-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-.diff-config-item.active {
-  background: rgba(45, 212, 191, 0.12);
-}
-.diff-config-pill {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
+/* App-row pill colours (reused by the unified list). */
 .dcp-drift {
   background: var(--diff-changed);
 }
@@ -802,21 +777,6 @@ circle.cfg-node-badge.cfgb-state {
 }
 .dcp-sync {
   background: var(--diff-added);
-}
-.dci-names {
-  flex: 1;
-  min-width: 0;
-}
-.dci-name {
-  font-size: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dci-ver {
-  font-size: 8px;
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
 }
 .dci-status {
   font-size: 8px;

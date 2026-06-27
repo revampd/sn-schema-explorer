@@ -89,8 +89,9 @@ test('Diff inspector shows the Configuration section with per-side versions + st
   await loadApp(page);
   await openDiff(page, schema('dev', '2.0', false), schema('prod', '1.0', true));
 
-  // Select the changed, drifted table from the diff list.
-  await page.locator('#diff-list .diff-item', { hasText: 'Widget' }).first().click();
+  // Select the changed, drifted table from the diff list (the table row, not the
+  // "Widget App" config row that now shares the unified list).
+  await page.locator('#diff-list .diff-item[data-id="x_widget"]').click();
 
   const insp = page.locator('#inspector-content');
   await expect(insp).toContainText('Configuration');
@@ -167,30 +168,32 @@ const sbCompare = {
   },
 };
 
-test('Diff sidebar shows a Configuration block: counts, app list, filter, highlight', async ({
+test('Unified Differences report: config tiles + app rows in one list, filter, highlight', async ({
   page,
 }) => {
   await loadApp(page);
   await openDiff(page, sbBase, sbCompare);
 
-  const block = page.locator('#diff-config');
-  await expect(block).toBeVisible();
-  // Counts: 1 drift (Widget App), 1 missing (Legacy App).
-  await expect(block.locator('.dcs-drift .dcs-n')).toHaveText('1');
-  await expect(block.locator('.dcs-missing .dcs-n')).toHaveText('1');
-  // Default 'all' filter lists both changed apps.
-  await expect(block.locator('.diff-config-item')).toHaveCount(2);
+  // #150/#149 — config drift now lives in the SAME summary strip + list as the
+  // structural changes (no separate #diff-config block). Config tiles share
+  // #diff-summary; app rows are type-tagged .diff-item[data-kind="app"] in #diff-list.
+  const summary = page.locator('#diff-summary');
+  await expect(summary.locator('.dcs-drift .diff-stat-n')).toHaveText('1');
+  await expect(summary.locator('.dcs-missing .diff-stat-n')).toHaveText('1');
 
-  // Filter to Missing → only Legacy App.
-  await block.locator('.diff-config-stat.dcs-missing').click();
-  await expect(block.locator('.diff-config-item')).toHaveCount(1);
-  await expect(block.locator('.diff-config-item')).toContainText('Legacy App');
-  await block.locator('.diff-config-stat.dcs-missing').click(); // clear filter
+  const appRows = page.locator('#diff-list .diff-item[data-kind="app"]');
+  await expect(appRows).toHaveCount(2); // Widget App (drift) + Legacy App (missing)
+
+  // Filter to Missing → only Legacy App (table rows hidden too).
+  await summary.locator('.dcs-missing').click();
+  await expect(appRows).toHaveCount(1);
+  await expect(appRows).toContainText('Legacy App');
+  await summary.locator('.dcs-missing').click(); // clear filter
 
   // Pick the Widget App row → its owned table is brought into view & highlighted,
   // and its config drift shows in the inspector (reachable even though it isn't in
   // the structural diff list).
-  await block.locator('.diff-config-item', { hasText: 'Widget App' }).click();
+  await appRows.filter({ hasText: 'Widget App' }).click();
   await expect(page.locator('g.node-group.cfg-app-hi')).toHaveCount(1);
   await expect(page.locator('#inspector-content')).toContainText('Configuration');
 });
@@ -207,5 +210,7 @@ test('no Configuration section when the compare export omits app metadata (opt-i
   await expect(insp).toContainText('Fields'); // structural diff still renders
   await expect(insp).not.toContainText('Configuration');
   await expect(page.locator('circle.cfg-node-badge')).toHaveCount(0);
-  await expect(page.locator('#diff-config')).toBeHidden();
+  // Opt-in gate: no config tiles and no app rows when a side lacks app metadata.
+  await expect(page.locator('#diff-cfg-tiles')).toHaveCount(0);
+  await expect(page.locator('#diff-list .diff-item[data-kind="app"]')).toHaveCount(0);
 });

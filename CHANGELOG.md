@@ -55,6 +55,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One unified "Differences" report** in the diff sidebar
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150),
+  [#149](https://github.com/revampd/sn-schema-explorer/issues/149)). The structural
+  change report and the separate Configuration block are merged into a single
+  report: one summary strip carrying both axes (added / removed / changed tables
+  **and** config drift / missing / state / in-sync apps) and one list whose rows
+  are **type-tagged** `table` or `app`. Config-drift apps list first; clicking any
+  summary tile filters the one list to that status. Picking an app row still
+  highlights its tables on the map. This removes the two-stacked-reports split.
 - **Schema Diff is now a layer on the Schema Map, not a separate view**
   ([#141](https://github.com/revampd/sn-schema-explorer/issues/141); the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
