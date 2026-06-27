@@ -51,8 +51,11 @@ const schema = (name, appVersion, extraField, withApps = true) => ({
 });
 
 async function loadApp(page) {
+  // configData on too, so the standalone config-overlay control WOULD be eligible
+  // (≥2 app-capable instances) — letting us assert it stands down during a
+  // comparison (#150), instead of being trivially absent.
   await page.addInitScript(() =>
-    localStorage.setItem('snse:settings:v1', JSON.stringify({ schemaDiff: true }))
+    localStorage.setItem('snse:settings:v1', JSON.stringify({ schemaDiff: true, configData: true }))
   );
   await page.goto(APP_URL);
   await page.waitForLoadState('domcontentloaded');

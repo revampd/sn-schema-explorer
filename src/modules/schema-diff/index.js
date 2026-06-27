@@ -10,6 +10,7 @@ import {
   isStructureLayerOn,
   isConfigLayerOn,
   onFocusChange,
+  notifyFocusChange,
 } from '../../core/state.js';
 import { createDropdown } from '../../core/dropdown.js';
 import { Config } from '../../core/constants.js';
@@ -125,6 +126,12 @@ function loadDiffSchema(compareData) {
   diffSyncSidebar();
   refreshDiffLayerControl();
   updateInstancePill();
+  // The compare list is set (setCompareIds) BEFORE `_diffData` is populated here,
+  // so the focus-change it fired saw isComparing() === false. Re-notify now that
+  // the comparison is fully active, so isComparing()-gated listeners settle — most
+  // importantly the standalone config-overlay control, which must stand down while
+  // a comparison is active (#150).
+  notifyFocusChange();
 
   // Export method mismatch disclaimer
   const baseMode = graphState.graphData._instance?.export_mode || null;
