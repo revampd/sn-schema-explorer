@@ -127,6 +127,16 @@ describe('renderComparisonTable', () => {
     expect(devCell.querySelector('.cd-dot')).toBeNull();
   });
 
+  it('carries the full property value on the cell title (CSS ellipsis-truncates long values)', () => {
+    const long = 'a,'.repeat(400); // no spaces — would blow the column wide
+    const r = reconcile('properties', [
+      inst('a', 'Dev', 'properties', [{ name: 'glide.x', value: long, type: 'string' }]),
+      inst('b', 'Test', 'properties', [{ name: 'glide.x', value: 'short', type: 'string' }]),
+    ]);
+    const val = renderComparisonTable(r).querySelector('tbody td .cd-val');
+    expect(val.getAttribute('title')).toBe(long);
+  });
+
   it('hides the Key column for plugins/storeApps/customApps (sys_ids differ across instances)', () => {
     for (const section of ['plugins', 'storeApps', 'customApps']) {
       const row =

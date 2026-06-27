@@ -167,7 +167,10 @@ test.describe('Schema Diff', () => {
     const baseCard = page.locator('.inst-card:not(.add-card)').first();
     await baseCard.locator('[data-tool="schemaDiff"]').click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.selectOption('#diff-compare-select', { label: 'compare-inst' });
+    // Pick the compare from the custom dropdown (core/dropdown.js). The open
+    // menu is portalled to <body>, so match its options there.
+    await page.locator('#diff-compare-mount .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
 
     // One table added (problem); the added counter should read at least 1.
     const added = page.locator('#diff-stat-added, #diff-n-added').first();
@@ -221,6 +224,12 @@ test.describe('Configuration Data', () => {
     await page.locator('#cd-export').click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/plugins_configuration\.csv$/);
+
+    // Export JSON triggers a download too.
+    const jsonDownloadPromise = page.waitForEvent('download');
+    await page.locator('#cd-export-json').click();
+    const jsonDownload = await jsonDownloadPromise;
+    expect(jsonDownload.suggestedFilename()).toMatch(/plugins_configuration\.json$/);
     void testInfo;
   });
 

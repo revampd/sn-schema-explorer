@@ -36,9 +36,10 @@ function instanceCell(rec, cfg, showDates) {
   if (cfg.fields.includes('version')) {
     children.push(h('span', { class: 'cd-ver' }, rec.version || '—'));
   } else if (cfg.fields.includes('value')) {
-    // properties: show the value (or a redacted/none marker)
+    // properties: show the value (or a redacted/none marker). The cell is
+    // ellipsis-truncated in CSS, so carry the full value on a title for hover.
     const v = rec.value == null ? '«no value»' : String(rec.value);
-    children.push(h('span', { class: 'cd-val' }, v));
+    children.push(h('span', { class: 'cd-val', title: v }, v));
   }
 
   // Store-app "update available" signal.

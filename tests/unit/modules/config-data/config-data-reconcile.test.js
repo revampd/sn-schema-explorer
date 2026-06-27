@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   reconcile,
   reconcileToCsv,
+  reconcileToJson,
   SECTION_CONFIG,
   STATUS_LABELS,
 } from '../../../../src/modules/config-data/reconcile.js';
@@ -29,6 +30,18 @@ describe('reconcile — union + cells', () => {
     expect(x.cells.a.version).toBe('1.0');
     expect(x.cells.b.version).toBe('1.0');
     expect(x.cells.c.version).toBe('1.0');
+  });
+
+  it('keys plugins on name, not the per-instance sys_id (same plugin reconciles to one row)', () => {
+    // sys_plugins `id` can be blank, so the exporter falls back to the record
+    // sys_id — which differs per instance. Keying on the stable plugin name
+    // must collapse the same plugin into a single row instead of two "missing".
+    const a = inst('a', 'Dev', 'plugins', [P('sysid_aaa', '1.0', true, '@devsnc/wizard')]);
+    const b = inst('b', 'Test', 'plugins', [P('sysid_bbb', '1.0', true, '@devsnc/wizard')]);
+    const r = reconcile('plugins', [a, b]);
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].key).toBe('@devsnc/wizard');
+    expect(r.rows[0].status).toBe('sync');
   });
 
   it('excludes instances that do not carry the section', () => {
@@ -141,7 +154,8 @@ describe('reconcileToCsv', () => {
     expect(header).toBe(
       'name,key,Dev_version,Dev_active,Dev_installDate,Test_version,Test_active,Test_installDate,status'
     );
-    expect(row).toBe('X Plugin,com.x,1.0,active,,2.0,inactive,,Drift');
+    // Plugins key on name (stable across instances), so name === key here.
+    expect(row).toBe('X Plugin,X Plugin,1.0,active,,2.0,inactive,,Drift');
   });
 
   it('leaves blank cells for missing entries', () => {
@@ -151,7 +165,7 @@ describe('reconcileToCsv', () => {
     ]);
     const row = reconcileToCsv(r).split('\n')[1];
     // Dev: 1.0,active,(installDate) · Test: blank,blank,blank
-    expect(row).toBe('X,com.x,1.0,active,,,,,' + STATUS_LABELS.missing);
+    expect(row).toBe('X,X,1.0,active,,,,,' + STATUS_LABELS.missing);
   });
 
   it('quotes fields containing commas or quotes', () => {
@@ -184,6 +198,38 @@ describe('reconcileToCsv', () => {
       'name,key,Dev_version,Dev_active,Dev_vendor,Dev_latestVersion,Dev_updateAvailable,Dev_installDate,Dev_updateDate,status'
     );
     expect(row).toBe('App,x_app,1.0,active,Acme,1.2,true,2026-01-01,2026-02-01,In sync');
+  });
+});
+
+describe('reconcileToJson', () => {
+  it('serialises section, instances, fields, counts, and per-instance cells', () => {
+    const r = reconcile('properties', [
+      inst('a', 'Dev', 'properties', [{ name: 'glide.x', value: 'on', type: 'string' }]),
+      inst('b', 'Test', 'properties', [{ name: 'glide.x', value: 'off', type: 'string' }]),
+    ]);
+    const json = reconcileToJson(r);
+    expect(json.section).toBe('properties');
+    expect(json.instances).toEqual([
+      { id: 'a', label: 'Dev' },
+      { id: 'b', label: 'Test' },
+    ]);
+    expect(json.fields).toEqual(['value', 'type']);
+    expect(json.counts.drift).toBe(1);
+    expect(json.entries).toHaveLength(1);
+    const e = json.entries[0];
+    expect(e).toMatchObject({ key: 'glide.x', name: 'glide.x', status: 'drift' });
+    expect(e.cells.Dev).toEqual({ present: true, value: 'on', type: 'string' });
+    expect(e.cells.Test).toEqual({ present: true, value: 'off', type: 'string' });
+  });
+
+  it('marks missing cells as { present: false }', () => {
+    const r = reconcile('plugins', [
+      inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)]),
+      inst('b', 'Test', 'plugins', []),
+    ]);
+    const e = reconcileToJson(r).entries[0];
+    expect(e.status).toBe('missing');
+    expect(e.cells.Test).toEqual({ present: false });
   });
 });
 

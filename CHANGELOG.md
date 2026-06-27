@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Schema Diff: swap base ↔ compare**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). A **⇄**
+  button between the Base and Compare pickers flips the two sides in place (the
+  current compare becomes the base and vice-versa), so you can reverse the
+  direction of a comparison without re-selecting both. Disabled until a compare
+  is chosen.
+
+- **App-themed dropdowns everywhere** (`core/dropdown.js`,
+  [#126](https://github.com/revampd/sn-schema-explorer/issues/126)). A custom
+  dropdown whose open option list is styled to match the app, replacing native
+  `<select>`s whose popup is drawn by the OS. Keyboard-accessible (arrows,
+  Home/End, Enter/Space, Escape) and ARIA listbox-labelled. Now used for **all**
+  single-selects: the Schema Diff Base/Compare pickers, the Configuration Data
+  status filter, the advanced filter's edge-type picker, and the background-script
+  "Output format" picker. The old native `.sn-select` is retired.
+
+- **Configuration Data: Export JSON**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Alongside
+  Export CSV, the comparison view can now export the current section as JSON —
+  the section, the compared instances, the comparable fields, status counts, and
+  one entry per key carrying a per-instance cell (`{ present, …fields }`) — for
+  feeding the reconciliation into other tooling.
+
 - **Configuration Data tool**
   ([#104](https://github.com/revampd/sn-schema-explorer/issues/104)). A new
   workspace that views and reconciles a metadata section — **plugins, store apps,
@@ -187,8 +210,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   built `dist/` is byte-identical (modulo file-path comments in the bundle).
   Unit tests now mirror the `src/` tree under `tests/`.
 
+### Changed
+
+- **Schema Diff sidebar simplified**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Removed the
+  inline "Filter tables…" search from the diff sidebar — the header search bar
+  (Tbl mode) already filters the diff list — and hid the Application Scopes panel
+  and the main table-list **sort bar** while in Diff view, where they aren't
+  relevant (Diff has its own grouped Added/Removed/Changed list). All three were
+  also inconsistently re-appearing after a base switch (a `loadGraph` re-show);
+  they now stay hidden in Diff.
+
 ### Fixed
 
+- **Advanced filter edge-type dropdown was clipped / unusable**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The
+  migrated "Has Edge" dropdown opened inside the filter bar's `overflow: hidden`
+  row, so its option list was clipped and effectively invisible. The custom
+  dropdown's menu is now portalled to `<body>` with `position: fixed` (anchored
+  to the button, repositioned on scroll/resize), so it escapes clipping or
+  transformed ancestors anywhere it's used.
+- **Schema Diff: swapping/switching base corrupted the comparison (Added/Removed
+  read 0)** ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)).
+  The base graph aliases the instance's in-memory data, and the diff grafts the
+  compare's added nodes into it in place. Switching the base (e.g. via the swap
+  button) didn't ungraft the **outgoing** base first, so its data kept the
+  compare's phantom nodes — and reusing that instance as the new compare made
+  "Added" and "Removed" collapse to 0 and inflated "Changed". The outgoing base
+  is now ungrafted before any base switch, so a swap correctly inverts the diff.
+- **Configuration Data: plugins compared as all "missing"**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The Plugins
+  tab keyed each plugin on its `id`, but the exporter falls back to the plugin
+  record's **sys_id** when the `id` column is empty — and sys_ids differ across
+  instances. The same plugin therefore reconciled as two separate "missing" rows.
+  Plugins are now keyed on their **name** (the stable `@scope/plugin` source id),
+  so a plugin present on both instances reconciles to a single row that reflects
+  its true in-sync / drift status.
+- **Configuration Data: trailing instance columns scrolled off-screen**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). On the
+  Properties tab (and any section), a long unbreakable property name or value
+  forced the comparison table wider than its container, pushing the second (and
+  later) instance columns and the Status column out of view — making a two-way
+  comparison look like a single column. Names/keys now wrap and long values are
+  ellipsis-truncated (full value on hover), so every instance column stays
+  visible.
 - **Re-importing the same schema file did nothing**
   ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The landing
   file input never reset its value, so re-selecting the same filename (e.g. after

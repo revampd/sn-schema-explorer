@@ -60,7 +60,6 @@ beforeEach(() => {
   document.body.innerHTML = '<div id="diff-list"></div>';
   diffState._diffData = makeDiffData();
   diffState._diffFilter = 'all';
-  diffState._diffSearch = '';
   uiState.filterConditions = [];
   uiState.selectedNode = null;
 });
@@ -95,12 +94,10 @@ describe('diffBuildList', () => {
     expect(headers).toEqual(['Changed (1)']);
   });
 
-  it('applies the inline sidebar search filter', () => {
-    diffState._diffSearch = 'incid';
-    diffBuildList();
-    const headers = [...document.querySelectorAll('.diff-group-header')].map(h => h.textContent);
-    expect(headers).toEqual(['Added (1)']);
-  });
+  // Header-search filtering of the diff list (Tbl mode) is covered by the
+  // "header search filters the diff list" e2e — it needs Dom.searchBox, which is
+  // resolved at module load against the real shell DOM. The inline sidebar
+  // search was removed (#126); the header bar is the single filter.
 
   it('clears the list and hides it when there is no diff data', () => {
     diffState._diffData = null;

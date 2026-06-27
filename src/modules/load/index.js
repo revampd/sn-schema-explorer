@@ -195,9 +195,12 @@ export function loadGraph(data) {
   buildScopeDisplay(Dom.scopeInfoList, { onApply: applyFilters });
   if (Dom.filterBody) buildFilterPanel(Dom.filterBody, { onApply: applyFilters });
 
-  // Show the scope info group in the sidebar
+  // Show the scope info group in the sidebar — except in diff view, whose
+  // sidebar deliberately omits it (loadGraph also runs when switching the diff
+  // base, so guard here or it would re-appear). syncSidebarForMode restores it
+  // when returning to the default view.
   const scopeInfoGroup = document.getElementById('scope-info-group');
-  if (scopeInfoGroup) scopeInfoGroup.style.display = '';
+  if (scopeInfoGroup) scopeInfoGroup.style.display = uiState.viewMode === 'diff' ? 'none' : '';
 
   // Show the "Filter" button in the header (hidden until data loads)
   if (Dom.filterOpenBtn) Dom.filterOpenBtn.style.display = '';
@@ -237,7 +240,10 @@ export function loadGraph(data) {
   Dom.edgeLegend.style.display = 'block';
   syncLegendRows();
   Dom.densityGroup.style.display = 'block';
-  Dom.sortBar.style.display = 'flex';
+  // The sort bar sorts the main table list, which Diff view replaces with its
+  // own grouped list — keep it hidden in diff (loadGraph also runs on a diff
+  // base switch, so guard here too, mirroring the scope panel above).
+  Dom.sortBar.style.display = uiState.viewMode === 'diff' ? 'none' : 'flex';
 
   const preselect =
     data._nodeById.get('task') ||

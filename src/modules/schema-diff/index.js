@@ -76,11 +76,6 @@ function loadDiffSchema(compareData) {
   diffState._diffData._compareVersion = compareData._schema_version || null;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
-  diffState._diffSearch = '';
-  const searchInput = document.getElementById('diff-search-input');
-  const searchClear = document.getElementById('diff-search-clear');
-  if (searchInput) searchInput.value = '';
-  if (searchClear) searchClear.style.display = 'none';
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   diffUpdateSummary();
@@ -131,6 +126,11 @@ function loadDiffSchema(compareData) {
  */
 function loadDiffFromInstances(baseId, compareId) {
   if (baseId && baseId !== instancesState.selectedId) {
+    // The base graph aliases the instance's in-memory data and the graft mutates
+    // it in place. Ungraft the OUTGOING base before switching, or its stored data
+    // keeps the compare's _diffOnly nodes — which then corrupts any later diff
+    // that uses it (e.g. swapping base↔compare made "removed"/"added" read 0).
+    diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
   }
   if (!compareId) {
@@ -145,6 +145,7 @@ function loadDiffFromInstances(baseId, compareId) {
       ? structuredClone(compareEntry.data)
       : JSON.parse(JSON.stringify(compareEntry.data));
   loadDiffSchema(compareClone);
+  diffState._compareId = compareId;
   refreshDiffPicker();
 }
 
@@ -152,9 +153,9 @@ function loadDiffFromInstances(baseId, compareId) {
 function clearDiff() {
   diffUngraftAddedFromBase();
   diffState._diffData = null;
+  diffState._compareId = null;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
-  diffState._diffSearch = '';
   uiState._viewPositionCache.diff = null;
   const modeWarn = document.getElementById('diff-mode-warn');
   if (modeWarn) modeWarn.style.display = 'none';
@@ -200,8 +201,6 @@ function diffUpdateSummary() {
   const hasDiff = !!diffState._diffData;
   summary.classList.toggle('visible', hasDiff);
   if (toggleRow) toggleRow.classList.toggle('visible', hasDiff);
-  const searchWrap = document.getElementById('diff-search-wrap');
-  if (searchWrap) searchWrap.style.display = hasDiff ? '' : 'none';
   if (!hasDiff) return;
   if (nAdded) nAdded.textContent = diffState._diffData.added.size;
   if (nRemoved) nRemoved.textContent = diffState._diffData.removed.size;
@@ -362,25 +361,6 @@ initDiffInstancePicker({ loadDiffFromInstances });
       clearDiffCursor();
     }
   });
-
-  // Inline sidebar filter wiring
-  const searchInput = document.getElementById('diff-search-input');
-  const searchClear = document.getElementById('diff-search-clear');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      diffState._diffSearch = searchInput.value;
-      if (searchClear) searchClear.style.display = searchInput.value ? '' : 'none';
-      diffBuildList();
-    });
-  }
-  if (searchClear) {
-    searchClear.addEventListener('click', () => {
-      diffState._diffSearch = '';
-      if (searchInput) searchInput.value = '';
-      searchClear.style.display = 'none';
-      diffBuildList();
-    });
-  }
 })();
 
 // ── Register with path-finder + settings ─────────────────────────────────────
@@ -427,6 +407,9 @@ registerTool({
   enabled: () => Settings.isEnabled('schemaDiff'),
   disabledHint: 'Enable Schema Diff in Settings, and register a second instance',
   enter: baseId => {
+    // Clean any grafted _diffOnly nodes off the outgoing base before switching,
+    // so a prior comparison can't leave the previous instance's data polluted.
+    diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
     setWorkspace('schema-explorer');
     setViewMode('diff');

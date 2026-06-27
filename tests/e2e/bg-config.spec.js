@@ -23,7 +23,10 @@ test('changing the format rewrites the bg CONFIG block in place', async ({ page 
   const pre = page.locator('#code-bg');
   await expect(pre).toContainText("format: 'json'");
 
-  await page.locator('#bg-config select[data-bg="format"]').selectOption('markdown');
+  // Output format is a custom dropdown (core/dropdown.js); its open menu portals
+  // to <body>.
+  await page.locator('#bg-config [data-bg-mount="format"] .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'Markdown' }).click();
   await expect(pre).toContainText("format: 'markdown'");
 });
 

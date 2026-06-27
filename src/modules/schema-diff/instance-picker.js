@@ -1,4 +1,5 @@
-import { instancesState } from '../../core/state.js';
+import { instancesState, diffState } from '../../core/state.js';
+import { createDropdown } from '../../core/dropdown.js';
 
 // ── Diff instance picker ──────────────────────────────────────────────────────
 //
@@ -6,56 +7,81 @@ import { instancesState } from '../../core/state.js';
 // its Base and Compare from the registered instances (instances-state). Base is
 // the instance currently loaded into the graph; Compare is any other
 // schema-capable instance. Selecting a Compare runs the diff; clearing it (the
-// blank option) removes the comparison.
+// blank option) removes the comparison. A swap button flips the two sides.
+//
+// The pickers are custom dropdowns (core/dropdown.js) rather than native
+// <select>s so the open option list is app-themed, not OS-native.
 //
 // loadDiffFromInstances(baseId, compareId) is injected from the diff module (it
-// closes over the diff state machinery); this module only owns the two <select>
-// controls and keeps them in sync with the registry.
+// closes over the diff state machinery); this module only owns the two controls
+// and keeps them in sync with the registry.
 
-function option(value, label, selected) {
-  const o = document.createElement('option');
-  o.value = value;
-  o.textContent = label;
-  if (selected) o.selected = true;
-  return o;
-}
+let baseDD = null;
+let cmpDD = null;
+let onLoad = null;
 
 export function refreshDiffPicker() {
-  const baseSel = document.getElementById('diff-base-select');
-  const cmpSel = document.getElementById('diff-compare-select');
-  if (!baseSel || !cmpSel) return;
+  if (!baseDD || !cmpDD) return;
 
   const schemaInstances = instancesState.instances.filter(
     e => e.capabilities && e.capabilities.schema
   );
   const baseId = instancesState.selectedId;
-  const prevCmp = cmpSel.value;
+  // Drive the compare side from the actual diff state, not the dropdown's own
+  // value — during a base switch (e.g. the swap button) the dropdown value is
+  // transiently cleared, but diffState._compareId reflects the true comparison.
+  const prevCmp = diffState._compareId || '';
 
-  baseSel.textContent = '';
-  schemaInstances.forEach(e => baseSel.appendChild(option(e.id, e.label, e.id === baseId)));
+  baseDD.setOptions(
+    schemaInstances.map(e => ({ value: e.id, label: e.label })),
+    baseId
+  );
 
-  cmpSel.textContent = '';
-  cmpSel.appendChild(option('', '— select compare —', !prevCmp));
-  schemaInstances
-    .filter(e => e.id !== baseId)
-    .forEach(e => cmpSel.appendChild(option(e.id, e.label, e.id === prevCmp)));
+  const cmpStillValid = schemaInstances.some(e => e.id === prevCmp && e.id !== baseId);
+  cmpDD.setOptions(
+    [
+      { value: '', label: '— select compare —' },
+      ...schemaInstances.filter(e => e.id !== baseId).map(e => ({ value: e.id, label: e.label })),
+    ],
+    cmpStillValid ? prevCmp : ''
+  );
 
   const empty = document.getElementById('diff-picker-empty');
   if (empty) empty.style.display = schemaInstances.length < 2 ? '' : 'none';
+
+  const swapBtn = document.getElementById('diff-swap-btn');
+  if (swapBtn) swapBtn.disabled = !cmpDD.getValue();
 }
 
 export function initDiffInstancePicker({ loadDiffFromInstances }) {
-  const baseSel = document.getElementById('diff-base-select');
-  const cmpSel = document.getElementById('diff-compare-select');
-  if (!baseSel || !cmpSel) return;
+  const baseMount = document.getElementById('diff-base-mount');
+  const cmpMount = document.getElementById('diff-compare-mount');
+  if (!baseMount || !cmpMount) return;
+  onLoad = loadDiffFromInstances;
 
-  baseSel.addEventListener('change', () => {
-    loadDiffFromInstances(baseSel.value, cmpSel.value);
+  baseDD = createDropdown({
+    title: 'The instance loaded into the graph',
+    ariaLabel: 'Base instance',
+    onChange: () => onLoad(baseDD.getValue(), cmpDD.getValue()),
   });
-  cmpSel.addEventListener('change', () => {
+  cmpDD = createDropdown({
+    title: 'Compare against this instance',
+    ariaLabel: 'Compare instance',
     // Empty value clears the comparison (handled by loadDiffFromInstances).
-    loadDiffFromInstances(baseSel.value, cmpSel.value);
+    onChange: () => onLoad(baseDD.getValue(), cmpDD.getValue()),
   });
+  baseMount.appendChild(baseDD.el);
+  cmpMount.appendChild(cmpDD.el);
+
+  const swapBtn = document.getElementById('diff-swap-btn');
+  if (swapBtn) {
+    swapBtn.addEventListener('click', () => {
+      const base = baseDD.getValue();
+      const cmp = cmpDD.getValue();
+      if (!cmp) return; // nothing to swap into the base slot
+      onLoad(cmp, base);
+    });
+  }
 
   refreshDiffPicker();
 }

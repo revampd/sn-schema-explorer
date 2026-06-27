@@ -26,9 +26,43 @@
   width: 56px;
   flex-shrink: 0;
 }
-.diff-picker-row .sn-select {
+.diff-picker-control {
   flex: 1;
   min-width: 0;
+}
+/* Swap base ↔ compare. Sits between the two picker rows, aligned under the
+   controls (past the fixed-width label gutter). */
+.diff-picker-swap-row {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 64px;
+  margin: -2px 0;
+}
+.diff-swap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.diff-swap-btn:hover:not(:disabled) {
+  color: var(--sn-wasabi);
+  border-color: var(--sn-wasabi);
+}
+.diff-swap-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .diff-picker-empty {
   font-size: 10px;
@@ -129,49 +163,6 @@
   color: var(--diff-changed);
   background: var(--diff-changed-dim);
 }
-/* ── Diff search / filter input ── */
-.diff-search-wrap {
-  position: relative;
-  padding: 0 10px 6px;
-  flex-shrink: 0;
-}
-.diff-search-input {
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--sn-border);
-  border-radius: 4px;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 11px;
-  padding: 5px 26px 5px 8px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.diff-search-input:focus {
-  border-color: var(--accent2);
-}
-.diff-search-input::placeholder {
-  color: var(--muted);
-}
-.diff-search-clear {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0 2px;
-  line-height: 1;
-  transition: color 0.1s;
-}
-.diff-search-clear:hover {
-  color: var(--text);
-}
-
 .diff-toggle-row {
   display: none;
   flex-shrink: 0;

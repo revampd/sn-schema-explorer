@@ -81,16 +81,6 @@ export function diffBuildList() {
         if (!items.length) return;
       }
     }
-    // Apply inline sidebar filter (diff-search-input)
-    const search = (diffState._diffSearch || '').toLowerCase().trim();
-    if (search) {
-      items = items.filter(
-        ({ id, nodeLabel }) =>
-          id.toLowerCase().includes(search) ||
-          (nodeLabel && nodeLabel.toLowerCase().includes(search))
-      );
-      if (!items.length) return;
-    }
     const header = document.createElement('div');
     header.className = 'diff-group-header dgh-' + kind;
     header.textContent = label + ' (' + items.length + ')';

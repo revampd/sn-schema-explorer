@@ -151,6 +151,14 @@ test.describe('Schema Diff interactions', () => {
     });
   }
 
+  // Pick an option from a custom dropdown (core/dropdown.js) by visible label.
+  async function pickDropdown(page, mountId, label) {
+    await page.locator(`#${mountId} .sn-dd-btn`).click();
+    // The open menu is portalled to <body> (direct child), so target it there —
+    // not under the mount, where only the closed menu lives.
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: label }).click();
+  }
+
   async function openDiff(page) {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
     // Register the base + compare instances, then launch Schema Diff on the base
@@ -160,7 +168,7 @@ test.describe('Schema Diff interactions', () => {
     const baseCard = page.locator('.inst-card:not(.add-card)').first();
     await baseCard.locator('[data-tool="schemaDiff"]').click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
+    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -175,7 +183,9 @@ test.describe('Schema Diff interactions', () => {
   test('header search filters the diff list', async ({ page }) => {
     await openDiff(page);
     const before = await page.locator('#diff-list .diff-item').count();
-    await page.locator('#diff-search-input').fill('problem');
+    // The header search bar (Tbl mode) filters the diff list — there is no
+    // separate inline search in the diff sidebar.
+    await page.locator('#search-box').fill('problem');
     await page.waitForTimeout(300);
     const after = await page.locator('#diff-list .diff-item').count();
     expect(after).toBeGreaterThan(0);
@@ -186,11 +196,37 @@ test.describe('Schema Diff interactions', () => {
   test('clearing the compare returns to the base-only view', async ({ page }) => {
     await openDiff(page);
     // Selecting the blank Compare option clears the comparison.
-    await page.selectOption('#diff-compare-select', { value: '' });
+    await pickDropdown(page, 'diff-compare-mount', 'select compare');
     await expect(page.locator('#diff-list .diff-item')).toHaveCount(0);
     // Re-selecting the same compare reproduces the diff — proving the stored
     // compare export was not mutated by the first run (clone-before-graft).
-    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
+    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('swap button flips base and compare, keeping the old base as compare', async ({ page }) => {
+    await openDiff(page); // base = test-instance, compare = test-instance-b (adds `problem`)
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+    // Direction 1: `problem` exists in compare but not base → 1 added, 0 removed.
+    await expect(page.locator('#diff-n-added')).toHaveText('1');
+    await expect(page.locator('#diff-n-removed')).toHaveText('0');
+
+    await page.locator('#diff-swap-btn').click();
+
+    // The two pickers swap: base becomes test-instance-b, compare becomes the
+    // previous base (test-instance) — not cleared.
+    await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
+    await expect(page.locator('#diff-compare-mount .sn-dd-label')).toHaveText('test-instance');
+
+    // Direction 2 must INVERT: `problem` is now in base but not compare → 1
+    // removed, 0 added. (Regression: grafting polluted the outgoing base's
+    // in-memory data, collapsing both counts to 0 after a swap.)
+    await expect(page.locator('#diff-n-added')).toHaveText('0');
+    await expect(page.locator('#diff-n-removed')).toHaveText('1');
+
+    // The base switch runs loadGraph, which used to re-show the main sort bar
+    // and Application Scopes panel in diff view — both stay hidden.
+    await expect(page.locator('#sort-bar')).toBeHidden();
+    await expect(page.locator('#scope-info-group')).toBeHidden();
   });
 });
