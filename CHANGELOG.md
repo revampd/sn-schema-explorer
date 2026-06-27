@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Config drift on the Schema Map** (`modules/config-overlay`,
+  [#133](https://github.com/revampd/sn-schema-explorer/issues/133); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). The first cross-lens overlay: a toggleable **layer** that tints
+  schema-map tables by the **configuration drift** of the application that owns
+  their scope, across your registered instances. A small canvas control turns it
+  on (off by default) and shows a legend — in sync / drift / missing / state
+  mismatch — using the **same** classification as the Configuration Data table,
+  so the map and the table always agree. The scope→app join is the shared entity
+  spine (#132); it covers store + custom apps, needs **≥2** app-capable instances
+  (the control hides otherwise), and applies in the Schema Map (force) view. The
+  scope colours, selection, and other overlays are untouched — drift is a layer
+  on top, not a mode.
+
 - **Shared entity spine** (`core/entity-spine.js`,
   [#132](https://github.com/revampd/sn-schema-explorer/issues/132); part of the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated

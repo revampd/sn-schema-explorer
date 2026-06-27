@@ -1,0 +1,81 @@
+/* config-overlay — config drift layer on the Schema Map (#133).
+ * Node tint mirrors schema-diff's node overlay (a coloured stroke on the node
+ * body), using the shared diff colour tokens so the app stays consistent. */
+
+:root {
+  --cfg-state: #60a5fa; /* state mismatch — distinct from drift amber */
+}
+
+/* Node tint when the layer is active (force view only; classes are toggled by
+ * the render hook). A coloured stroke reads as a layer over the scope colours. */
+.node-group.cfg-sync rect.node-rect {
+  stroke: var(--diff-added) !important;
+  stroke-width: 2px !important;
+}
+.node-group.cfg-drift rect.node-rect {
+  stroke: var(--diff-changed) !important;
+  stroke-width: 2px !important;
+}
+.node-group.cfg-missing rect.node-rect {
+  stroke: var(--diff-removed) !important;
+  stroke-width: 2px !important;
+}
+.node-group.cfg-state rect.node-rect {
+  stroke: var(--cfg-state) !important;
+  stroke-width: 2px !important;
+}
+
+/* Toggle + legend control */
+#cfg-drift-layer {
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cfg-drift-toggle {
+  cursor: pointer;
+  border: 1px solid var(--sn-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 8px;
+  padding: 4px 8px;
+}
+.cfg-drift-toggle[aria-pressed='true'] {
+  color: var(--text);
+  border-color: var(--sn-accent, #2dd4bf);
+  background: rgba(45, 212, 191, 0.12);
+}
+/* Legend rows only show when the layer is on. */
+.cfg-drift-legend {
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+}
+#cfg-drift-layer.active .cfg-drift-legend {
+  display: flex;
+}
+.cfg-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.cfg-swatch.cfg-sync {
+  background: var(--diff-added);
+}
+.cfg-swatch.cfg-drift {
+  background: var(--diff-changed);
+}
+.cfg-swatch.cfg-missing {
+  background: var(--diff-removed);
+}
+.cfg-swatch.cfg-state {
+  background: var(--cfg-state);
+}

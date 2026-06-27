@@ -112,6 +112,20 @@ function classify(cfg, cells, loaded) {
 }
 
 /**
+ * Classify how an application entry differs across instances, using the same
+ * rules as the Config Data table — only `version` and `active` drive an app's
+ * status. Used by the config-drift map overlay (#133) so the overlay and the
+ * Config lens agree on what "drift" means.
+ *
+ * @param {Object} cells     { [instanceId]: appRecord | null }
+ * @param {Array}  instances the instances being compared ([{ id }, …])
+ * @returns {'sync'|'drift'|'missing'|'active'|'inactive'}
+ */
+export function classifyAppDrift(cells, instances) {
+  return classify({ fields: ['version', 'active'] }, cells, instances);
+}
+
+/**
  * Reconcile one metadata section across instances.
  * @param {string} section   one of SECTION_CONFIG's keys
  * @param {Array}  instances registry entries ({ id, label, data })
