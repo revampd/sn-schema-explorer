@@ -88,9 +88,8 @@ export function renderComparisonTable(
   const loaded = result.instances;
   const q = search.trim().toLowerCase();
 
-  // The Key column is redundant when it's the same field as Name (properties:
-  // both are the property name). Drop it so the value columns get the space.
-  const showKey = cfg.key !== cfg.name;
+  // Key column: hidden when cfg.showKey is false, or when key === name (properties).
+  const showKey = cfg.showKey !== false && cfg.key !== cfg.name;
 
   const headCells = [h('th', {}, 'Name')];
   if (showKey) headCells.push(h('th', {}, 'Key'));
