@@ -427,6 +427,16 @@ onViewModeChange((mode, prevMode) => {
       Dom.slMaxNodes.value = uiState.maxNodes;
       Dom.valMaxNodes.textContent = uiState.maxNodes;
     }
+    // The graft merges the compare's added (`_diffOnly`) nodes/edges into the
+    // shared base graph so they render in diff view. Leaving diff must un-graft
+    // them — otherwise they leak into the Schema Map and its search, because the
+    // diff stays loaded across mode switches. Re-grafted on return below.
+    diffUngraftAddedFromBase();
+  }
+  if (mode === 'diff' && prevMode !== 'diff' && diffState._diffData) {
+    // Returning to diff with a comparison still loaded — re-graft the added nodes
+    // (loadDiffSchema only grafts on a fresh diff, not on a plain mode switch).
+    diffGraftAddedIntoBase();
   }
   diffSyncSidebar();
 });

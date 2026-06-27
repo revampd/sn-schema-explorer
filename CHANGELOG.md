@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Schema Diff no longer leaks compare-only tables into the Schema Map.** Diff
+  grafts the compare instance's added (`_diffOnly`) tables into the shared base
+  graph so they render in the diff; switching back to the Schema Map didn't
+  un-graft them, so a table that exists only in the _compare_ instance "merged"
+  into the base and appeared in the map and its search. Leaving the Diff view now
+  un-grafts those nodes/edges (and returning re-grafts them).
+
 ### Added
 
 - **Config drift in the Schema Diff inspector** (`schema-diff/config-drift.js`,
