@@ -1,0 +1,218 @@
+/* ── Landing page (v1.0.3 front door) ───────────────────────────────────────
+ * The landing workspace region. Shown when uiState.workspace === 'landing'
+ * (the default). A grid of instance cards + an Add-instance card. The graph
+ * chrome is hidden by styles/workspace.css while this workspace is active. */
+
+.landing {
+  grid-column: 1 / -1;
+  grid-row: 2 / 5; /* content rows; header + footer stay visible */
+  overflow: auto;
+  background: var(--bg);
+  z-index: 5;
+}
+
+/* The Home button is redundant while already on the landing page. */
+body[data-workspace='landing'] #btn-home {
+  display: none;
+}
+
+.landing-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+.landing-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.landing-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+}
+.landing-sub {
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Instance card grid */
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  border-radius: 10px;
+}
+.landing-grid.dragover {
+  outline: 2px dashed var(--sn-wasabi, #62d84e);
+  outline-offset: 6px;
+}
+
+.inst-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--panel, var(--bg));
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+}
+.inst-card.restored {
+  opacity: 0.6;
+}
+
+/* Card header: title + tool icons + rename/remove */
+.ic-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ic-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.ic-tools {
+  display: flex;
+  gap: 4px;
+}
+.ic-tool {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sn-wasabi, #62d84e);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.ic-tool:hover:not(.disabled) {
+  border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 12%, transparent);
+}
+.ic-tool.disabled {
+  color: var(--text-dim);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ic-act {
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  line-height: 1;
+}
+.ic-act:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Section status rows */
+.ic-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ic-sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.ic-sec:nth-child(odd) {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.ic-sec-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.ic-sec-val {
+  color: var(--sn-wasabi, #62d84e);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.ic-sec.absent .ic-sec-label {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.ic-sec.absent .ic-sec-val {
+  color: var(--text-dim);
+}
+.ic-note {
+  margin-top: 10px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* Add-instance card */
+.add-card {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  color: var(--sn-wasabi, #62d84e);
+  cursor: pointer;
+  gap: 6px;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.add-card:hover {
+  border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 8%, transparent);
+}
+.add-plus {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 300;
+}
+.add-label {
+  font-weight: 700;
+  color: var(--sn-wasabi, #62d84e);
+}
+.add-demo {
+  margin-top: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.add-demo:hover {
+  color: var(--text);
+}
+
+/* Setup-instructions accordion */
+.landing-setup {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.landing-setup > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.landing-setup > summary:hover {
+  color: var(--text);
+}

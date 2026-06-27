@@ -12,6 +12,7 @@ import {
 } from '../../shared/inspector.js';
 import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
+import { getWorkspace } from '../../engine/workspace.js';
 import {
   registerHistoryExtractor,
   registerHistoryRestorer,
@@ -294,6 +295,9 @@ initDiffFileInput({
 
   // Keyboard navigation — only active in diff view with a diff loaded
   document.addEventListener('keydown', e => {
+    // Only when the Schema Explorer workspace is active — not on the landing
+    // page or in another tool, where viewMode may still read 'diff'.
+    if (getWorkspace() !== 'schema-explorer') return;
     if (uiState.viewMode !== 'diff' || !diffState._diffData) return;
     // Don't intercept when focus is inside a text input
     const tag = e.target.tagName;

@@ -37,6 +37,7 @@ async function injectSchema(page, schema) {
     buffer: Buffer.from(JSON.stringify(schema)),
   });
   // Wait for the SVG graph to contain at least one rendered node
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 }
 
@@ -46,33 +47,34 @@ test('app loads without JavaScript errors', async ({ page }) => {
   expect(errors).toHaveLength(0);
 });
 
-test('core UI structure is present on load', async ({ page }) => {
+test('core UI structure is present on load (landing front door)', async ({ page }) => {
   await loadApp(page);
+  // On the landing front door the header + footer + landing region are present;
+  // the graph chrome (canvas, sidebar, inspector, search) is hidden.
   await expect(page.locator('header')).toBeVisible();
-  await expect(page.locator('#search-box')).toBeVisible();
-  await expect(page.locator('#canvas')).toBeVisible();
-  await expect(page.locator('#inspector')).toBeVisible();
+  await expect(page.locator('#landing-root')).toBeVisible();
   await expect(page.locator('footer')).toBeVisible();
+  await expect(page.locator('#canvas')).toBeHidden();
+  await expect(page.locator('#search-box')).toBeHidden();
 });
 
-test('default workspace is schema-explorer with regions hidden (no visible change)', async ({
+test('app boots into the landing workspace with the graph chrome hidden (#101)', async ({
   page,
 }) => {
   await loadApp(page);
-  // The workspace seam (#100) stamps body[data-workspace] from first paint and
-  // keeps the Schema Explorer chrome as the baseline.
-  await expect(page.locator('body')).toHaveAttribute('data-workspace', 'schema-explorer');
-  await expect(page.locator('#canvas')).toBeVisible();
-  // The empty landing + comparison regions exist but stay hidden.
-  await expect(page.locator('#landing-root')).toBeHidden();
+  await expect(page.locator('body')).toHaveAttribute('data-workspace', 'landing');
+  await expect(page.locator('#landing-root')).toBeVisible();
+  // Schema Explorer chrome and the comparison region are hidden on the front door.
+  await expect(page.locator('#sidebar')).toBeHidden();
+  await expect(page.locator('#inspector')).toBeHidden();
   await expect(page.locator('#instance-compare')).toBeHidden();
 });
 
-test('load overlay is visible before a schema is loaded', async ({ page }) => {
+test('landing page front door is visible before a schema is loaded', async ({ page }) => {
   await loadApp(page);
-  // The load overlay should be visible on first open
-  const overlay = page.locator('#load-overlay, .load-overlay, #drop-zone');
-  await expect(overlay.first()).toBeVisible();
+  // The landing page (front door) and its Add-instance card are visible on first open.
+  await expect(page.locator('#landing-root')).toBeVisible();
+  await expect(page.locator('#add-instance')).toBeVisible();
 });
 
 test('footer shows disclaimer text', async ({ page }) => {

@@ -125,14 +125,15 @@ Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_
 
 ## Loading and exploring
 
-1. Open `sn_schema_explorer.html` in any modern browser
-2. Drag and drop your `schema.json` onto the drop zone (or click to browse)
-3. The Schema Map renders immediately — click any table to inspect it
+1. Open `sn_schema_explorer.html` in any modern browser — it opens on the **landing page**
+2. Drag and drop one or more `schema.json` exports onto the **Add instance** card (or click to browse). Each load registers an **instance card** showing the sections it contains (Schema / Plugins / Store apps / Custom apps / Properties); click **or load demo** to try a sample
+3. Click the **Schema Explorer** icon on an instance card to visualise it — click any table to inspect it
 4. Use the **Max Nodes** and **Hop Depth** sliders to control graph density
 5. Use **Filter** in the header to narrow the canvas by scope, type, field, or edge
 6. Enable **Path Finder** or **Schema Diff** via **Settings → Features**
+7. Use the **⌂ Home** button in the header to return to the landing page — register more instances or switch tools
 
-Large schemas are split into a manifest + `.part*.json` files — drop all files at once and the loader reassembles them automatically.
+Register multiple instance exports to compare across them; tool tiles light up when enough instances carry the data they need. Large schemas are split into a manifest + `.part*.json` files — drop all files at once and the loader reassembles them automatically.
 
 ## Build from source
 

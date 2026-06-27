@@ -31,6 +31,7 @@ async function injectSchema(page, schema) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(schema)),
   });
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 }
 

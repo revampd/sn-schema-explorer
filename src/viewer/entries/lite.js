@@ -8,7 +8,7 @@ import { initMinimapListeners } from '../modules/graph-view/minimap.js';
 import { initIndicatorsListeners } from '../shared/indicators.js';
 import { initCanvasUI } from '../shared/canvas-ui.js';
 import { showCtx, initInteractionsListeners } from '../modules/schema-map/interactions.js';
-import { initLoadOverlay } from '../modules/load/index.js';
+import { initLanding } from '../modules/landing/index.js';
 import { initModals } from '../core/modals.js';
 import { initReferenceInteractivity } from '../modules/reference/index.js';
 import { initUpdateCheck } from '../core/update-check.js';
@@ -46,7 +46,7 @@ setHistoryViewModeHook(setViewMode); // history uses setViewMode to sync DOM dur
 setHistoryClearSelFn(clearSelection); // history calls clearSelection for null-selection restores
 
 initWorkspaces();
-initLoadOverlay();
+initLanding();
 initSearchListeners();
 initExportListeners();
 initControlsListeners();
