@@ -109,6 +109,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.
 
+### Fixed
+
+- **Background-script exporter failed to compile in ServiceNow** with
+  `invalid property id` ([#120](https://github.com/revampd/sn-schema-explorer/issues/120)).
+  The bg script runs under Rhino at ES Level 0 (ES3), which forbids future-reserved
+  words (`float`, `boolean`) as unquoted object-literal keys. The `BG_TYPE_LABELS`
+  and `BG_TYPE_XSD` lookup tables now quote those keys (pinned with `// prettier-ignore`
+  so formatting can't strip them back off). ES5 tooling parsed it fine, so only
+  ES3-mode Rhino surfaced the error.
+
 ## [1.0.2] - 2026-06-26
 
 Hardening, testing, and quality pass addressing a full repository audit

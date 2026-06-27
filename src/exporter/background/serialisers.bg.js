@@ -60,13 +60,16 @@ function bgBuildAdj(schema) {
 }
 
 /** Human-readable labels for common ServiceNow field types (Markdown export). */
+// 'float'/'boolean' are ES3 future-reserved words; they MUST stay quoted or
+// Rhino (bg runs at ES Level 0 / ES3) throws "invalid property id".
+// prettier-ignore
 var BG_TYPE_LABELS = {
   string: 'String',
   integer: 'Integer',
-  float: 'Decimal',
+  'float': 'Decimal',
   currency: 'Currency',
   currency2: 'Currency (v2)',
-  boolean: 'Boolean',
+  'boolean': 'Boolean',
   glide_date_time: 'Date/Time',
   glide_date: 'Date',
   glide_duration: 'Duration',
@@ -321,13 +324,16 @@ function serializeMarkdownBg(schema) {
 }
 
 /** SN field type to XSD datatype URI fragment (JSON-LD export). */
+// 'float'/'boolean' are ES3 future-reserved words; they MUST stay quoted or
+// Rhino (bg runs at ES Level 0 / ES3) throws "invalid property id".
+// prettier-ignore
 var BG_TYPE_XSD = {
   string: 'xsd:string',
   integer: 'xsd:integer',
-  float: 'xsd:decimal',
+  'float': 'xsd:decimal',
   currency: 'xsd:decimal',
   currency2: 'xsd:decimal',
-  boolean: 'xsd:boolean',
+  'boolean': 'xsd:boolean',
   glide_date_time: 'xsd:dateTime',
   glide_date: 'xsd:date',
   glide_duration: 'xsd:duration',
