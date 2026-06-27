@@ -74,6 +74,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Comparison inspector now reads like the single-instance inspector**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). Relationship
+  changes are grouped under the same friendly headings as the edge-type legend
+  and the single inspector — **Reference to / Referenced by / Child tables / M2M
+  junction / Named relationship / DB view member / CI topology** (with reference
+  direction and the related table's label) — instead of raw `reference`/`rel`/`m2m`
+  type strings. The field matrix is now **inheritance-aware**: it shows a table's
+  effective schema (own + inherited from parent tables, tagged `inherited`),
+  matching what the single view shows. And a column that is **identical** to Base
+  now reads **green** ("in sync"), not amber — the per-instance status strip and
+  the field-matrix column headers are coloured by each instance's status.
+- **The Compare control and swap (⇄) button now hide together** when a comparison
+  isn't applicable — on the Home/landing page or when fewer than two schema
+  instances are registered. The swap button previously stayed visible after the
+  Compare control was hidden.
+- **An instance can no longer compare against itself.** Switching the Base onto an
+  instance already selected as a compare dropped a phantom "identical" self-column
+  in the inspector and made the selection count disagree with the picker; that
+  compare is now removed (clearing the comparison if it was the only one).
 - **Schema Diff no longer leaks compare-only tables into the Schema Map.** Diff
   grafts the compare instance's added (`_diffOnly`) tables into the shared base
   graph so they render in the diff; switching back to the Schema Map didn't
