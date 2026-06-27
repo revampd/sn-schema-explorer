@@ -74,6 +74,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Diff sidebar rows for compare-only tables are now clickable**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). With several
+  compares, the change report lists tables that exist only in a (non-primary)
+  compare — those aren't grafted onto the Schema Map, so clicking them used to do
+  nothing (the on-map focus silently no-opped). Selecting such a row now opens the
+  comparison inspector for that table even though it isn't drawn on the map.
 - **Comparison inspector now reads like the single-instance inspector**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). Relationship
   changes are grouped by **Added / Removed** (what a change report is about), with

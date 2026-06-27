@@ -211,6 +211,12 @@ test('multi-compare (#150): N columns in the header chips, sidebar + inspector',
   await page.locator('#diff-list .diff-item', { hasText: 'Incident' }).click();
   await expect(page.locator('#inspector-content .diff-sbs-col-header')).toHaveCount(3);
 
+  // A table added ONLY in a non-primary compare (change_request, in rival) isn't
+  // grafted onto the map — its sidebar row must still open the inspector (#150
+  // off-map navigation), not silently no-op.
+  await page.locator('#diff-list .diff-item', { hasText: 'change_request' }).click();
+  await expect(page.locator('#inspector-content')).toContainText('change_request');
+
   // Toggling a compare back off (its row now carries ✓) drops to the single-
   // compare classic grouped list.
   await toggleCompare('✓ vs compare-inst');
