@@ -221,6 +221,12 @@ test.describe('Configuration Data', () => {
     await page.locator('#cd-export').click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/plugins_configuration\.csv$/);
+
+    // Export JSON triggers a download too.
+    const jsonDownloadPromise = page.waitForEvent('download');
+    await page.locator('#cd-export-json').click();
+    const jsonDownload = await jsonDownloadPromise;
+    expect(jsonDownload.suggestedFilename()).toMatch(/plugins_configuration\.json$/);
     void testInfo;
   });
 

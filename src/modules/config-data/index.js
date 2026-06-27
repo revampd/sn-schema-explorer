@@ -13,7 +13,7 @@ import { instancesState, aggregateCapabilities, METADATA_SECTIONS } from '../../
 import { Settings } from '../settings/index.js';
 import { setWorkspace, registerWorkspace, onWorkspaceChange } from '../../core/workspace.js';
 import { registerTool, refreshLanding } from '../landing/index.js';
-import { reconcile, reconcileToCsv, SECTION_LABELS } from './reconcile.js';
+import { reconcile, reconcileToCsv, reconcileToJson, SECTION_LABELS } from './reconcile.js';
 import { renderComparisonTable } from './table-view.js';
 import { instancesComparisonHtml } from '../../core/instance-info.js';
 
@@ -242,7 +242,12 @@ function renderCompare() {
 
   const empty = document.getElementById('cd-empty');
   const tableWrap = document.getElementById('cd-table-wrap');
-  const exportBtn = document.getElementById('cd-export');
+  const setExportDisabled = on => {
+    ['cd-export', 'cd-export-json'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = on;
+    });
+  };
 
   if (!sections.length) {
     if (tableWrap) tableWrap.style.display = 'none';
@@ -252,7 +257,7 @@ function renderCompare() {
         'Register at least one instance carrying a metadata section (plugins, store apps, custom apps, or properties) to view it here. Add more instances to compare them. Re-export with the metadata sections enabled if a section is empty.';
     }
     renderStats({ rows: [], counts: { sync: 0, drift: 0, missing: 0, active: 0, inactive: 0 } });
-    if (exportBtn) exportBtn.disabled = true;
+    setExportDisabled(true);
     return;
   }
 
@@ -273,7 +278,7 @@ function renderCompare() {
     empty.style.display = visibleRows ? 'none' : 'block';
     if (!visibleRows) empty.textContent = 'No entries match the current filter.';
   }
-  if (exportBtn) exportBtn.disabled = !result.rows.length;
+  setExportDisabled(!result.rows.length);
 }
 
 // ── Public entry ──────────────────────────────────────────────────────────
@@ -307,18 +312,28 @@ export function initConfigData() {
       renderCompare();
     });
   }
+  const download = (text, mime, ext) => {
+    const blob = new Blob([text], { type: mime });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = view.section + '_configuration.' + ext;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
   const exportBtn = document.getElementById('cd-export');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       const result = currentResult();
       if (!result.rows.length) return;
-      const csv = reconcileToCsv(result);
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = view.section + '_configuration.csv';
-      a.click();
-      URL.revokeObjectURL(a.href);
+      download(reconcileToCsv(result), 'text/csv', 'csv');
+    });
+  }
+  const exportJsonBtn = document.getElementById('cd-export-json');
+  if (exportJsonBtn) {
+    exportJsonBtn.addEventListener('click', () => {
+      const result = currentResult();
+      if (!result.rows.length) return;
+      download(JSON.stringify(reconcileToJson(result), null, 2), 'application/json', 'json');
     });
   }
 

@@ -211,3 +211,34 @@ export function reconcileToCsv(result) {
   }
   return lines.join('\n');
 }
+
+/**
+ * Serialise a reconcile() result to a JSON-ready object: the section, the
+ * instances that participated (id + label), the per-instance comparable fields,
+ * counts, and one entry per row carrying its key/name/status and a per-instance
+ * cell (only the section's comparable fields, plus `present`). Pretty-print at
+ * the call site with JSON.stringify(obj, null, 2).
+ */
+export function reconcileToJson(result) {
+  const cfg = SECTION_CONFIG[result.section];
+  if (!cfg) return { section: result.section, instances: [], fields: [], counts: {}, entries: [] };
+  const loaded = result.instances;
+  const cellOf = rec => {
+    if (!rec) return { present: false };
+    const out = { present: true };
+    for (const f of cfg.fields) out[f] = rec[f] == null ? null : rec[f];
+    return out;
+  };
+  return {
+    section: result.section,
+    instances: loaded.map(i => ({ id: i.id, label: i.label })),
+    fields: cfg.fields,
+    counts: result.counts,
+    entries: result.rows.map(row => ({
+      key: row.key,
+      name: row.name,
+      status: row.status,
+      cells: Object.fromEntries(loaded.map(i => [i.label, cellOf(row.cells[i.id])])),
+    })),
+  };
+}

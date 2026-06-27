@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   reconcile,
   reconcileToCsv,
+  reconcileToJson,
   SECTION_CONFIG,
   STATUS_LABELS,
 } from '../../../../src/modules/config-data/reconcile.js';
@@ -197,6 +198,38 @@ describe('reconcileToCsv', () => {
       'name,key,Dev_version,Dev_active,Dev_vendor,Dev_latestVersion,Dev_updateAvailable,Dev_installDate,Dev_updateDate,status'
     );
     expect(row).toBe('App,x_app,1.0,active,Acme,1.2,true,2026-01-01,2026-02-01,In sync');
+  });
+});
+
+describe('reconcileToJson', () => {
+  it('serialises section, instances, fields, counts, and per-instance cells', () => {
+    const r = reconcile('properties', [
+      inst('a', 'Dev', 'properties', [{ name: 'glide.x', value: 'on', type: 'string' }]),
+      inst('b', 'Test', 'properties', [{ name: 'glide.x', value: 'off', type: 'string' }]),
+    ]);
+    const json = reconcileToJson(r);
+    expect(json.section).toBe('properties');
+    expect(json.instances).toEqual([
+      { id: 'a', label: 'Dev' },
+      { id: 'b', label: 'Test' },
+    ]);
+    expect(json.fields).toEqual(['value', 'type']);
+    expect(json.counts.drift).toBe(1);
+    expect(json.entries).toHaveLength(1);
+    const e = json.entries[0];
+    expect(e).toMatchObject({ key: 'glide.x', name: 'glide.x', status: 'drift' });
+    expect(e.cells.Dev).toEqual({ present: true, value: 'on', type: 'string' });
+    expect(e.cells.Test).toEqual({ present: true, value: 'off', type: 'string' });
+  });
+
+  it('marks missing cells as { present: false }', () => {
+    const r = reconcile('plugins', [
+      inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)]),
+      inst('b', 'Test', 'plugins', []),
+    ]);
+    const e = reconcileToJson(r).entries[0];
+    expect(e.status).toBe('missing');
+    expect(e.cells.Test).toEqual({ present: false });
   });
 });
 

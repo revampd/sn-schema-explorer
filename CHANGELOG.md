@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Configuration Data: Export JSON**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Alongside
+  Export CSV, the comparison view can now export the current section as JSON —
+  the section, the compared instances, the comparable fields, status counts, and
+  one entry per key carrying a per-instance cell (`{ present, …fields }`) — for
+  feeding the reconciliation into other tooling.
+
 - **Configuration Data tool**
   ([#104](https://github.com/revampd/sn-schema-explorer/issues/104)). A new
   workspace that views and reconciles a metadata section — **plugins, store apps,
