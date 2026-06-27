@@ -764,25 +764,6 @@ path.diff-edge-removed {
   opacity: 0.7;
 }
 
-/* Canvas badge — a small corner dot, distinct channel from diff strokes. */
-circle.cfg-node-badge {
-  stroke: rgba(3, 45, 66, 0.9);
-  stroke-width: 1.2px;
-  pointer-events: none;
-}
-circle.cfg-node-badge.cfgb-sync {
-  fill: var(--diff-added);
-}
-circle.cfg-node-badge.cfgb-drift {
-  fill: var(--diff-changed);
-}
-circle.cfg-node-badge.cfgb-missing {
-  fill: var(--diff-removed);
-}
-circle.cfg-node-badge.cfgb-state {
-  fill: var(--cfg-state);
-}
-
 /* ── Unified Differences report (#150/#149) — config app rows ──────────────── */
 /* Group header for the config section of the unified list. */
 .diff-group-header.dgh-config {
@@ -836,19 +817,12 @@ circle.cfg-node-badge.cfgb-state {
   opacity: 0.28;
 }
 
-/* ── Unified "Differences" layer control (#150) — canvas chip group ───────── */
-.diff-layer-control {
+/* ── "Differences" canvas toggle (#150) — single chip ─────────────────────── */
+#diff-layer-master {
   position: absolute;
   top: 48px;
   left: 16px;
   z-index: 14;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
-}
-#diff-layer-master,
-.diff-layer-sub {
   cursor: pointer;
   border: 1px solid var(--sn-border);
   border-radius: 6px;
@@ -867,18 +841,4 @@ circle.cfg-node-badge.cfgb-state {
   color: var(--text);
   border-color: var(--sn-accent, #2dd4bf);
   background: rgba(45, 212, 191, 0.14);
-}
-.diff-layer-subs {
-  display: flex;
-  gap: 4px;
-  margin-left: 8px;
-}
-.diff-layer-sub {
-  padding: 3px 7px;
-  text-transform: none;
-}
-.diff-layer-sub.active {
-  color: var(--text);
-  border-color: var(--diff-changed);
-  background: var(--diff-changed-dim);
 }

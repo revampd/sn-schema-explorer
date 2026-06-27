@@ -69,15 +69,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cell per instance, coloured added / removed vs Base. The inspector is also
   **inheritance-complete for relationships**: relationships inherited from parent
   tables are included (tagged `inherited`), matching the single-instance view.
-- **One "Differences" canvas control** instead of two layer toggles
+- **One "Differences" canvas toggle** — diff is diff, no structure/config split
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The separate
   **Structure changes** and **Config drift** buttons on the Schema Map are
-  replaced, while a comparison is active, by a single **Differences** toggle with
-  two sub-mutes — **Structure** (node colours + edge pills) and **Config** (drift
-  badges; shown only when both sides export app metadata). The master mutes both
-  channels without dropping the comparison. The standalone config-drift overlay
-  (used when no comparison is active) stands down during a comparison so there's
-  only ever one config control.
+  replaced, while a comparison is active, by a single **Differences** toggle that
+  paints the structural difference (added / removed / changed tables + edge pills)
+  for the compared instances. **Config drift is no longer a canvas channel** —
+  it's surfaced where it belongs: in the **inspector** (the Configuration section
+  for the selected table) and in the sidebar report. The standalone config-drift
+  overlay (used when no comparison is active) stands down during a comparison, so
+  there's only ever one comparison control on the map.
 - **One unified "Differences" report** in the diff sidebar
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150),
   [#149](https://github.com/revampd/sn-schema-explorer/issues/149)). The structural

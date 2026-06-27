@@ -114,12 +114,13 @@ test('diff layer: canvas colouring, summary counts, sidebar list, inspector deta
   const insp = page.locator('#inspector-content');
   await expect(insp).toContainText('Fields');
 
-  // Unified "Differences" control (#150): master + a Structure sub-mute. Muting
-  // Structure clears the structural colouring; re-enabling restores it.
+  // The comparison overlay is a single "Differences" toggle (#150 — no
+  // structure/config split). Toggling it off clears the structural colouring;
+  // toggling on restores it.
   await expect(page.locator('#diff-layer-master')).toBeVisible();
-  await page.locator('#diff-sub-structure').click();
+  await page.locator('#diff-layer-master').click();
   await expect(page.locator('g.node-group.diff-changed')).toHaveCount(0);
-  await page.locator('#diff-sub-structure').click();
+  await page.locator('#diff-layer-master').click();
   await expect(page.locator('g.node-group.diff-changed')).not.toHaveCount(0);
   // #150: the comparison inspector is now an N-column matrix — columns are headed
   // by the actual instance labels (Base + each compare), not the generic word

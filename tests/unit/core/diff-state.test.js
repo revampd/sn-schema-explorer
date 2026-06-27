@@ -1,24 +1,17 @@
 /**
- * Unit tests for src/core/diff-state.js — the comparison-layer predicates (#150).
+ * Unit tests for src/core/diff-state.js — the comparison-layer predicate (#150).
  *
- * The canvas comparison overlay is one "Differences" layer with a master switch
- * (`_diffLayerOn`) and two channels (`_structureLayer`, `_configLayer`). The
- * predicates gate the structure colouring and the config badges respectively, and
- * all require a comparison to be active.
+ * The canvas comparison overlay is ONE "Differences" layer toggled by
+ * `_diffLayerOn`. There is no structure/config split — config drift lives in the
+ * inspector, not on the canvas. `isStructureLayerOn` gates the overlay and
+ * requires a comparison to be active.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  diffState,
-  isComparing,
-  isStructureLayerOn,
-  isConfigLayerOn,
-} from '../../../src/core/diff-state.js';
+import { diffState, isComparing, isStructureLayerOn } from '../../../src/core/diff-state.js';
 
 beforeEach(() => {
   diffState._diffData = null;
   diffState._diffLayerOn = true;
-  diffState._structureLayer = true;
-  diffState._configLayer = true;
 });
 
 describe('isComparing', () => {
@@ -30,28 +23,11 @@ describe('isComparing', () => {
 });
 
 describe('isStructureLayerOn', () => {
-  it('requires a comparison, the master, and the structure sub all on', () => {
+  it('requires a comparison AND the Differences layer toggle on', () => {
     expect(isStructureLayerOn()).toBe(false); // not comparing
     diffState._diffData = {};
     expect(isStructureLayerOn()).toBe(true);
-    diffState._structureLayer = false;
-    expect(isStructureLayerOn()).toBe(false);
-    diffState._structureLayer = true;
-    diffState._diffLayerOn = false; // master off mutes the channel
-    expect(isStructureLayerOn()).toBe(false);
-  });
-});
-
-describe('isConfigLayerOn', () => {
-  it('requires a comparison, the master, and the config sub all on', () => {
-    expect(isConfigLayerOn()).toBe(false); // not comparing
-    diffState._diffData = {};
-    expect(isConfigLayerOn()).toBe(true);
-    diffState._configLayer = false;
-    expect(isConfigLayerOn()).toBe(false);
-    diffState._configLayer = true;
-    diffState._diffLayerOn = false; // master off mutes both channels
-    expect(isConfigLayerOn()).toBe(false);
+    diffState._diffLayerOn = false; // layer toggled off
     expect(isStructureLayerOn()).toBe(false);
   });
 });
