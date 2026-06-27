@@ -83,7 +83,7 @@ test.describe('Export (image)', () => {
 
     // Enable the legend and re-export — the legend group should be embedded.
     await page.locator('#btn-export').click();
-    await page.locator('.export-toggle').click(); // styled switch wraps the input
+    await page.locator('.sn-toggle:has(#export-include-legend)').click(); // styled switch wraps the input
     await expect(cb).toBeChecked();
     const dl2 = page.waitForEvent('download');
     await page.locator('#epb-svg').click();

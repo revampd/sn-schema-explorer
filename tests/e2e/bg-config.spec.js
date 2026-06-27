@@ -31,12 +31,13 @@ test('toggling record counts and metadata sections updates the source', async ({
   await openSetup(page);
   const pre = page.locator('#code-bg');
 
-  await page.locator('#bg-config input[data-bg="includeRecordCounts"]').check();
+  // Inputs are visually hidden inside .sn-toggle labels — click the label.
+  await page.locator('#bg-config .sn-toggle:has(input[data-bg="includeRecordCounts"])').click();
   await expect(pre).toContainText('includeRecordCounts: true');
 
   await page
-    .locator('#bg-config [data-bg-group="metadataSections"] input[value="plugins"]')
-    .check();
+    .locator('#bg-config [data-bg-group="metadataSections"] .sn-toggle:has(input[value="plugins"])')
+    .click();
   await expect(pre).toContainText("metadataSections: ['plugins']");
 });
 
@@ -45,8 +46,11 @@ test('unchecking all edge types empties the array', async ({ page }) => {
   const pre = page.locator('#code-bg');
   await expect(pre).toContainText("edgeTypes: ['reference'");
 
+  // Inputs are visually hidden inside .sn-toggle labels — click the label to uncheck.
   for (const v of ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel']) {
-    await page.locator(`#bg-config [data-bg-group="edgeTypes"] input[value="${v}"]`).uncheck();
+    await page
+      .locator(`#bg-config [data-bg-group="edgeTypes"] .sn-toggle:has(input[value="${v}"])`)
+      .click();
   }
   await expect(pre).toContainText('edgeTypes: [],');
 });

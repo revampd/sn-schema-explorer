@@ -133,6 +133,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Instance cards redesigned**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The card
+  body now shows the instance URL, a prominent release-name badge (e.g.
+  "Australia"), and a clean export-date line instead of the five separate
+  section-status rows. Section counts collapse into a compact two-row grid
+  (abbreviated labels over bold numbers). Tool icons move to a footer row with a
+  top-border separator; rename and delete stay in the header.
+- **About chip replaces footer credits + update badge**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The footer
+  right now shows a single always-visible `v1.x.x` version chip. Clicking it opens
+  an About modal (same style as the instance info popup) with the version, update
+  status, GitHub link, "Built with Claude", and MIT copyright. When a newer release
+  is detected the chip changes to "New version available" (accent colour) and the
+  modal links directly to the release.
+- **"Cross-instance comparison" eyebrow heading removed** from the Configuration
+  Data workspace. The tool shows instance configuration data; comparison is a
+  secondary feature, not the primary framing.
+- **Carrier-count badges removed from Configuration Data section tabs.** The
+  number of instances carrying a section added noise without aiding navigation;
+  the tooltip still states the count when available.
+- **All checkboxes migrated to toggle switches; all selects unified**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). Every
+  checkbox in the app (edge-legend, Show dates, bg-script config options, metadata
+  section and edge-type pickers) is now a consistent iOS-style `.sn-toggle` switch.
+  Every `<select>` (Config Data filter, bg-script format, Schema Diff
+  base/compare, advanced-filter edge type) uses a single shared `.sn-select`
+  style. The bespoke per-module toggle and select CSS is removed.
 - The front door is now the landing page rather than a load overlay; the graph
   loads when you open an instance in a tool.
 - Schema Diff's compare schema is now chosen from the registry instead of a
@@ -167,6 +194,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file input never reset its value, so re-selecting the same filename (e.g. after
   deleting that instance) didn't fire a `change` event. The input now resets after
   each selection.
+- **Key column dropped from Plugins, Store apps, and Custom apps tabs**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). Sys IDs
+  (plugins) and scopes (store/custom apps) differ across instances by definition
+  and add no comparison value, so the Key column is now hidden for those sections.
+  Properties already hid it (key === name); that behaviour is unchanged.
 - **Properties tab showed redundant identical Name + Key columns**
   ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). Properties
   are keyed and named by the same field, so the duplicate Key column added noise
