@@ -731,6 +731,10 @@
         var includeValues = !!options.includePropertyValues;
         var props = normalizeProperties(input.properties, {
           includePropertyValues: includeValues,
+          // Optional per-exporter denylist override (e.g. the bg script's
+          // CONFIG.propertyValueDenylist). Falls back to PROPERTY_VALUE_DENYLIST
+          // so Node and bg redact identically by default.
+          denylist: options.propertyDenylist,
         });
         metadata.properties = props.items;
         metadataCaps.properties = {

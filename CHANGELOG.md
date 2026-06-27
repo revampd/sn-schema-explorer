@@ -19,11 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by default**; `--include-property-values` opts in, gated by a central denylist
   (`password|secret|key|token|cred|private|passwd`) that redacts matching values.
   `--property-query` (env `SN_PROPERTY_QUERY`) narrows which properties export.
-  Metadata is JSON-only. (Background-script support follows in a later PR.)
+  Metadata is JSON-only.
+- **Background-script support for the same metadata sections**
+  ([#98](https://github.com/revampd/sn-schema-explorer/issues/98)). The bg script
+  gains `CONFIG.metadataSections`, `includePropertyValues`, `propertyValueDenylist`,
+  and `propertyEncodedQuery`, with flat GlideRecord fetchers that produce the
+  identical shape to the Node extractor (shape defined once in the shared
+  builder). Values are off by default and read from the DB only when opted in.
 
 ### Changed
 
-- Node extractor now reads the active-plugin count from `sys_plugins`
+- Both exporters now read the active-plugin count from `sys_plugins`
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.
 

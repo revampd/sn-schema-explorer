@@ -52,6 +52,15 @@ Requires the `admin` role. No instance-side configuration needed.
 > (**Export → OWL/Turtle** or **OpenAPI**), or use the Node.js extractor with
 > `--format=owl|openapi`.
 
+To include the optional [cross-instance metadata sections](#cross-instance-metadata-sections),
+edit the `CONFIG` block at the top of the script: set
+`metadataSections: ['plugins', 'storeApps', 'customApps', 'properties']` (any
+subset). `sys_properties` values are off by default — set
+`includePropertyValues: true` to include them (still denylist-redacted via
+`propertyValueDenylist`), and optionally narrow rows with `propertyEncodedQuery`.
+Metadata is emitted for the `json` format only. The shape is identical to the
+Node extractor's, so both feed the same cross-instance comparison in the viewer.
+
 ### Option B — Node.js extractor
 
 Requires Node.js 18+ and network access to your instance.
