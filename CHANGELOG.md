@@ -110,6 +110,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Both exporters now read the active-plugin count from `sys_plugins`
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.
+- **Source tree restructured (internal, no behaviour change).** Flattened
+  `src/viewer/` away into `src/core/` (the shared platform — former
+  `core`+`engine`+`shared`), `src/modules/<feature>/` (self-contained features),
+  and `src/app/` (`shell.html`, the single `main.js` entry, `app.meta.js`, global
+  `styles/`); the exporters moved to `src/exporters/`. Each module now ships a
+  `module.meta.js` and `build.js` self-assembles the CSS cascade, HTML partials,
+  guide tabs, and the app-entry import graph from those manifests — adding a
+  feature is dropping a folder with `index.js` + `module.meta.js`. The
+  `entries/lite.js`+`full.js` split collapsed into one `src/app/main.js`. The
+  built `dist/` is byte-identical (modulo file-path comments in the bundle).
+  Unit tests now mirror the `src/` tree under `tests/`.
 
 ### Fixed
 
