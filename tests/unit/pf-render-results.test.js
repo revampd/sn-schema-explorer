@@ -10,17 +10,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Stub the heavy/irrelevant collaborators — canvas + render pull in d3, and we
 // drive the force-view (highlight) path so render() is never the thing under test.
-vi.mock('../../src/viewer/engine/render.js', () => ({ render: vi.fn() }));
-vi.mock('../../src/viewer/engine/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
-vi.mock('../../src/viewer/shared/inspector.js', () => ({ focusTable: vi.fn() }));
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/core/render.js', () => ({ render: vi.fn() }));
+vi.mock('../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
+vi.mock('../../src/core/inspector.js', () => ({ focusTable: vi.fn() }));
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: () => false, isCustomName: () => false },
 }));
-vi.mock('../../src/viewer/core/dom.js', () => ({ Dom: {} }));
+vi.mock('../../src/core/dom.js', () => ({ Dom: {} }));
 
-import { pfRenderResults } from '../../src/viewer/modules/path-finder/path-view.js';
-import { pfState } from '../../src/viewer/modules/path-finder/pf-state.js';
-import { uiState } from '../../src/viewer/core/state.js';
+import { pfRenderResults } from '../../src/modules/path-finder/path-view.js';
+import { pfState } from '../../src/modules/path-finder/pf-state.js';
+import { uiState } from '../../src/core/state.js';
 
 function tableResult(steps, dotWalk, totalCost) {
   return {

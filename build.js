@@ -53,10 +53,10 @@ const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
 // assemble the CSS cascade (sorted by the shared `order` scale), the base + per-
 // feature HTML partials, the guide tab order, and the enabled-feature list — so
 // adding a feature is just dropping a folder with a manifest, no edits here.
-const MODULES_DIR = 'src/viewer/modules';
+const MODULES_DIR = 'src/modules';
 
 async function loadManifests() {
-  const core = (await import(pathToFileURL(rel('src/viewer/app.meta.js')).href)).default;
+  const core = (await import(pathToFileURL(rel('src/app/app.meta.js')).href)).default;
   const modules = [];
   for (const name of readdirSync(rel(MODULES_DIR)).sort()) {
     const metaPath = rel(MODULES_DIR, name, 'module.meta.js');
@@ -129,13 +129,24 @@ function assembleGuideModules(modules) {
   return g.sort((a, b) => a.order - b.order);
 }
 
+// Feature modules the app entry imports directly, in module `order`. The core
+// platform + bootstrap (init + hook injection) live in src/app/main.js, imported
+// first; these self-registering feature modules are imported after it.
+function assembleFeatureEntries(modules) {
+  return modules
+    .filter(m => m.entryImports)
+    .sort((a, b) => a.order - b.order)
+    .flatMap(m => m.entryImports.map(f => `${m._dir}/${f}`));
+}
+
 // Populated by initBuild() from the manifests before any viewer build runs.
 let FEATURE_PARTIALS = {};
 let GUIDE_MODULES = [];
 let BASE_PARTIALS = [];
 const VIEWER_TARGETS = {
   app: {
-    entry: rel('src/viewer/entries/full.js'),
+    main: rel('src/app/main.js'),
+    featureEntries: [],
     css: [],
     features: [],
     title: 'Schema Explorer',
@@ -148,6 +159,7 @@ async function initBuild() {
   const features = deriveFeatures(modules);
   VIEWER_TARGETS.app.features = features;
   VIEWER_TARGETS.app.css = assembleCss(core, modules, features);
+  VIEWER_TARGETS.app.featureEntries = assembleFeatureEntries(modules);
   BASE_PARTIALS = assembleBasePartials(modules, features);
   FEATURE_PARTIALS = assembleFeaturePartials(modules);
   GUIDE_MODULES = assembleGuideModules(modules);
@@ -195,11 +207,23 @@ async function buildViewer(targetName) {
 
   console.log(`Building ${targetName}...`);
 
-  // 1. Bundle JS with esbuild
+  // 1. Bundle JS with esbuild. The entry is synthesized from the manifests:
+  //    main.js (core platform + bootstrap init) is imported first, then each
+  //    self-registering feature module in manifest order. Equivalent to the old
+  //    full.js (= lite.js + feature imports), now manifest-driven.
+  const entryContents =
+    [t.main, ...t.featureEntries.map(p => rel(p))]
+      .map(p => `import ${JSON.stringify(p)};`)
+      .join('\n') + '\n';
   let bundledJS = '';
   try {
     const result = await esbuild.build({
-      entryPoints: [t.entry],
+      stdin: {
+        contents: entryContents,
+        resolveDir: __dir,
+        sourcefile: 'main.entry.js',
+        loader: 'js',
+      },
       bundle: true,
       format: 'iife',
       target: 'es2020',
@@ -221,7 +245,7 @@ async function buildViewer(targetName) {
   const css = t.css.map(f => readFileSync(rel(f), 'utf8')).join('\n');
 
   // 3. Read shell template
-  let html = readFileSync(rel('src/viewer/html/shell.html'), 'utf8');
+  let html = readFileSync(rel('src/app/shell.html'), 'utf8');
 
   // 4. Resolve feature HTML partials
   const toolbarExtras = resolvePartials(t.features, 'toolbar');
@@ -324,7 +348,7 @@ function resolvePartialFile(features, featureName, key) {
 
 function buildExporter() {
   console.log('Building exporter...');
-  const root = rel('src/exporter');
+  const root = rel('src/exporters');
   const distDir = rel('dist/exporter');
   mkdirSync(distDir, { recursive: true });
   mkdirSync(join(distDir, 'shared'), { recursive: true });

@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/modules/schema-diff/instance-picker.js (#102).
+ * Unit tests for src/modules/schema-diff/instance-picker.js (#102).
  * Schema Diff now picks Base/Compare from the registered instances instead of a
  * file upload. The picker only owns the two <select> controls + keeps them in
  * sync with the registry; loadDiffFromInstances is injected (stubbed here).
@@ -21,13 +21,13 @@ if (typeof globalThis.localStorage === 'undefined') {
 import {
   initDiffInstancePicker,
   refreshDiffPicker,
-} from '../../src/viewer/modules/schema-diff/instance-picker.js';
+} from '../../src/modules/schema-diff/instance-picker.js';
 import {
   instancesState,
   addInstance,
   selectInstance,
   _resetInstances,
-} from '../../src/viewer/core/instances-state.js';
+} from '../../src/core/instances-state.js';
 
 const SCHEMA_DATA = { nodes: [{ id: 'task' }], edges: [] };
 const NO_SCHEMA = { nodes: [], edges: [] }; // schema cap false (no nodes)

@@ -2,15 +2,15 @@
  * @vitest-environment jsdom
  *
  * Unit tests for the edge-type legend export helpers in
- * src/viewer/modules/export/index.js. The module imports DOM-bound siblings
+ * src/modules/export/index.js. The module imports DOM-bound siblings
  * (Dom, canvas, render, Settings); we mock those so it imports in tests.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-vi.mock('../../src/viewer/core/dom.js', () => ({ Dom: {} }));
-vi.mock('../../src/viewer/engine/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
-vi.mock('../../src/viewer/engine/render.js', () => ({ typeLabel: t => t || '' }));
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/core/dom.js', () => ({ Dom: {} }));
+vi.mock('../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
+vi.mock('../../src/core/render.js', () => ({ typeLabel: t => t || '' }));
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: { initMaxPngScale() {}, getMaxPngScale: () => 20 },
 }));
 
@@ -30,7 +30,7 @@ import {
   _presentEdgeTypes,
   getExportIncludeLegend,
   setExportIncludeLegend,
-} from '../../src/viewer/modules/export/index.js';
+} from '../../src/modules/export/index.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

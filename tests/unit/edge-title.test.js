@@ -1,17 +1,17 @@
 /**
- * Unit tests for src/viewer/engine/edge-title.js — the edge tooltip text
+ * Unit tests for src/core/edge-title.js — the edge tooltip text
  * builder extracted from render.js (#73). makeEdgeTitleText() snapshots the
  * graph once and returns a per-edge title function.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 let tooltipInheritedRefs = false;
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: key => (key === 'tooltipInheritedRefs' ? tooltipInheritedRefs : false) },
 }));
 
-import { makeEdgeTitleText } from '../../src/viewer/engine/edge-title.js';
-import { graphState } from '../../src/viewer/core/state.js';
+import { makeEdgeTitleText } from '../../src/core/edge-title.js';
+import { graphState } from '../../src/core/state.js';
 
 // Edge data as it looks at render time: source/target are node objects.
 function nodeObj(id, label) {

@@ -4,7 +4,7 @@
  * Unit tests for the shared autocomplete keyboard-nav core (#42).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { attachAutocompleteKeys } from '../../src/viewer/shared/autocomplete-nav.js';
+import { attachAutocompleteKeys } from '../../src/core/autocomplete-nav.js';
 
 let input, dropdown, open;
 function rows() {

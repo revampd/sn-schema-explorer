@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/exporter/shared/schema-builder.js
+ * Unit tests for src/exporters/shared/schema-builder.js
  *
  * schema-builder.js is a pure ES5 UMD module with no DOM or runtime dependencies.
  * We load it via readFileSync + new Function to avoid all module-system friction.
@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let build, buildStreaming, _internal;
 
 beforeAll(() => {
-  const src = readFileSync(join(__dirname, '../../src/exporter/shared/schema-builder.js'), 'utf8');
+  const src = readFileSync(join(__dirname, '../../src/exporters/shared/schema-builder.js'), 'utf8');
   const mod = { exports: {} };
   new Function('module', 'exports', src)(mod, mod.exports);
   ({ build, buildStreaming, _internal } = mod.exports);

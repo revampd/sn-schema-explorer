@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/viewer/modules/path-finder/pathfinding.js
+ * Unit tests for src/modules/path-finder/pathfinding.js
  *
  * pathfinding.js depends on graphState and uiState from state.js.
  * We mock state.js and mutate graphState.graphData before each test.
@@ -8,13 +8,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // ── Mock state.js before importing the module under test ────────────────────
 // vi.mock is hoisted by vitest, so this runs before any imports below.
-vi.mock('../../src/viewer/core/state.js', () => ({
+vi.mock('../../src/core/state.js', () => ({
   graphState: { graphData: { nodes: [], edges: [] } },
   uiState: { pfExcludedHops: new Set() },
 }));
 
-import { graphState, uiState } from '../../src/viewer/core/state.js';
-import { Pathfinding } from '../../src/viewer/modules/path-finder/pathfinding.js';
+import { graphState, uiState } from '../../src/core/state.js';
+import { Pathfinding } from '../../src/modules/path-finder/pathfinding.js';
 
 const {
   tableToTable,

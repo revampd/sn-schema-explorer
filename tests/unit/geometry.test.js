@@ -1,11 +1,11 @@
 /**
- * Unit tests for src/viewer/engine/geometry.js
+ * Unit tests for src/core/geometry.js
  *
  * Geometry.makeEdgeGeom(halfW, halfH, minDist) returns a closure { clip, edgePath, bezierMid }.
  * All functions are pure math — no DOM or state dependencies.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { makeEdgeGeom } from '../../src/viewer/engine/geometry.js';
+import { makeEdgeGeom } from '../../src/core/geometry.js';
 
 // Use small, round numbers for easy manual verification.
 // halfW=10, halfH=10 → square box; minDist=50 → curves start at 50+ centre distance.

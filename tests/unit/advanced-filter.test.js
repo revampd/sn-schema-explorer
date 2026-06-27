@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/viewer/core/advanced-filter.js — filterOk / _evalOne.
+ * Unit tests for src/core/advanced-filter.js — filterOk / _evalOne.
  *
  * filterOk reads uiState.filterConditions and graphState.graphData.
  * Both are mocked so tests control state directly without DOM or module init.
@@ -10,10 +10,10 @@ import {
   countActiveFilters,
   clearAllFilters,
   syncSelectedScopes,
-} from '../../src/viewer/core/advanced-filter.js';
-import { graphState, uiState } from '../../src/viewer/core/state.js';
+} from '../../src/core/advanced-filter.js';
+import { graphState, uiState } from '../../src/core/state.js';
 
-vi.mock('../../src/viewer/core/state.js', () => {
+vi.mock('../../src/core/state.js', () => {
   const graphState = {
     graphData: null,
     scopeColorMap: {},
@@ -25,7 +25,7 @@ vi.mock('../../src/viewer/core/state.js', () => {
   return { graphState, uiState };
 });
 
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: {
     isCustomName: vi.fn(id => id.startsWith('u_') || id.startsWith('x_')),
   },

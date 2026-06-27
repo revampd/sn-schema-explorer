@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/modules/landing/index.js — the front-door landing
+ * Unit tests for src/modules/landing/index.js — the front-door landing
  * page (#101). Card-based layout: a grid of instance cards (with read-only
  * section status + per-instance tool icons) plus an Add-instance card.
  *
@@ -26,8 +26,8 @@ const { selectInstanceForGraph, setWorkspace, onWorkspaceChange } = vi.hoisted((
   setWorkspace: vi.fn(),
   onWorkspaceChange: vi.fn(),
 }));
-vi.mock('../../src/viewer/modules/load/index.js', () => ({ selectInstanceForGraph }));
-vi.mock('../../src/viewer/engine/workspace.js', () => ({ setWorkspace, onWorkspaceChange }));
+vi.mock('../../src/modules/load/index.js', () => ({ selectInstanceForGraph }));
+vi.mock('../../src/core/workspace.js', () => ({ setWorkspace, onWorkspaceChange }));
 
 import {
   registerTool,
@@ -35,8 +35,8 @@ import {
   refreshLanding,
   initLanding,
   _resetTools,
-} from '../../src/viewer/modules/landing/index.js';
-import { addInstance, _resetInstances } from '../../src/viewer/core/instances-state.js';
+} from '../../src/modules/landing/index.js';
+import { addInstance, _resetInstances } from '../../src/core/instances-state.js';
 
 const SCHEMA_DATA = {
   _instance: { instance_name: 'dev1' },

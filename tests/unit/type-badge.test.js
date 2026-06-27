@@ -1,11 +1,11 @@
 /**
- * Unit tests for src/viewer/engine/type-badge.js — the field type → badge
+ * Unit tests for src/core/type-badge.js — the field type → badge
  * colour / label helpers extracted from render.js (#73). Pure aside from
  * reading graphState.graphData._typeCatalog.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { typeBadgeColor, typeLabel } from '../../src/viewer/engine/type-badge.js';
-import { graphState } from '../../src/viewer/core/state.js';
+import { typeBadgeColor, typeLabel } from '../../src/core/type-badge.js';
+import { graphState } from '../../src/core/state.js';
 
 beforeEach(() => {
   graphState.graphData = null;

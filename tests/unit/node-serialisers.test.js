@@ -1,6 +1,6 @@
 /**
  * Unit tests for the Node extractor's format serialisers
- * (src/exporter/node/serialisers.js), extracted from the CLI in #73.
+ * (src/exporters/node/serialisers.js), extracted from the CLI in #73.
  *
  * The module is CommonJS-authored (like schema-builder.js) and has no internal
  * `require`s, so we load it via readFileSync + new Function — the same pattern as
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = readFileSync(join(__dirname, '../../src/exporter/node/serialisers.js'), 'utf8');
+const SRC = readFileSync(join(__dirname, '../../src/exporters/node/serialisers.js'), 'utf8');
 
 function loadSerialisers() {
   const moduleObj = { exports: {} };

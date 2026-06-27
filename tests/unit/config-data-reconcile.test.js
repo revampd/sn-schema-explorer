@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/viewer/modules/config-data/reconcile.js (#103).
+ * Unit tests for src/modules/config-data/reconcile.js (#103).
  * Pure N-way reconciliation of metadata sections + CSV export. No DOM.
  */
 import { describe, it, expect } from 'vitest';
@@ -8,7 +8,7 @@ import {
   reconcileToCsv,
   SECTION_CONFIG,
   STATUS_LABELS,
-} from '../../src/viewer/modules/config-data/reconcile.js';
+} from '../../src/modules/config-data/reconcile.js';
 
 // Build a registry-like instance entry carrying one metadata section.
 function inst(id, label, section, rows) {

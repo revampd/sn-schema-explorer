@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/engine/workspace.js — the top-level workspace
+ * Unit tests for src/core/workspace.js — the top-level workspace
  * controller (#100). A sibling of view-mode, not a 4th mode. Verifies the
  * registry/toggle mechanism, body[data-workspace] stamping, change listeners,
  * and that the default keeps the app on 'schema-explorer' with regions hidden.
@@ -14,8 +14,8 @@ import {
   getWorkspace,
   onWorkspaceChange,
   initWorkspaces,
-} from '../../src/viewer/engine/workspace.js';
-import { uiState } from '../../src/viewer/core/state.js';
+} from '../../src/core/workspace.js';
+import { uiState } from '../../src/core/state.js';
 
 function setupDom() {
   document.body.innerHTML = `

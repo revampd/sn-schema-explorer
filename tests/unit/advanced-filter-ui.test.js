@@ -1,20 +1,20 @@
 /**
  * @vitest-environment jsdom
  *
- * UI-level tests for the filter builder in src/viewer/core/advanced-filter.js
+ * UI-level tests for the filter builder in src/core/advanced-filter.js
  * (#47.5 / #46.6): buildFilterPanel DOM construction, add/remove, singleton
  * enforcement, operator cycling, and the active-filter badge.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { buildFilterPanel } from '../../src/viewer/core/advanced-filter.js';
-import { graphState, uiState } from '../../src/viewer/core/state.js';
+import { buildFilterPanel } from '../../src/core/advanced-filter.js';
+import { graphState, uiState } from '../../src/core/state.js';
 
-vi.mock('../../src/viewer/core/state.js', () => ({
+vi.mock('../../src/core/state.js', () => ({
   graphState: { graphData: null, scopeColorMap: {} },
   uiState: { filterConditions: [], selectedScopes: new Set() },
 }));
 
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: {
     isCustomName: id => id.startsWith('u_') || id.startsWith('x_'),
     isEnabled: () => false,

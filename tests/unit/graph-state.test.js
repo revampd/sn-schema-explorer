@@ -1,9 +1,9 @@
 /**
- * Unit tests for src/viewer/core/graph-state.js — the edge-id helpers and the
+ * Unit tests for src/core/graph-state.js — the edge-id helpers and the
  * shared index builder introduced in the Phase 3 refactor (M1/M3).
  */
 import { describe, it, expect } from 'vitest';
-import { edgeSourceId, edgeTargetId, buildIndexes } from '../../src/viewer/core/graph-state.js';
+import { edgeSourceId, edgeTargetId, buildIndexes } from '../../src/core/graph-state.js';
 
 function sampleGraph() {
   return {

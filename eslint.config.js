@@ -7,10 +7,10 @@ import prettier from 'eslint-config-prettier';
  *
  * The repo has four distinct execution environments, each with its own globals
  * and module system:
- *   - src/viewer/**            ESM, runs in the browser (d3 injected as a global)
- *   - src/exporter/node/**     CommonJS, runs in Node
- *   - src/exporter/shared/**   UMD (works in both Node and Rhino)
- *   - src/exporter/background/ ES5 script, runs inside ServiceNow (Rhino + Glide* globals)
+ *   - src/{core,modules,app}/**  ESM, runs in the browser (d3 injected as a global)
+ *   - src/exporters/node/**     CommonJS, runs in Node
+ *   - src/exporters/shared/**   UMD (works in both Node and Rhino)
+ *   - src/exporters/background/ ES5 script, runs inside ServiceNow (Rhino + Glide* globals)
  *
  * Rules are intentionally pragmatic — correctness/bug rules stay as errors,
  * stylistic concerns are delegated to Prettier (eslint-config-prettier disables them).
@@ -33,7 +33,7 @@ export default [
 
   // Browser viewer — ESM
   {
-    files: ['src/viewer/**/*.js'],
+    files: ['src/core/**/*.js', 'src/modules/**/*.js', 'src/app/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -44,7 +44,7 @@ export default [
 
   // Node CLI exporter — CommonJS (require / module.exports), ES5 var idioms
   {
-    files: ['src/exporter/node/**/*.js'],
+    files: ['src/exporters/node/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
@@ -56,7 +56,7 @@ export default [
 
   // Shared UMD builder — runs in both Node and Rhino
   {
-    files: ['src/exporter/shared/**/*.js'],
+    files: ['src/exporters/shared/**/*.js'],
     languageOptions: {
       ecmaVersion: 2020,
       sourceType: 'commonjs',
@@ -87,7 +87,7 @@ export default [
 
   // ServiceNow background script — ES5, Rhino engine, Glide* server globals
   {
-    files: ['src/exporter/background/**/*.js'],
+    files: ['src/exporters/background/**/*.js'],
     languageOptions: {
       ecmaVersion: 5,
       sourceType: 'script',

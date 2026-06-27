@@ -1,13 +1,13 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/modules/config-data/table-view.js (#104).
+ * Unit tests for src/modules/config-data/table-view.js (#104).
  * Pure DOM rendering of a reconcile() result: columns, status chips, the
  * store-app update indicator, active/inactive dots, dates toggle, and filtering.
  */
 import { describe, it, expect } from 'vitest';
-import { renderComparisonTable } from '../../src/viewer/modules/config-data/table-view.js';
-import { reconcile } from '../../src/viewer/modules/config-data/reconcile.js';
+import { renderComparisonTable } from '../../src/modules/config-data/table-view.js';
+import { reconcile } from '../../src/modules/config-data/reconcile.js';
 
 const inst = (id, label, section, rows) => ({
   id,

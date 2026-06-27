@@ -1,14 +1,14 @@
 /**
- * Unit tests for src/viewer/engine/compute.js — computeNeighbourhood.
+ * Unit tests for src/core/compute.js — computeNeighbourhood.
  *
  * computeNeighbourhood reads from graphState/uiState/diffState and Settings.
  * Both are mocked so tests control state directly without DOM or module init.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { computeNeighbourhood } from '../../src/viewer/engine/compute.js';
-import { graphState, uiState } from '../../src/viewer/core/state.js';
+import { computeNeighbourhood } from '../../src/core/compute.js';
+import { graphState, uiState } from '../../src/core/state.js';
 
-vi.mock('../../src/viewer/core/state.js', () => {
+vi.mock('../../src/core/state.js', () => {
   const graphState = {
     graphData: { nodes: [], edges: [], _adj: null, _nodeById: null, _edgeCnt: {} },
   };
@@ -35,7 +35,7 @@ vi.mock('../../src/viewer/core/state.js', () => {
   return { graphState, uiState, diffState, edgeSourceId, edgeTargetId };
 });
 
-vi.mock('../../src/viewer/modules/settings/index.js', () => ({
+vi.mock('../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: vi.fn().mockReturnValue(false) },
 }));
 

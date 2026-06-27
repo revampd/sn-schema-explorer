@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/exporter/node/sn-schema-export.node.js
+ * Unit tests for src/exporters/node/sn-schema-export.node.js
  *
  * The exporter is a CommonJS-authored CLI living in an ESM package, so we load
  * it the same way schema-builder.test.js loads the UMD builder: readFileSync +
@@ -15,7 +15,7 @@ import { join, dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = readFileSync(
-  join(__dirname, '../../src/exporter/node/sn-schema-export.node.js'),
+  join(__dirname, '../../src/exporters/node/sn-schema-export.node.js'),
   'utf8'
 ).replace(/^#!.*\n/, ''); // strip shebang — invalid inside a Function body
 

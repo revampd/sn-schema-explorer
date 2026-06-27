@@ -1,12 +1,12 @@
 /**
- * Unit tests for serializeState / restoreState in src/viewer/core/state.js (#47.2).
+ * Unit tests for serializeState / restoreState in src/core/state.js (#47.2).
  *
  * state.js only touches uiState (and a restore callback) — no DOM — so we can
  * import the real singletons and exercise the round-trip directly.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { serializeState, restoreState } from '../../src/viewer/core/state.js';
-import { uiState } from '../../src/viewer/core/state.js';
+import { serializeState, restoreState } from '../../src/core/state.js';
+import { uiState } from '../../src/core/state.js';
 
 beforeEach(() => {
   // Reset the fields the serialiser touches to known defaults.

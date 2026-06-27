@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/core/instances-state.js — the multi-instance
+ * Unit tests for src/core/instances-state.js — the multi-instance
  * registry (#99). Pure state + helpers: registration, capability detection
  * (presence-based, older-export tolerant), aggregation, and list-only
  * persistence that never stores the heavy `data`.
@@ -31,7 +31,7 @@ import {
   persist,
   loadPersisted,
   _resetInstances,
-} from '../../src/viewer/core/instances-state.js';
+} from '../../src/core/instances-state.js';
 
 const STORAGE_KEY = 'snse:instances:v1';
 
