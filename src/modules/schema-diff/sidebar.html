@@ -1,20 +1,6 @@
-  <!-- DIFF SIDEBAR — shown when viewMode === 'diff' -->
+  <!-- DIFF SIDEBAR — shown on the Schema Map while a comparison is active.
+       Base/Compare/Swap live in the header (#141); this is the change report. -->
   <div id="diff-sidebar">
-    <!-- Base / Compare pickers — populated from the registered instances -->
-    <div class="diff-picker" id="diff-instance-picker">
-      <div class="diff-picker-row">
-        <span class="diff-picker-label">Base</span>
-        <div class="diff-picker-control" id="diff-base-mount"></div>
-      </div>
-      <div class="diff-picker-swap-row">
-        <button class="diff-swap-btn" id="diff-swap-btn" title="Swap base and compare" aria-label="Swap base and compare" disabled>⇄</button>
-      </div>
-      <div class="diff-picker-row">
-        <span class="diff-picker-label">Compare</span>
-        <div class="diff-picker-control" id="diff-compare-mount"></div>
-      </div>
-      <div class="diff-picker-empty" id="diff-picker-empty" style="display:none">Register a second instance on the Home page to compare.</div>
-    </div>
     <!-- Export method mismatch warning — shown when base and compare schemas use different export_mode -->
     <div class="diff-mode-warn" id="diff-mode-warn" style="display:none"></div>
     <!-- Summary counts — visible once a diff is loaded -->

@@ -212,12 +212,12 @@ test.describe('Schema Diff interactions', () => {
     await expect(page.locator('#diff-n-added')).toHaveText('1');
     await expect(page.locator('#diff-n-removed')).toHaveText('0');
 
-    await page.locator('#diff-swap-btn').click();
+    await page.locator('#header-swap').click();
 
-    // The two pickers swap: base becomes test-instance-b, compare becomes the
+    // The header pickers swap: Base becomes test-instance-b, Compare becomes the
     // previous base (test-instance) — not cleared.
-    await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
-    await expect(page.locator('#diff-compare-mount .sn-dd-label')).toHaveText('test-instance');
+    await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
+    await expect(page.locator('#header-compare .sn-dd-label')).toHaveText('vs test-instance');
 
     // Direction 2 must INVERT: `problem` is now in base but not compare → 1
     // removed, 0 added. (Regression: grafting polluted the outgoing base's

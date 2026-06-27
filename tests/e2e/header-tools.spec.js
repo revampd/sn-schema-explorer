@@ -145,5 +145,6 @@ test('with a comparison active, the header dropdown switches the Base (synced wi
   await page.locator('#header-instance .sn-dd-btn').click();
   await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'test-instance-b' }).click();
   await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
-  await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
+  // The comparison follows the new base (still showing the diff sidebar).
+  await expect(page.locator('#diff-sidebar')).toBeVisible();
 });

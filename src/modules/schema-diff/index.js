@@ -39,7 +39,6 @@ import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
 import { makeConfigDrift, tablesForApp } from './config-drift.js';
 import { diffBuildConfigList } from './config-list.js';
-import { initDiffInstancePicker, refreshDiffPicker } from './instance-picker.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -155,7 +154,6 @@ function loadDiffFromInstances(baseId, compareId) {
   }
   if (!compareId) {
     clearDiff();
-    refreshDiffPicker();
     return;
   }
   const compareEntry = getInstance(compareId);
@@ -168,7 +166,6 @@ function loadDiffFromInstances(baseId, compareId) {
   // sidebar config block, which resolves the compare instance from diffState.
   setCompareId(compareId);
   loadDiffSchema(compareClone);
-  refreshDiffPicker();
 }
 
 /** Clear the active comparison (ungraft + reset diff state), keeping the base. */
@@ -209,7 +206,6 @@ function diffSyncSidebar() {
   if (!document.getElementById('diff-sidebar')) return;
   syncSidebarForMode();
   if (isComparing()) {
-    refreshDiffPicker();
     diffUpdateSummary();
     diffBuildList();
   }
@@ -365,8 +361,6 @@ addRenderHook(() => diffApplyOverlays());
 setFillInspectorHook(diffFillInspector);
 
 // ── Diff instance picker wiring ───────────────────────────────────────────────
-
-initDiffInstancePicker({ loadDiffFromInstances });
 
 // ── Diff sidebar event delegation ─────────────────────────────────────────────
 
@@ -554,6 +548,26 @@ export function refreshHeaderCompare() {
       .map(e => ({ value: e.id, label: 'vs ' + e.label })),
   ];
   _cmpDd.setOptions(opts, diffState._compareId || NO_COMPARE);
+  refreshHeaderSwap(eligible);
+}
+
+// Header swap button — flips Base and Compare (replaces the old sidebar swap).
+let _swapWired = false;
+function refreshHeaderSwap(eligible) {
+  const btn = document.getElementById('header-swap');
+  if (!btn) return;
+  if (!_swapWired) {
+    btn.addEventListener('click', () => {
+      const base = instancesState.selectedId;
+      const cmp = diffState._compareId;
+      if (!cmp) return; // nothing to swap into the base slot
+      loadDiffFromInstances(cmp, base);
+      refreshHeaderCompare();
+    });
+    _swapWired = true;
+  }
+  btn.style.display = eligible ? '' : 'none';
+  btn.disabled = !isComparing();
 }
 
 onWorkspaceChange(() => refreshHeaderCompare());

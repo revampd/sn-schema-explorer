@@ -21,7 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   comparison. Switching the loaded instance re-runs the comparison against the new
   base; clearing the Compare dropdown returns to the plain map. The separate
   "Diff" tab/view-mode is gone (the only views are now the map and Path Finder).
-  The header **Compare** picker is built to take more layers over time.
+  Base, Compare, and a **swap (⇄)** control all live in the header; the old diff
+  sidebar Base/Swap/Compare section is removed (the sidebar is now purely the
+  change report). The header **Compare** picker is built to take more layers over
+  time.
 
 ### Fixed
 
