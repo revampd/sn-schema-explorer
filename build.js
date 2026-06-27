@@ -8,9 +8,17 @@
  *   node build.js all           → all of the above
  * ============================================================================ */
 import * as esbuild from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync, existsSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  copyFileSync,
+  unlinkSync,
+  existsSync,
+  readdirSync,
+} from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const rel = (...p) => join(__dir, ...p);
@@ -35,78 +43,127 @@ const BUILD_VERSION_HTML = `<span class="footer-build">${_pkg.version}-${_buildD
 
 // ── Target definitions ───────────────────────────────────────────────────────
 
-const BASE_CSS = [
-  // core styles split into cohesive partials (#73); order is the cascade order —
-  // keep these contiguous and in sequence.
-  'src/viewer/styles/base.css',
-  'src/viewer/styles/panels.css',
-  'src/viewer/styles/header.css',
-  'src/viewer/styles/footer.css',
-  'src/viewer/modules/export/index.css',
-  'src/viewer/modules/load/index.css',
-  'src/viewer/modules/saved-views/index.css',
-  // schema-map styles split into cohesive partials (#73); order is the cascade
-  // order — keep these contiguous and in sequence.
-  'src/viewer/modules/schema-map/sidebar.css',
-  'src/viewer/modules/schema-map/canvas.css',
-  'src/viewer/modules/schema-map/edges.css',
-  'src/viewer/modules/schema-map/chrome.css',
-  'src/viewer/shared/inspector.css',
-  'src/viewer/modules/reference/index.css',
-  'src/viewer/modules/guide/index.css',
-  'src/viewer/modules/settings/index.css',
-  'src/viewer/styles/workspace.css',
-  'src/viewer/modules/landing/index.css',
-  'src/viewer/modules/instance-compare/index.css',
-];
-
 const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
     Not affiliated with or endorsed by ServiceNow, Inc. ServiceNow is a registered trademark of ServiceNow, Inc.
   </span>`;
 
+// ── Manifest-driven assembly ───────────────────────────────────────────────
+// app.meta.js (core/app styles) plus each modules/<name>/module.meta.js are the
+// single source of truth for the build's path arrays. We glob the manifests and
+// assemble the CSS cascade (sorted by the shared `order` scale), the base + per-
+// feature HTML partials, the guide tab order, and the enabled-feature list — so
+// adding a feature is just dropping a folder with a manifest, no edits here.
+const MODULES_DIR = 'src/modules';
+
+async function loadManifests() {
+  const core = (await import(pathToFileURL(rel('src/app/app.meta.js')).href)).default;
+  const modules = [];
+  for (const name of readdirSync(rel(MODULES_DIR)).sort()) {
+    const metaPath = rel(MODULES_DIR, name, 'module.meta.js');
+    if (!existsSync(metaPath)) continue;
+    const m = { ...(await import(pathToFileURL(metaPath).href)).default };
+    m._dir = `${MODULES_DIR}/${name}`; // repo-relative module dir for path joins
+    modules.push(m);
+  }
+  return { core, modules };
+}
+
+// A module's assets are included when it declares no feature, or its feature is
+// enabled in the target.
+const moduleIncluded = (m, features) => !m.feature || features.includes(m.feature);
+
+// The single app target enables every feature any module declares. Sorted by
+// module `order` so feature-iteration order (e.g. toolbar-extras concatenation)
+// is deterministic.
+function deriveFeatures(modules) {
+  return [
+    ...new Set(
+      modules
+        .filter(m => m.feature)
+        .sort((a, b) => a.order - b.order)
+        .map(m => m.feature)
+    ),
+  ];
+}
+
+function assembleCss(core, modules, features) {
+  const entries = core.css.map(c => ({ file: c.file, order: c.order }));
+  for (const m of modules) {
+    if (!moduleIncluded(m, features)) continue;
+    for (const c of m.css || []) entries.push({ file: `${m._dir}/${c.file}`, order: c.order });
+  }
+  return entries.sort((a, b) => a.order - b.order).map(e => e.file);
+}
+
+// Base partials replace fixed shell.html markers, so injection order does not
+// affect output; we still sort by module order for a stable, readable build.
+function assembleBasePartials(modules, features) {
+  const out = [];
+  for (const m of [...modules].sort((a, b) => a.order - b.order)) {
+    if (!moduleIncluded(m, features) || !m.partials) continue;
+    for (const [marker, file] of Object.entries(m.partials))
+      out.push([marker, `${m._dir}/${file}`]);
+  }
+  return out;
+}
+
+function assembleFeaturePartials(modules) {
+  const fp = {};
+  for (const m of modules) {
+    if (!m.featurePartials) continue;
+    fp[m.feature] = fp[m.feature] || {};
+    for (const [k, file] of Object.entries(m.featurePartials))
+      fp[m.feature][k] = `${m._dir}/${file}`;
+  }
+  return fp;
+}
+
+// Guide tabs concatenate in `order` — that order IS the visible tab order.
+function assembleGuideModules(modules) {
+  const g = [];
+  for (const m of modules) {
+    for (const gi of m.guide || []) {
+      g.push({ file: `${m._dir}/${gi.file}`, order: gi.order, feature: m.feature });
+    }
+  }
+  return g.sort((a, b) => a.order - b.order);
+}
+
+// Feature modules the app entry imports directly, in module `order`. The core
+// platform + bootstrap (init + hook injection) live in src/app/main.js, imported
+// first; these self-registering feature modules are imported after it.
+function assembleFeatureEntries(modules) {
+  return modules
+    .filter(m => m.entryImports)
+    .sort((a, b) => a.order - b.order)
+    .flatMap(m => m.entryImports.map(f => `${m._dir}/${f}`));
+}
+
+// Populated by initBuild() from the manifests before any viewer build runs.
+let FEATURE_PARTIALS = {};
+let GUIDE_MODULES = [];
+let BASE_PARTIALS = [];
 const VIEWER_TARGETS = {
   app: {
-    entry: rel('src/viewer/entries/full.js'),
-    css: [
-      ...BASE_CSS,
-      'src/viewer/modules/path-finder/index.css',
-      'src/viewer/modules/schema-diff/index.css',
-    ],
-    features: ['path-finder', 'schema-diff', 'setup', 'instanceCompare'],
+    main: rel('src/app/main.js'),
+    featureEntries: [],
+    css: [],
+    features: [],
     title: 'Schema Explorer',
     output: rel('dist/sn_schema_explorer.html'),
   },
 };
 
-// HTML partials injected per feature
-const FEATURE_PARTIALS = {
-  'path-finder': {
-    toolbar: 'src/viewer/modules/path-finder/toolbar.html',
-    'pf-sidebar': 'src/viewer/modules/path-finder/sidebar.html',
-  },
-  'schema-diff': {
-    toolbar: 'src/viewer/modules/schema-diff/toolbar.html',
-    'diff-sidebar': 'src/viewer/modules/schema-diff/sidebar.html',
-  },
-  setup: {
-    'setup-instructions': 'src/viewer/modules/load/setup-instructions.html',
-  },
-};
-
-// Ordered list of all guide modules — determines tab order in the guide modal.
-// feature: optional — only included when that feature is in the target's features array.
-const GUIDE_MODULES = [
-  { file: 'src/viewer/modules/guide/guide-overview.html' },
-  { file: 'src/viewer/modules/landing/guide.html' },
-  { file: 'src/viewer/modules/guide/guide-navigation.html' },
-  { file: 'src/viewer/modules/schema-map/guide-filters.html' },
-  { file: 'src/viewer/modules/guide/guide-inspector.html' },
-  { file: 'src/viewer/modules/settings/guide.html' },
-  { file: 'src/viewer/modules/schema-map/guide-tips.html' },
-  { file: 'src/viewer/modules/path-finder/guide.html', feature: 'path-finder' },
-  { file: 'src/viewer/modules/schema-diff/guide.html', feature: 'schema-diff' },
-  { file: 'src/viewer/modules/instance-compare/guide.html', feature: 'instanceCompare' },
-];
+async function initBuild() {
+  const { core, modules } = await loadManifests();
+  const features = deriveFeatures(modules);
+  VIEWER_TARGETS.app.features = features;
+  VIEWER_TARGETS.app.css = assembleCss(core, modules, features);
+  VIEWER_TARGETS.app.featureEntries = assembleFeatureEntries(modules);
+  BASE_PARTIALS = assembleBasePartials(modules, features);
+  FEATURE_PARTIALS = assembleFeaturePartials(modules);
+  GUIDE_MODULES = assembleGuideModules(modules);
+}
 
 function assembleGuide(features) {
   let tabs = '',
@@ -139,24 +196,6 @@ function assembleGuide(features) {
   return { tabs, panels };
 }
 
-// Base HTML partials — always injected (not feature-gated).
-// Order matters: partials that contain sub-markers must come before those sub-markers.
-const BASE_PARTIALS = [
-  // marker                     file path
-  ['export-toolbar', 'src/viewer/modules/export/toolbar.html'],
-  ['schema-map-sidebar', 'src/viewer/modules/schema-map/sidebar.html'],
-  ['schema-map-overlays', 'src/viewer/modules/schema-map/canvas-overlays.html'],
-  // Landing page front door (v1.0.3) — contains the <!--INJECT:setup-instructions-->
-  // sub-marker, so it must precede the feature-partial pass.
-  ['landing-root', 'src/viewer/modules/landing/landing.html'],
-  // Instance Comparison region — still an empty stub until its module lands.
-  ['instance-compare', 'src/viewer/modules/instance-compare/region.html'],
-  ['context-menu', 'src/viewer/modules/schema-map/context-menu.html'],
-  ['reference-modal', 'src/viewer/modules/reference/modal.html'],
-  ['settings-modal', 'src/viewer/modules/settings/modal.html'],
-  ['guide-modal', 'src/viewer/modules/guide/modal.html'],
-];
-
 // ── Viewer build ─────────────────────────────────────────────────────────────
 
 async function buildViewer(targetName) {
@@ -168,11 +207,23 @@ async function buildViewer(targetName) {
 
   console.log(`Building ${targetName}...`);
 
-  // 1. Bundle JS with esbuild
+  // 1. Bundle JS with esbuild. The entry is synthesized from the manifests:
+  //    main.js (core platform + bootstrap init) is imported first, then each
+  //    self-registering feature module in manifest order. Equivalent to the old
+  //    full.js (= lite.js + feature imports), now manifest-driven.
+  const entryContents =
+    [t.main, ...t.featureEntries.map(p => rel(p))]
+      .map(p => `import ${JSON.stringify(p)};`)
+      .join('\n') + '\n';
   let bundledJS = '';
   try {
     const result = await esbuild.build({
-      entryPoints: [t.entry],
+      stdin: {
+        contents: entryContents,
+        resolveDir: __dir,
+        sourcefile: 'main.entry.js',
+        loader: 'js',
+      },
       bundle: true,
       format: 'iife',
       target: 'es2020',
@@ -194,7 +245,7 @@ async function buildViewer(targetName) {
   const css = t.css.map(f => readFileSync(rel(f), 'utf8')).join('\n');
 
   // 3. Read shell template
-  let html = readFileSync(rel('src/viewer/html/shell.html'), 'utf8');
+  let html = readFileSync(rel('src/app/shell.html'), 'utf8');
 
   // 4. Resolve feature HTML partials
   const toolbarExtras = resolvePartials(t.features, 'toolbar');
@@ -297,7 +348,7 @@ function resolvePartialFile(features, featureName, key) {
 
 function buildExporter() {
   console.log('Building exporter...');
-  const root = rel('src/exporter');
+  const root = rel('src/exporters');
   const distDir = rel('dist/exporter');
   mkdirSync(distDir, { recursive: true });
   mkdirSync(join(distDir, 'shared'), { recursive: true });
@@ -390,6 +441,12 @@ if (args.length === 0) {
 }
 
 const targets = args.includes('all') ? ['exporter', 'app'] : args;
+
+// Assemble the build's path arrays from the per-module manifests before any
+// viewer build consumes them.
+if (targets.includes('app')) {
+  await initBuild();
+}
 
 // app reads dist/exporter/* for the Setup Instructions tab — build exporter first.
 if (targets.includes('app') && !targets.includes('exporter')) {

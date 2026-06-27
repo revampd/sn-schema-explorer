@@ -1,0 +1,243 @@
+/* ── Configuration Data workspace (v1.0.3) ─────────────────────────────────
+ * Occupies the content rows like the landing page; the graph chrome is hidden
+ * by styles/workspace.css while this workspace is active. */
+.cd-workspace {
+  grid-column: 1 / -1;
+  grid-row: 2 / 5;
+  overflow: auto;
+  background: var(--bg);
+  z-index: 5;
+}
+.cd-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+.cd-head {
+  margin-bottom: 20px;
+}
+.cd-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.cd-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-top: 6px;
+}
+.cd-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Section tabs */
+.cd-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.cd-tab {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.cd-tab:hover:not(:disabled) {
+  border-color: var(--sn-wasabi);
+  color: var(--text);
+}
+.cd-tab.active {
+  background: var(--sn-wasabi);
+  border-color: var(--sn-wasabi);
+  color: var(--sn-infinite);
+  font-weight: 700;
+}
+.cd-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.cd-tab-cnt {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 6px;
+}
+
+/* Controls row */
+.cd-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.cd-controls input[type='text'],
+.cd-controls select {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.cd-controls input[type='text'] {
+  min-width: 220px;
+}
+.cd-controls select option {
+  background: var(--sn-infinite);
+}
+.cd-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+#cd-export {
+  margin-left: auto;
+}
+
+/* Stat tiles */
+.cd-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 760px) {
+  .cd-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.cd-stat {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.cd-stat-v {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cd-stat-k {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.cd-stat-sync .cd-stat-v {
+  color: var(--sn-wasabi);
+}
+.cd-stat-drift .cd-stat-v {
+  color: var(--edge-warn);
+}
+.cd-stat-missing .cd-stat-v {
+  color: var(--diff-removed);
+}
+.cd-stat-state .cd-stat-v {
+  color: #52b8ff;
+}
+
+/* Table */
+.cd-table-wrap {
+  padding: 6px;
+  overflow-x: auto;
+}
+.cd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.cd-table thead th {
+  text-align: left;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 400;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--glass-border);
+  white-space: nowrap;
+}
+.cd-table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+}
+.cd-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.cd-name {
+  font-weight: 600;
+}
+.cd-key {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cd-miss {
+  color: var(--muted);
+}
+.cd-ver,
+.cd-val {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+.cd-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.cd-dot-on {
+  background: var(--sn-wasabi);
+}
+.cd-dot-off {
+  background: transparent;
+  border: 1.5px solid var(--diff-removed);
+}
+.cd-dot-unk {
+  background: var(--muted);
+}
+.cd-update {
+  display: inline-block;
+  margin-left: 7px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--edge-warn);
+}
+.cd-dates {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.cd-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 16px;
+  font-size: 14px;
+}

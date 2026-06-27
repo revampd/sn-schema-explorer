@@ -1,0 +1,35 @@
+<!-- Configuration Data workspace region (populated by modules/config-data). -->
+<div id="config-data" class="workspace-region cd-workspace">
+  <div class="cd-inner">
+    <div class="cd-head">
+      <div class="cd-eyebrow">Cross-instance comparison</div>
+      <div class="cd-title">Configuration Data</div>
+      <div class="cd-sub">Reconcile plugins, store apps, custom apps &amp; system properties across your registered instances.</div>
+    </div>
+
+    <!-- Section tab bar (rendered by index.js; tabs disable when &lt;2 instances carry the section) -->
+    <div class="cd-tabs" id="cd-tabs"></div>
+
+    <div class="cd-controls">
+      <input type="text" id="cd-search" placeholder="Search name or key…" autocomplete="off" spellcheck="false">
+      <select id="cd-filter" title="Filter rows by status">
+        <option value="all">All rows</option>
+        <option value="diff">Differences only</option>
+        <option value="missing">Missing somewhere</option>
+        <option value="drift">Version drift</option>
+        <option value="active">State mismatch</option>
+        <option value="inactive">Inactive everywhere</option>
+      </select>
+      <label class="cd-toggle"><input type="checkbox" id="cd-showdates"> Show dates</label>
+      <button class="btn" id="cd-export">Export CSV</button>
+    </div>
+
+    <!-- Stat tiles (rendered by index.js) -->
+    <div class="cd-stats" id="cd-stats"></div>
+
+    <div class="cd-table-wrap glass" id="cd-table-wrap">
+      <table class="cd-table" id="cd-table"><thead></thead><tbody></tbody></table>
+    </div>
+    <div class="cd-empty" id="cd-empty" style="display:none"></div>
+  </div>
+</div>

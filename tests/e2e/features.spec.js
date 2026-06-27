@@ -175,8 +175,8 @@ test.describe('Schema Diff', () => {
   });
 });
 
-// ── Instance Comparison ─────────────────────────────────────────────────────
-test.describe('Instance Comparison', () => {
+// ── Configuration Data ─────────────────────────────────────────────────────
+test.describe('Configuration Data', () => {
   // A schema export carrying a plugins metadata section.
   const withPlugins = (name, xVersion) => ({
     _instance: { instance_name: name },
@@ -201,26 +201,26 @@ test.describe('Instance Comparison', () => {
   test('compares a metadata section across instances and exports CSV', async ({
     page,
   }, testInfo) => {
-    await loadApp(page, { enableFeatures: { instanceCompare: true } });
+    await loadApp(page, { enableFeatures: { configData: true } });
     await register(page, withPlugins('dev', '1.0'), 'dev.json');
     await register(page, withPlugins('prod', '1.1'), 'prod.json');
 
     // Launch the comparison from an instance card.
     const card = page.locator('.inst-card:not(.add-card)').first();
-    await card.locator('[data-tool="instanceCompare"]').click();
-    await expect(page.locator('#instance-compare')).toBeVisible();
+    await card.locator('[data-tool="configData"]').click();
+    await expect(page.locator('#config-data')).toBeVisible();
 
     // Plugins tab active by default; the table shows a column per instance.
-    await expect(page.locator('.ic-tab.active')).toContainText('Plugins');
-    await expect(page.locator('.ic-table tbody tr')).toHaveCount(2); // com.x, com.y
+    await expect(page.locator('.cd-tab.active')).toContainText('Plugins');
+    await expect(page.locator('.cd-table tbody tr')).toHaveCount(2); // com.x, com.y
     // com.x drifts (1.0 vs 1.1) → at least one Drift chip.
-    await expect(page.locator('.ic-table .pill-badge', { hasText: 'Drift' }).first()).toBeVisible();
+    await expect(page.locator('.cd-table .pill-badge', { hasText: 'Drift' }).first()).toBeVisible();
 
     // Export CSV triggers a download.
     const downloadPromise = page.waitForEvent('download');
-    await page.locator('#ic-export').click();
+    await page.locator('#cd-export').click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/plugins_comparison\.csv$/);
+    expect(download.suggestedFilename()).toMatch(/plugins_configuration\.csv$/);
     void testInfo;
   });
 });
