@@ -1,5 +1,6 @@
 import { instancesState, diffState } from '../../core/state.js';
 import { createDropdown } from '../../core/dropdown.js';
+import { refreshHeaderInstance } from '../../core/header-instance.js';
 
 // ── Diff instance picker ──────────────────────────────────────────────────────
 //
@@ -51,6 +52,9 @@ export function refreshDiffPicker() {
 
   const swapBtn = document.getElementById('diff-swap-btn');
   if (swapBtn) swapBtn.disabled = !cmpDD.getValue();
+
+  // Keep the header instance dropdown (which shows the Base in diff view) in sync.
+  refreshHeaderInstance();
 }
 
 export function initDiffInstancePicker({ loadDiffFromInstances }) {

@@ -11,7 +11,13 @@
 
 import { instancesState, aggregateCapabilities, METADATA_SECTIONS } from '../../core/state.js';
 import { Settings } from '../settings/index.js';
-import { setWorkspace, registerWorkspace, onWorkspaceChange } from '../../core/workspace.js';
+import {
+  setWorkspace,
+  getWorkspace,
+  registerWorkspace,
+  onWorkspaceChange,
+} from '../../core/workspace.js';
+import { registerSwitcherTool, refreshToolSwitcher } from '../../core/tool-switcher.js';
 import { registerTool, refreshLanding } from '../landing/index.js';
 import { reconcile, reconcileToCsv, reconcileToJson, SECTION_LABELS } from './reconcile.js';
 import { renderComparisonTable } from './table-view.js';
@@ -374,8 +380,25 @@ export function initConfigData() {
     enter: () => openConfigData(),
   });
 
-  // Reflect the icon's enabled state on the landing page when the feature toggles.
-  Settings.onChange('configData', () => refreshLanding());
+  // Header tool switcher entry — its own workspace, available whenever the
+  // landing tool is (feature on + ≥1 instance carries a metadata section).
+  registerSwitcherTool({
+    key: 'config',
+    label: 'Config',
+    icon: '▦',
+    title: 'Configuration Data',
+    order: 40,
+    enabled: () => Settings.isEnabled('configData') && hasComparable(),
+    isActive: () => getWorkspace() === 'config-data',
+    activate: () => openConfigData(),
+  });
+
+  // Reflect the icon's enabled state on the landing page + header switcher when
+  // the feature toggles.
+  Settings.onChange('configData', () => {
+    refreshLanding();
+    refreshToolSwitcher();
+  });
 }
 
 // Self-initialise at module load (mirrors schema-diff). full.js imports this

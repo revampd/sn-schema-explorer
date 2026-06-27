@@ -36,10 +36,8 @@ export function setViewMode(mode, opts = {}) {
 
   uiState.viewMode = mode;
 
-  // Sync segmented control active state
-  document.querySelectorAll('#view-mode-seg .vms-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.vm === mode);
-  });
+  // (The header tool switcher reflects the active mode via its onViewModeChange
+  // listener — no segmented control to sync here anymore.)
 
   // Sync sidebar title
   const titleEl = document.getElementById('sidebar-title');

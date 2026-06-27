@@ -26,7 +26,6 @@ body:not([data-workspace='schema-explorer']) #filter-bar {
 }
 body:not([data-workspace='schema-explorer']) .search-wrap,
 body:not([data-workspace='schema-explorer']) #scope-filter-btn,
-body:not([data-workspace='schema-explorer']) #view-mode-seg,
 body:not([data-workspace='schema-explorer']) #btn-hist-back,
 body:not([data-workspace='schema-explorer']) #btn-hist-fwd,
 body:not([data-workspace='schema-explorer']) #btn-refresh,

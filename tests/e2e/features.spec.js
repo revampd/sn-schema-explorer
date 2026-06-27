@@ -69,7 +69,7 @@ test.describe('Path Finder', () => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await expect(page.locator('#pf-sidebar')).toBeVisible();
 
     // incident → task (extends) → sys_user (reference)
@@ -88,7 +88,7 @@ test.describe('Path Finder', () => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await expect(page.locator('#pf-sidebar')).toBeVisible();
 
     // Hop exclusions section should precede the Find button in DOM order
@@ -105,7 +105,7 @@ test.describe('Path Finder', () => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await page.locator('#pf-source').fill('incident');
     await page.locator('#pf-target').fill('sys_user');
     await page.locator('#pf-find').click();

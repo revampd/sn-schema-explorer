@@ -10,6 +10,11 @@ import { clearIndicators } from '../../core/indicators.js';
 import { buildTableList } from '../../core/table-list.js';
 import { syncSidebarForMode } from '../../core/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../core/view-mode.js';
+import { setWorkspace, getWorkspace } from '../../core/workspace.js';
+import { registerSwitcherTool, refreshToolSwitcher } from '../../core/tool-switcher.js';
+import { registerTool, refreshLanding } from '../landing/index.js';
+import { selectInstanceForGraph } from '../load/index.js';
+import { instancesState, getInstance } from '../../core/instances-state.js';
 import { getPfConfig, pfConfigSyncVisibility, pfConfigWireInputs } from './config.js';
 import { initExclusions } from './exclusions.js';
 import { pfState } from './pf-state.js';
@@ -55,11 +60,6 @@ function pfReRunIfActive() {
 
 // Register path view renderer
 setModeRenderer('path', renderPathView);
-
-// Wire up view-mode segmented control buttons
-document.querySelectorAll('#view-mode-seg .vms-btn').forEach(btn => {
-  btn.addEventListener('click', () => setViewMode(btn.dataset.vm));
-});
 
 // ── Mode change registration ──────────────────────────────────────────────────
 
@@ -320,12 +320,49 @@ export function pfRunSearch() {
 
 function pfSyncVisibility() {
   const enabled = Settings.isEnabled('pathFinding');
-  const segBtn = document.getElementById('vms-path');
-  if (segBtn) segBtn.style.display = enabled ? '' : 'none';
+  // The Path Finder entry is shown/hidden by the header tool switcher's enabled()
+  // gate; just refresh it, and leave path view if the feature was turned off.
+  refreshToolSwitcher();
+  refreshLanding();
   if (!enabled && uiState.viewMode === 'path') {
     setViewMode('force');
   }
 }
+
+// Schema-capable instance currently loaded? (gates the graph-view tools)
+function pfSelectedHasSchema() {
+  const e = instancesState.selectedId && getInstance(instancesState.selectedId);
+  return !!(e && e.capabilities && e.capabilities.schema);
+}
+
+// Header tool switcher entry + landing instance-card tool.
+registerSwitcherTool({
+  key: 'path',
+  label: 'Path Finder',
+  icon: '⤳',
+  order: 20,
+  enabled: () => Settings.isEnabled('pathFinding') && pfSelectedHasSchema(),
+  isActive: () => getWorkspace() === 'schema-explorer' && uiState.viewMode === 'path',
+  activate: () => {
+    setWorkspace('schema-explorer');
+    setViewMode('path');
+  },
+});
+registerTool({
+  key: 'pathFinder',
+  label: 'Open in Path Finder',
+  icon: '⤳',
+  requires: ['schema'],
+  minInstances: 1,
+  enabled: () => Settings.isEnabled('pathFinding'),
+  disabledHint: 'Enable Path Finder in Settings',
+  enter: id => {
+    if (selectInstanceForGraph(id)) {
+      setWorkspace('schema-explorer');
+      setViewMode('path');
+    }
+  },
+});
 
 // ── Inspector field ⤳ link factory ──────────────────────────────────────────
 

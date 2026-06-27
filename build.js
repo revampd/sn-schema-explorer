@@ -248,7 +248,6 @@ async function buildViewer(targetName) {
   let html = readFileSync(rel('src/app/shell.html'), 'utf8');
 
   // 4. Resolve feature HTML partials
-  const toolbarExtras = resolvePartials(t.features, 'toolbar');
   const pfSidebar = resolvePartialFile(t.features, 'path-finder', 'pf-sidebar');
   const diffSidebar = resolvePartialFile(t.features, 'schema-diff', 'diff-sidebar');
   const setupInstr = resolvePartialFile(t.features, 'setup', 'setup-instructions');
@@ -265,8 +264,7 @@ async function buildViewer(targetName) {
   html = html
     .replace('<!--INJECT:d3-->', inj(D3_INLINE))
     .replace('<!--INJECT:title-->', inj(t.title))
-    .replace('<!--INJECT:css-->', inj('\n' + css + '\n'))
-    .replace('<!--INJECT:toolbar-extras-->', inj(toolbarExtras));
+    .replace('<!--INJECT:css-->', inj('\n' + css + '\n'));
 
   // Base partials (always present)
   for (const [marker, path] of BASE_PARTIALS) {
