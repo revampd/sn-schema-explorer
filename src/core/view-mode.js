@@ -19,13 +19,15 @@ export function setViewModeHistoryHook(fn) {
 }
 
 export function setViewMode(mode, opts = {}) {
-  if (mode !== 'force' && mode !== 'path' && mode !== 'diff') return;
+  // #141: Diff is now a LAYER on the Schema Map, not a view-mode. The only modes
+  // are the force (map) view and the Path Finder's separate DAG view.
+  if (mode !== 'force' && mode !== 'path') return;
   if (!_validators.every(fn => fn(mode))) return;
 
   const prevMode = uiState.viewMode;
 
   // Capture current view's node positions into the per-mode cache
-  if (graphState.graphData && (prevMode === 'force' || prevMode === 'diff') && prevMode !== mode) {
+  if (graphState.graphData && prevMode === 'force' && prevMode !== mode) {
     const snap = new Map();
     root.selectAll('g.node-group').each(function (d) {
       if (d && d.id && typeof d.x === 'number' && typeof d.y === 'number')
@@ -42,15 +44,14 @@ export function setViewMode(mode, opts = {}) {
   // Sync sidebar title
   const titleEl = document.getElementById('sidebar-title');
   if (titleEl) {
-    titleEl.textContent =
-      mode === 'path' ? 'Path Finder' : mode === 'diff' ? 'Schema Diff' : 'Tables';
+    titleEl.textContent = mode === 'path' ? 'Path Finder' : 'Tables';
   }
 
   // Notify all registered listeners
   _listeners.forEach(fn => fn(mode, prevMode));
 
   // Restore cached positions for the destination view
-  if (graphState.graphData && (mode === 'force' || mode === 'diff')) {
+  if (graphState.graphData && mode === 'force') {
     const snap = uiState._viewPositionCache[mode];
     if (snap) {
       graphState.graphData.nodes.forEach(n => {

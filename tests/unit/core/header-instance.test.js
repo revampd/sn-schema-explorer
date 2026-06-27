@@ -14,7 +14,7 @@ import {
 } from '../../../src/core/header-instance.js';
 import { addInstance, selectInstance, _resetInstances } from '../../../src/core/instances-state.js';
 import { setWorkspace } from '../../../src/core/workspace.js';
-import { uiState } from '../../../src/core/state.js';
+import { uiState, diffState } from '../../../src/core/state.js';
 
 const SCHEMA = { nodes: [{ id: 'task' }], edges: [] };
 const NO_SCHEMA = { nodes: [], edges: [] };
@@ -30,6 +30,7 @@ beforeEach(() => {
   setDiffBaseHandler(onDiffBase);
   setWorkspace('schema-explorer');
   uiState.viewMode = 'force';
+  diffState._diffData = null;
 });
 
 const host = () => document.getElementById('header-instance');
@@ -81,11 +82,11 @@ describe('renderHeaderInstance', () => {
     expect(onDiffBase).not.toHaveBeenCalled();
   });
 
-  it('picking in diff view routes to the diff-base handler instead', () => {
+  it('picking while a comparison is active routes to the diff-base handler instead', () => {
     const a = addInstance({ label: 'Dev', data: SCHEMA });
     const b = addInstance({ label: 'Test', data: SCHEMA });
     selectInstance(a.id);
-    uiState.viewMode = 'diff';
+    diffState._diffData = {}; // a comparison is active → base switch re-runs the diff
     renderHeaderInstance();
     pick('Test');
     expect(onDiffBase).toHaveBeenCalledWith(b.id);

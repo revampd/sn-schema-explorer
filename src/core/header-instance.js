@@ -14,7 +14,7 @@
  * landing and Configuration Data (which compares across all instances).
  * ============================================================================ */
 
-import { uiState } from './state.js';
+import { isComparing } from './state.js';
 import { instancesState } from './instances-state.js';
 import { createDropdown } from './dropdown.js';
 import { getWorkspace, onWorkspaceChange } from './workspace.js';
@@ -37,7 +37,9 @@ function schemaInstances() {
 
 function onPick(id) {
   if (!id) return;
-  if (uiState.viewMode === 'diff' && _diffBaseHandler) _diffBaseHandler(id);
+  // The dropdown switches the BASE instance. If a comparison is active, re-run it
+  // against the same compare so the diff layer follows the new base (#141).
+  if (isComparing() && _diffBaseHandler) _diffBaseHandler(id);
   else if (_selectHandler) _selectHandler(id);
 }
 

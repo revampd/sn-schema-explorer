@@ -5,7 +5,11 @@ import {
   getInstance,
   instancesState,
   setCompareId,
+  isComparing,
+  isStructureLayerOn,
+  onFocusChange,
 } from '../../core/state.js';
+import { createDropdown } from '../../core/dropdown.js';
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -18,9 +22,9 @@ import {
   setFillInspectorHook,
 } from '../../core/inspector.js';
 import { syncSidebarForMode } from '../../core/sidebar-sync.js';
-import { setViewMode, onViewModeChange, registerModeValidator } from '../../core/view-mode.js';
-import { getWorkspace, setWorkspace } from '../../core/workspace.js';
-import { registerSwitcherTool, refreshToolSwitcher } from '../../core/tool-switcher.js';
+import { setViewMode, onViewModeChange } from '../../core/view-mode.js';
+import { getWorkspace, setWorkspace, onWorkspaceChange } from '../../core/workspace.js';
+import { refreshToolSwitcher } from '../../core/tool-switcher.js';
 import { setDiffBaseHandler } from '../../core/header-instance.js';
 import {
   registerHistoryExtractor,
@@ -35,7 +39,6 @@ import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
 import { makeConfigDrift, tablesForApp } from './config-drift.js';
 import { diffBuildConfigList } from './config-list.js';
-import { initDiffInstancePicker, refreshDiffPicker } from './instance-picker.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -61,8 +64,8 @@ registerHistoryExtractor(snap => {
 registerHistoryRestorer(snap => {
   if (snap._diffShowAll !== undefined) diffState._diffShowAll = snap._diffShowAll;
   if (snap._diffFilter !== undefined) diffState._diffFilter = snap._diffFilter;
-  // Sync diff sidebar UI if diff view is active
-  if (uiState.viewMode === 'diff') {
+  // Sync diff sidebar UI if a comparison is active
+  if (isComparing()) {
     diffUpdateSummary();
     diffBuildList();
   }
@@ -92,6 +95,10 @@ function loadDiffSchema(compareData) {
   diffUpdateSummary();
   diffBuildList();
   diffBuildConfigList();
+  // #141: starting a comparison no longer changes the view-mode, so sync the
+  // sidebar here to reveal the diff report on the map.
+  diffSyncSidebar();
+  refreshStructureToggle();
   updateInstancePill();
 
   // Export method mismatch disclaimer
@@ -147,7 +154,6 @@ function loadDiffFromInstances(baseId, compareId) {
   }
   if (!compareId) {
     clearDiff();
-    refreshDiffPicker();
     return;
   }
   const compareEntry = getInstance(compareId);
@@ -160,7 +166,6 @@ function loadDiffFromInstances(baseId, compareId) {
   // sidebar config block, which resolves the compare instance from diffState.
   setCompareId(compareId);
   loadDiffSchema(compareClone);
-  refreshDiffPicker();
 }
 
 /** Clear the active comparison (ungraft + reset diff state), keeping the base. */
@@ -178,6 +183,9 @@ function clearDiff() {
   diffUpdateSummary();
   diffBuildList();
   diffBuildConfigList();
+  // Comparison dropped — restore the default sidebar and hide the layer toggle.
+  diffSyncSidebar();
+  refreshStructureToggle();
   updateInstancePill();
   render();
 }
@@ -186,12 +194,10 @@ function clearDiff() {
 
 function diffSyncVisibility() {
   const enabled = Settings.isEnabled('schemaDiff');
-  // Diff's availability is gated by the header tool switcher's enabled(); refresh
-  // it, and leave diff view if the feature was turned off.
   refreshToolSwitcher();
-  if (!enabled && uiState.viewMode === 'diff') {
-    setViewMode('force', { historyPush: false });
-  }
+  refreshHeaderCompare();
+  // Diff is a layer now: if the feature is turned off, drop any active comparison.
+  if (!enabled && isComparing()) clearDiff();
 }
 
 // ── Sidebar sync ──────────────────────────────────────────────────────────────
@@ -199,8 +205,7 @@ function diffSyncVisibility() {
 function diffSyncSidebar() {
   if (!document.getElementById('diff-sidebar')) return;
   syncSidebarForMode();
-  if (uiState.viewMode === 'diff') {
-    refreshDiffPicker();
+  if (isComparing()) {
     diffUpdateSummary();
     diffBuildList();
   }
@@ -236,14 +241,16 @@ function diffUpdateSummary() {
 // ── Canvas overlays ───────────────────────────────────────────────────────────
 
 function diffApplyOverlays() {
-  if (!diffState._diffData || uiState.viewMode !== 'diff') return;
+  // #141: applies on the Schema Map whenever a comparison is active (no diff mode).
+  if (!isComparing() || uiState.viewMode !== 'force') return;
+  const structure = isStructureLayerOn();
 
   root.selectAll('g.node-group').each(function (d) {
     const id = d.id;
     d3.select(this)
-      .classed('diff-added', diffState._diffData.added.has(id))
-      .classed('diff-removed', diffState._diffData.removed.has(id))
-      .classed('diff-changed', diffState._diffData.changed.has(id));
+      .classed('diff-added', structure && diffState._diffData.added.has(id))
+      .classed('diff-removed', structure && diffState._diffData.removed.has(id))
+      .classed('diff-changed', structure && diffState._diffData.changed.has(id));
   });
 
   // Config-drift badge: a small corner dot per node, keyed by the owning app's
@@ -291,6 +298,13 @@ function diffApplyOverlays() {
   }
 
   root.selectAll('g.diff-pill-layer').remove();
+  if (!structure) {
+    root
+      .selectAll('g.edges path')
+      .classed('diff-edge-added', false)
+      .classed('diff-edge-removed', false);
+    return;
+  }
   const pillLayer = root.append('g').attr('class', 'diff-pill-layer');
   const { addedEdgeKeys, removedEdgeKeys, edgeDiffKey } = diffState._diffData;
 
@@ -339,17 +353,14 @@ function diffApplyOverlays() {
 }
 
 // Register render hook so diffApplyOverlays fires after every renderGraph call
-addRenderHook(() => {
-  if (uiState.viewMode === 'diff') diffApplyOverlays();
-});
+// (it self-guards on an active comparison in the map view).
+addRenderHook(() => diffApplyOverlays());
 
 // ── Inspector hook ────────────────────────────────────────────────────────────
 
 setFillInspectorHook(diffFillInspector);
 
 // ── Diff instance picker wiring ───────────────────────────────────────────────
-
-initDiffInstancePicker({ loadDiffFromInstances });
 
 // ── Diff sidebar event delegation ─────────────────────────────────────────────
 
@@ -402,7 +413,7 @@ initDiffInstancePicker({ loadDiffFromInstances });
     // Only when the Schema Explorer workspace is active — not on the landing
     // page or in another tool, where viewMode may still read 'diff'.
     if (getWorkspace() !== 'schema-explorer') return;
-    if (uiState.viewMode !== 'diff' || !diffState._diffData) return;
+    if (uiState.viewMode !== 'force' || !isComparing()) return;
     // Don't intercept when focus is inside a text input
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -427,10 +438,11 @@ initDiffInstancePicker({ loadDiffFromInstances });
 
 // ── Register with path-finder + settings ─────────────────────────────────────
 
-registerModeValidator(mode => mode !== 'diff' || Settings.isEnabled('schemaDiff'));
-
 onViewModeChange((mode, prevMode) => {
-  if (prevMode === 'diff' && mode !== 'diff') {
+  // Path Finder has its own DAG layout; while it's showing, the comparison graft
+  // and diff colouring must come off the (now hidden) map, then go back when we
+  // return. (#141 — the graft lifecycle is tied to the map view, not a diff mode.)
+  if (mode === 'path' && prevMode === 'force') {
     clearDiffCursor();
     root
       .selectAll('g.node-group')
@@ -447,18 +459,13 @@ onViewModeChange((mode, prevMode) => {
       Dom.slMaxNodes.value = uiState.maxNodes;
       Dom.valMaxNodes.textContent = uiState.maxNodes;
     }
-    // The graft merges the compare's added (`_diffOnly`) nodes/edges into the
-    // shared base graph so they render in diff view. Leaving diff must un-graft
-    // them — otherwise they leak into the Schema Map and its search, because the
-    // diff stays loaded across mode switches. Re-grafted on return below.
-    diffUngraftAddedFromBase();
+    if (isComparing()) diffUngraftAddedFromBase();
   }
-  if (mode === 'diff' && prevMode !== 'diff' && diffState._diffData) {
-    // Returning to diff with a comparison still loaded — re-graft the added nodes
-    // (loadDiffSchema only grafts on a fresh diff, not on a plain mode switch).
+  if (mode === 'force' && prevMode === 'path' && isComparing()) {
     diffGraftAddedIntoBase();
   }
   diffSyncSidebar();
+  refreshHeaderCompare();
 });
 
 Settings.onChange('schemaDiff', () => {
@@ -472,46 +479,130 @@ diffSyncVisibility();
 // are registered; the compare instance is then chosen from the diff sidebar.
 registerTool({
   key: 'schemaDiff',
-  label: 'Compare in Schema Diff',
+  label: 'Compare on the Schema Map',
   icon: '⇄',
   requires: ['schema'],
   minInstances: 2,
   enabled: () => Settings.isEnabled('schemaDiff'),
   disabledHint: 'Enable Schema Diff in Settings, and register a second instance',
   enter: baseId => {
-    // Clean any grafted _diffOnly nodes off the outgoing base before switching,
-    // so a prior comparison can't leave the previous instance's data polluted.
+    // #141: Diff is a layer on the map. Open the base on the Schema Map; the user
+    // picks the compare instance from the header Compare dropdown.
     diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
     setWorkspace('schema-explorer');
-    setViewMode('diff');
+    setViewMode('force');
+    refreshHeaderCompare();
   },
 });
 
-// Header tool switcher entry — needs ≥2 schema-capable instances to compare.
 const schemaInstanceCount = () =>
   instancesState.instances.filter(e => e.capabilities && e.capabilities.schema).length;
-registerSwitcherTool({
-  key: 'diff',
-  label: 'Diff',
-  icon: '⇄',
-  order: 30,
-  enabled: () => Settings.isEnabled('schemaDiff') && schemaInstanceCount() >= 2,
-  isActive: () => getWorkspace() === 'schema-explorer' && uiState.viewMode === 'diff',
-  activate: () => {
-    setWorkspace('schema-explorer');
-    setViewMode('diff');
-  },
-});
-// The header instance dropdown sets the Base when in diff view.
+
+// The header instance dropdown switches the BASE; if a comparison is active,
+// re-run it against the same compare so the diff follows the new base.
 setDiffBaseHandler(baseId => loadDiffFromInstances(baseId, diffState._compareId));
 
-// Rebuild diff list when the header search changes while in diff view
+// Rebuild the diff list when the header search / advanced filter changes while a
+// comparison is active.
 onSearchChange(() => {
-  if (uiState.viewMode === 'diff') diffBuildList();
+  if (isComparing()) diffBuildList();
+});
+onFilterChange(() => {
+  if (isComparing()) diffBuildList();
 });
 
-// Rebuild diff list when advanced filter conditions change while in diff view
-onFilterChange(() => {
-  if (uiState.viewMode === 'diff') diffBuildList();
-});
+// ── Header "Compare" dropdown — the entry point for the diff layer (#141) ──────
+// Lives beside the instance (Base) dropdown. Picking a compare instance loads the
+// comparison as a layer on the Schema Map; "No comparison" clears it.
+let _cmpDd = null;
+const NO_COMPARE = '__none__';
+
+export function refreshHeaderCompare() {
+  const host = document.getElementById('header-compare');
+  if (!host) return;
+  const onMap = getWorkspace() === 'schema-explorer' && uiState.viewMode === 'force';
+  const eligible =
+    onMap &&
+    Settings.isEnabled('schemaDiff') &&
+    schemaInstanceCount() >= 2 &&
+    !!graphState.graphData;
+  host.style.display = eligible ? '' : 'none';
+  if (!eligible) return;
+  if (!_cmpDd) {
+    _cmpDd = createDropdown({
+      ariaLabel: 'Compare against',
+      title: 'Compare the loaded instance against another (diff layer)',
+      onChange: id => {
+        const base = instancesState.selectedId;
+        loadDiffFromInstances(base, id === NO_COMPARE ? null : id);
+        refreshHeaderCompare();
+      },
+    });
+  }
+  if (_cmpDd.el.parentElement !== host) host.appendChild(_cmpDd.el);
+  const opts = [
+    { value: NO_COMPARE, label: 'Compare: none' },
+    ...instancesState.instances
+      .filter(e => e.capabilities && e.capabilities.schema && e.id !== instancesState.selectedId)
+      .map(e => ({ value: e.id, label: 'vs ' + e.label })),
+  ];
+  _cmpDd.setOptions(opts, diffState._compareId || NO_COMPARE);
+  refreshHeaderSwap(eligible);
+}
+
+// Header swap button — flips Base and Compare (replaces the old sidebar swap).
+let _swapWired = false;
+function refreshHeaderSwap(eligible) {
+  const btn = document.getElementById('header-swap');
+  if (!btn) return;
+  if (!_swapWired) {
+    btn.addEventListener('click', () => {
+      const base = instancesState.selectedId;
+      const cmp = diffState._compareId;
+      if (!cmp) return; // nothing to swap into the base slot
+      loadDiffFromInstances(cmp, base);
+      refreshHeaderCompare();
+    });
+    _swapWired = true;
+  }
+  btn.style.display = eligible ? '' : 'none';
+  btn.disabled = !isComparing();
+}
+
+onWorkspaceChange(() => refreshHeaderCompare());
+// Refresh when the loaded instance or compare changes (focus events) — covers a
+// freshly loaded graph, base switches, and compare changes.
+onFocusChange(() => refreshHeaderCompare());
+
+// ── Canvas "Structure changes" layer toggle (#141) ───────────────────────────
+// Lets the user mute the structural-diff colouring while keeping the comparison
+// (e.g. to read the config-drift badges alone). Shown only while comparing on the
+// map; built in JS so no Prettier-ignored partial is touched.
+let _structToggle = null;
+
+function refreshStructureToggle() {
+  const host = document.getElementById('edge-legend')?.parentNode;
+  if (!host) return;
+  if (!_structToggle) {
+    const btn = document.createElement('button');
+    btn.id = 'diff-structure-toggle';
+    btn.type = 'button';
+    btn.className = 'cfg-drift-toggle';
+    btn.textContent = 'Structure changes';
+    btn.addEventListener('click', () => {
+      diffState._structureLayer = !diffState._structureLayer;
+      refreshStructureToggle();
+      render();
+    });
+    host.appendChild(btn);
+    _structToggle = btn;
+  }
+  const show = isComparing() && uiState.viewMode === 'force';
+  _structToggle.style.display = show ? '' : 'none';
+  _structToggle.setAttribute('aria-pressed', String(!!diffState._structureLayer));
+  _structToggle.classList.toggle('active', !!diffState._structureLayer);
+}
+
+onFocusChange(() => refreshStructureToggle());
+onViewModeChange(() => refreshStructureToggle());

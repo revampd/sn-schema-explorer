@@ -63,19 +63,21 @@ test('compare-only table does not leak into the Schema Map after diffing', async
   await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
   await expect(page.locator('#table-list-viewport .table-item[data-id="xyz"]')).toHaveCount(0);
 
-  // Diff against the compare → `xyz` is grafted in as an added table.
-  await page.locator('#tool-switcher .ts-btn[data-tool="diff"]').click();
-  await page.locator('#diff-compare-mount .sn-dd-btn').click();
-  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'prod' }).click();
+  // Start a comparison from the header → `xyz` is grafted in as an added table.
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs prod' }).click();
   await expect(page.locator('#diff-list .diff-item', { hasText: 'Xyz' })).toBeVisible({
     timeout: 10_000,
   });
 
-  // Back to the Schema Map → `xyz` must be gone again (un-grafted).
-  await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
+  // Clear the comparison → `xyz` must be un-grafted, gone from the map table list.
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'Compare: none' }).click();
+  await expect(page.locator('#diff-sidebar')).toBeHidden();
   await expect(page.locator('#table-list-viewport .table-item[data-id="xyz"]')).toHaveCount(0);
 
-  // And returning to Diff re-grafts it.
-  await page.locator('#tool-switcher .ts-btn[data-tool="diff"]').click();
+  // And re-comparing re-grafts it.
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs prod' }).click();
   await expect(page.locator('#diff-list .diff-item', { hasText: 'Xyz' })).toBeVisible();
 });

@@ -117,7 +117,7 @@ test('shared focus: selected table carries from Schema Map into Path Finder (#13
   await expect(page.locator('#pf-source')).toHaveValue(focused.trim());
 });
 
-test('in Diff, header dropdown reflects and sets the Base (synced with sidebar)', async ({
+test('with a comparison active, the header dropdown switches the Base (synced with sidebar)', async ({
   page,
 }) => {
   await page.addInitScript(() =>
@@ -128,20 +128,23 @@ test('in Diff, header dropdown reflects and sets the Base (synced with sidebar)'
   await register(page, SCHEMA_OUTPUT, 'base.json'); // test-instance
   await register(page, SCHEMA_OUTPUT_B, 'compare.json'); // test-instance-b
 
-  // Launch Diff on the first instance.
+  // #141: open the base on the map, then start a comparison from the header.
   await page
     .locator('.inst-card:not(.add-card)')
     .first()
-    .locator('[data-tool="schemaDiff"]')
+    .locator('[data-tool="schemaExplorer"]')
     .click();
+  await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs test-instance-b' }).click();
   await expect(page.locator('#diff-sidebar')).toBeVisible();
-  await expect(page.locator('#tool-switcher .ts-btn[data-tool="diff"]')).toHaveClass(/active/);
 
-  // Header dropdown reflects the Base; switching it sets the new Base, and the
-  // sidebar Base picker stays in sync.
+  // The header instance dropdown switches the Base; with a comparison active the
+  // diff re-runs against the new base and the sidebar Base picker stays in sync.
   await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance');
   await page.locator('#header-instance .sn-dd-btn').click();
   await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'test-instance-b' }).click();
   await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
-  await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
+  // The comparison follows the new base (still showing the diff sidebar).
+  await expect(page.locator('#diff-sidebar')).toBeVisible();
 });

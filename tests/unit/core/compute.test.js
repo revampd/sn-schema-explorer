@@ -29,10 +29,11 @@ vi.mock('../../../src/core/state.js', () => {
     connectedNodes: new Set(),
     _lastInheritedSeeds: new Set(),
   };
-  const diffState = { _diffData: null, _diffShowAll: false };
+  const diffState = { _diffData: null, _diffShowAll: false, _structureLayer: true };
   const edgeSourceId = e => e.source?.id ?? e.source;
   const edgeTargetId = e => e.target?.id ?? e.target;
-  return { graphState, uiState, diffState, edgeSourceId, edgeTargetId };
+  const isStructureLayerOn = () => !!diffState._diffData && diffState._structureLayer;
+  return { graphState, uiState, diffState, edgeSourceId, edgeTargetId, isStructureLayerOn };
 });
 
 vi.mock('../../../src/modules/settings/index.js', () => ({

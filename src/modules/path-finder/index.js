@@ -73,10 +73,7 @@ onViewModeChange((mode, prevMode) => {
   pfSyncCanvasOverlays();
   const emptyHint = Dom.inspectorEmpty;
   if (emptyHint) {
-    if (mode === 'diff') {
-      emptyHint.textContent =
-        'Tap a changed table node or sidebar row to compare its fields and relationships.';
-    } else if (mode === 'path') {
+    if (mode === 'path') {
       emptyHint.textContent =
         'Find a path between tables, then tap a node in the result to inspect it.';
     } else {
@@ -129,10 +126,6 @@ export function pfSyncCanvasOverlays() {
     if (af) af.style.display = 'none';
     if (el) el.style.display = 'none';
     if (mm) mm.style.display = 'none';
-  } else if (uiState.viewMode === 'diff') {
-    if (el) el.style.display = 'block';
-    if (mm) mm.style.display = '';
-    if (af) af.style.display = 'none';
   } else {
     if (el) el.style.display = 'block';
     if (mm) mm.style.display = '';

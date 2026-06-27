@@ -1,4 +1,4 @@
-import { uiState } from './state.js';
+import { uiState, isComparing } from './state.js';
 import { Dom } from './dom.js';
 import { tlSetSpacerHeight, tlRenderVisible } from './table-list.js';
 
@@ -13,8 +13,10 @@ import { tlSetSpacerHeight, tlRenderVisible } from './table-list.js';
 // modules — this only owns DOM visibility.
 export function syncSidebarForMode() {
   const mode = uiState.viewMode;
-  const isDiff = mode === 'diff';
+  // #141: Diff is a layer on the Schema Map — the diff sidebar report shows
+  // whenever a comparison is active (in the map view), not in a separate mode.
   const isPath = mode === 'path';
+  const isDiff = !isPath && isComparing();
   const isDefault = !isDiff && !isPath;
 
   const diffSidebar = document.getElementById('diff-sidebar');
