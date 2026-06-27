@@ -47,21 +47,26 @@ test('app loads without JavaScript errors', async ({ page }) => {
   expect(errors).toHaveLength(0);
 });
 
-test('core UI structure is present on load', async ({ page }) => {
+test('core UI structure is present on load (landing front door)', async ({ page }) => {
   await loadApp(page);
+  // On the landing front door the header + footer + landing region are present;
+  // the graph chrome (canvas, sidebar, inspector, search) is hidden.
   await expect(page.locator('header')).toBeVisible();
-  await expect(page.locator('#search-box')).toBeVisible();
-  await expect(page.locator('#canvas')).toBeVisible();
-  await expect(page.locator('#inspector')).toBeVisible();
+  await expect(page.locator('#landing-root')).toBeVisible();
   await expect(page.locator('footer')).toBeVisible();
+  await expect(page.locator('#canvas')).toBeHidden();
+  await expect(page.locator('#search-box')).toBeHidden();
 });
 
-test('app boots into the landing workspace as the front door (#101)', async ({ page }) => {
+test('app boots into the landing workspace with the graph chrome hidden (#101)', async ({
+  page,
+}) => {
   await loadApp(page);
-  // The landing page is now the default workspace.
   await expect(page.locator('body')).toHaveAttribute('data-workspace', 'landing');
   await expect(page.locator('#landing-root')).toBeVisible();
-  // The (still empty) instance-comparison region stays hidden until its workspace.
+  // Schema Explorer chrome and the comparison region are hidden on the front door.
+  await expect(page.locator('#sidebar')).toBeHidden();
+  await expect(page.locator('#inspector')).toBeHidden();
   await expect(page.locator('#instance-compare')).toBeHidden();
 });
 

@@ -10,3 +10,33 @@
 .workspace-region.workspace-active {
   display: block;
 }
+
+/* ── Clean shell for non–Schema-Explorer workspaces ─────────────────────────
+ * On the landing page (and the future Instance Comparison workspace) the graph
+ * chrome adds no value, so we hide it and let the active workspace region own
+ * the whole content area. The header keeps only the brand + global utilities
+ * (Guide, Settings, and Home where relevant). The minimap / zoom / sim controls
+ * live inside #canvas, so hiding it removes them too. */
+body:not([data-workspace='schema-explorer']) #sidebar,
+body:not([data-workspace='schema-explorer']) #canvas,
+body:not([data-workspace='schema-explorer']) #inspector,
+body:not([data-workspace='schema-explorer']) #export-bar,
+body:not([data-workspace='schema-explorer']) #filter-bar {
+  display: none !important;
+}
+body:not([data-workspace='schema-explorer']) .search-wrap,
+body:not([data-workspace='schema-explorer']) #scope-filter-btn,
+body:not([data-workspace='schema-explorer']) #view-mode-seg,
+body:not([data-workspace='schema-explorer']) #btn-hist-back,
+body:not([data-workspace='schema-explorer']) #btn-hist-fwd,
+body:not([data-workspace='schema-explorer']) #btn-refresh,
+body:not([data-workspace='schema-explorer']) #btn-reset,
+body:not([data-workspace='schema-explorer']) #btn-export,
+body:not([data-workspace='schema-explorer']) #btn-ref-guide,
+body:not([data-workspace='schema-explorer']) .header-stats,
+body:not([data-workspace='schema-explorer']) header .header-sep,
+body:not([data-workspace='schema-explorer']) #btn-sidebar-toggle,
+body:not([data-workspace='schema-explorer']) #btn-fit-m,
+body:not([data-workspace='schema-explorer']) #btn-inspector-toggle {
+  display: none !important;
+}

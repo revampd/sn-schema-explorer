@@ -46,7 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   button in the header returns to the landing page. File-drop, demo load, and
   multi-part manifest stitching moved from the load overlay into the landing page;
   loading a file registers an instance (and selects it) rather than entering a
-  tool directly.
+  tool directly. The landing page (and other non–Schema-Explorer workspaces)
+  present a clean shell — the graph sidebars, canvas, minimap, and graph-only
+  header controls are hidden, leaving the brand plus Guide / Settings.
 
 ### Changed
 
