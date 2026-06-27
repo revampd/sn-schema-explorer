@@ -223,6 +223,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Advanced filter edge-type dropdown was clipped / unusable**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The
+  migrated "Has Edge" dropdown opened inside the filter bar's `overflow: hidden`
+  row, so its option list was clipped and effectively invisible. The custom
+  dropdown's menu is now portalled to `<body>` with `position: fixed` (anchored
+  to the button, repositioned on scroll/resize), so it escapes clipping or
+  transformed ancestors anywhere it's used.
 - **Schema Diff: swapping/switching base corrupted the comparison (Added/Removed
   read 0)** ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)).
   The base graph aliases the instance's in-memory data, and the diff grafts the

@@ -100,17 +100,34 @@ export function createDropdown({
   // and removed on close, so dropdowns that are created and discarded en masse
   // (e.g. the advanced-filter rows, rebuilt on every apply) don't leak listeners.
   function onOutside(e) {
-    if (!root.contains(e.target)) closeMenu();
+    if (!root.contains(e.target) && !menu.contains(e.target)) closeMenu();
+  }
+
+  // The menu is position:fixed and anchored to the button each time it opens, so
+  // it escapes any clipping/overflow ancestors (e.g. the filter bar, which clips
+  // — that's why its "+ Add condition" picker is portalled to <body>). Recompute
+  // on scroll/resize while open so it tracks the button.
+  function positionMenu() {
+    const r = btn.getBoundingClientRect();
+    menu.style.left = r.left + 'px';
+    menu.style.top = r.bottom + 4 + 'px';
+    menu.style.width = r.width + 'px';
   }
 
   function openMenu() {
     if (open || !options.length) return;
     open = true;
     btn.setAttribute('aria-expanded', 'true');
+    // Portal the menu to <body> so it escapes any clipping/transformed ancestor
+    // (the filter bar does this for its own popups). position:fixed anchors it.
+    document.body.appendChild(menu);
     menu.style.display = '';
+    positionMenu();
     const sel = options.findIndex(o => o.value === value);
     setActive(sel >= 0 ? sel : 0);
     document.addEventListener('mousedown', onOutside);
+    window.addEventListener('scroll', positionMenu, true);
+    window.addEventListener('resize', positionMenu);
   }
 
   function closeMenu() {
@@ -118,7 +135,10 @@ export function createDropdown({
     open = false;
     btn.setAttribute('aria-expanded', 'false');
     menu.style.display = 'none';
+    root.appendChild(menu); // return it to the component
     document.removeEventListener('mousedown', onOutside);
+    window.removeEventListener('scroll', positionMenu, true);
+    window.removeEventListener('resize', positionMenu);
   }
 
   function commit(i) {

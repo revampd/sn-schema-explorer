@@ -252,11 +252,10 @@
   transform: rotate(180deg);
 }
 .sn-dd-menu {
-  position: absolute;
-  z-index: 50;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
+  /* position:fixed + portalled to <body> (see core/dropdown.js) so the open list
+     escapes clipping/overflow ancestors. left/top/width are set in JS on open. */
+  position: fixed;
+  z-index: 200;
   max-height: 240px;
   overflow-y: auto;
   background: var(--sn-infinite, #13161e);
