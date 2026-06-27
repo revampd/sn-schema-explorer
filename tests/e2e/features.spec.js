@@ -167,7 +167,9 @@ test.describe('Schema Diff', () => {
     const baseCard = page.locator('.inst-card:not(.add-card)').first();
     await baseCard.locator('[data-tool="schemaDiff"]').click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.selectOption('#diff-compare-select', { label: 'compare-inst' });
+    // Pick the compare from the custom dropdown (core/dropdown.js).
+    await page.locator('#diff-compare-mount .sn-dd-btn').click();
+    await page.locator('#diff-compare-mount .sn-dd-opt', { hasText: 'compare-inst' }).click();
 
     // One table added (problem); the added counter should read at least 1.
     const added = page.locator('#diff-stat-added, #diff-n-added').first();

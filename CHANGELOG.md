@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Schema Diff: swap base ↔ compare**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). A **⇄**
+  button between the Base and Compare pickers flips the two sides in place (the
+  current compare becomes the base and vice-versa), so you can reverse the
+  direction of a comparison without re-selecting both. Disabled until a compare
+  is chosen.
+
+- **App-themed dropdowns** (`core/dropdown.js`,
+  [#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The Schema
+  Diff Base/Compare pickers now use a custom dropdown whose open option list is
+  styled to match the app, instead of a native `<select>` whose popup is drawn by
+  the OS. Keyboard-accessible (arrows, Home/End, Enter/Space, Escape) and ARIA
+  listbox-labelled.
+
 - **Configuration Data: Export JSON**
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Alongside
   Export CSV, the comparison view can now export the current section as JSON —

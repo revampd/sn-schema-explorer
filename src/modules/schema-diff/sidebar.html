@@ -2,14 +2,17 @@
   <div id="diff-sidebar">
     <!-- Base / Compare pickers — populated from the registered instances -->
     <div class="diff-picker" id="diff-instance-picker">
-      <label class="diff-picker-row">
+      <div class="diff-picker-row">
         <span class="diff-picker-label">Base</span>
-        <select id="diff-base-select" class="sn-select" title="The instance loaded into the graph"></select>
-      </label>
-      <label class="diff-picker-row">
+        <div class="diff-picker-control" id="diff-base-mount"></div>
+      </div>
+      <div class="diff-picker-swap-row">
+        <button class="diff-swap-btn" id="diff-swap-btn" title="Swap base and compare" aria-label="Swap base and compare" disabled>⇄</button>
+      </div>
+      <div class="diff-picker-row">
         <span class="diff-picker-label">Compare</span>
-        <select id="diff-compare-select" class="sn-select" title="Compare against this instance"></select>
-      </label>
+        <div class="diff-picker-control" id="diff-compare-mount"></div>
+      </div>
       <div class="diff-picker-empty" id="diff-picker-empty" style="display:none">Register a second instance on the Home page to compare.</div>
     </div>
     <!-- Export method mismatch warning — shown when base and compare schemas use different export_mode -->

@@ -151,6 +151,12 @@ test.describe('Schema Diff interactions', () => {
     });
   }
 
+  // Pick an option from a custom dropdown (core/dropdown.js) by visible label.
+  async function pickDropdown(page, mountId, label) {
+    await page.locator(`#${mountId} .sn-dd-btn`).click();
+    await page.locator(`#${mountId} .sn-dd-opt`, { hasText: label }).click();
+  }
+
   async function openDiff(page) {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
     // Register the base + compare instances, then launch Schema Diff on the base
@@ -160,7 +166,7 @@ test.describe('Schema Diff interactions', () => {
     const baseCard = page.locator('.inst-card:not(.add-card)').first();
     await baseCard.locator('[data-tool="schemaDiff"]').click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
+    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -186,11 +192,11 @@ test.describe('Schema Diff interactions', () => {
   test('clearing the compare returns to the base-only view', async ({ page }) => {
     await openDiff(page);
     // Selecting the blank Compare option clears the comparison.
-    await page.selectOption('#diff-compare-select', { value: '' });
+    await pickDropdown(page, 'diff-compare-mount', 'select compare');
     await expect(page.locator('#diff-list .diff-item')).toHaveCount(0);
     // Re-selecting the same compare reproduces the diff — proving the stored
     // compare export was not mutated by the first run (clone-before-graft).
-    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
+    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   });
 });
