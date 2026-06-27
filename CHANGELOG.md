@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Instance Comparison reconcile logic** (internal foundation,
+  [#103](https://github.com/revampd/sn-schema-explorer/issues/103)). New
+  `modules/instance-compare/reconcile.js` does N-way reconciliation of a metadata
+  section (plugins / store apps / custom apps / properties) across registered
+  instances — union of entries, per-instance cells, and a status
+  (`sync` / `drift` / `missing` / `active` / `inactive`) — plus a CSV export
+  serialiser. Pure logic, fully unit-tested; the comparison UI follows in a later
+  PR.
+
 - **Shared theming tokens + utilities** adapted from the cross-instance
   reconciler — radius/shadow/glass CSS variables plus reusable `.glass`,
   `.eyebrow`, and `.pill-badge` classes in `base.css`. Refreshes the landing
