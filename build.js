@@ -57,6 +57,7 @@ const BASE_CSS = [
   'src/viewer/modules/settings/index.css',
   'src/viewer/styles/workspace.css',
   'src/viewer/modules/landing/index.css',
+  'src/viewer/modules/instance-compare/index.css',
 ];
 
 const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
@@ -71,7 +72,7 @@ const VIEWER_TARGETS = {
       'src/viewer/modules/path-finder/index.css',
       'src/viewer/modules/schema-diff/index.css',
     ],
-    features: ['path-finder', 'schema-diff', 'setup'],
+    features: ['path-finder', 'schema-diff', 'setup', 'instanceCompare'],
     title: 'Schema Explorer',
     output: rel('dist/sn_schema_explorer.html'),
   },
@@ -104,6 +105,7 @@ const GUIDE_MODULES = [
   { file: 'src/viewer/modules/schema-map/guide-tips.html' },
   { file: 'src/viewer/modules/path-finder/guide.html', feature: 'path-finder' },
   { file: 'src/viewer/modules/schema-diff/guide.html', feature: 'schema-diff' },
+  { file: 'src/viewer/modules/instance-compare/guide.html', feature: 'instanceCompare' },
 ];
 
 function assembleGuide(features) {

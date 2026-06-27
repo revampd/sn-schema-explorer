@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Instance Comparison tool**
+  ([#104](https://github.com/revampd/sn-schema-explorer/issues/104)). A new
+  workspace that reconciles a metadata section — **plugins, store apps, custom
+  apps, or system properties** — across the instances you've registered. Launch
+  it from an instance card's **▦** icon (enable Instance Comparison in Settings
+  first); pick a section tab (disabled until two instances carry it) and get an
+  N-column table with a column per instance, status chips (in sync / drift /
+  missing / state mismatch / inactive), the store-app "↑ update" signal, an
+  optional dates column, search + status filters, and **Export CSV**.
+
 - **Richer metadata fields in the export.** The exporter metadata sections now
   carry more of their source-table columns for cross-instance comparison:
   store apps gain `latestVersion`, `updateAvailable`, `installDate`, and
