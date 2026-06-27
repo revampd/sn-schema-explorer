@@ -68,6 +68,27 @@ var CONFIG = {
   recordCountInclude: [], // e.g. ['^cmdb_', '^task$', '^incident$']
   recordCountExclude: ['^sys_', '^var_', '^ts_'],
 
+  // ── Cross-instance metadata sections (JSON format only) ────────────────────
+  // Opt-in sections describing the instance beyond its table schema. Emitted
+  // under a top-level `_metadata` key with `_capabilities.metadata.<section>`
+  // flags. Same shape the Node extractor produces (defined once in SchemaBuilder).
+  // Valid section names: 'plugins', 'storeApps', 'customApps', 'properties'.
+  // Empty array = no metadata sections. Ignored for markdown/jsonld output.
+  metadataSections: [], // e.g. ['plugins', 'storeApps', 'customApps', 'properties']
+
+  // sys_properties values can hold secrets, so values are OFF by default
+  // (names + type + description only). Set true to include values — even then
+  // any property whose NAME matches propertyValueDenylist is redacted.
+  includePropertyValues: false,
+
+  // Redaction denylist for property VALUES (case-insensitive). Matches by
+  // property name. Default mirrors the shared builder; edit to taste.
+  propertyValueDenylist: /password|secret|key|token|cred|private|passwd/i,
+
+  // Optional encoded query narrowing which sys_properties rows are exported
+  // (e.g. 'nameSTARTSWITHglide.ui'). Empty = all rows.
+  propertyEncodedQuery: '',
+
   // Attach the JSON to this target. Default uses the user's own sys_user
   // record so the attachment is easy to find.
   attachmentTargetTable: 'sys_user',
@@ -471,6 +492,112 @@ function fetchCmdbRelTypeSuggest() {
   return out;
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// METADATA FETCHERS (opt-in cross-instance sections — JSON only)
+// Flat GlideRecord passes, no getRefRecord. Each is best-effort: a missing or
+// inaccessible table returns [] so the export degrades rather than aborting.
+// The shared builder normalises these arrays into the emitted shape.
+// ───────────────────────────────────────────────────────────────────────────
+
+function fetchPlugins() {
+  var out = [];
+  try {
+    var gr = newGR('sys_plugins');
+    gr.query();
+    while (gr.next()) {
+      out.push({
+        id: gr.getValue('id') || gr.getUniqueValue(),
+        name: gr.getValue('name'),
+        active: parseBool(gr.getValue('active')),
+        version: gr.getValue('version'),
+      });
+    }
+  } catch (e) {
+    gs.info('  sys_plugins not accessible: ' + e.message);
+  }
+  return out;
+}
+
+function fetchStoreApps() {
+  var out = [];
+  try {
+    var gr = newGR('sys_store_app');
+    gr.query();
+    while (gr.next()) {
+      out.push({
+        scope: gr.getValue('scope'),
+        name: gr.getValue('name'),
+        version: gr.getValue('version'),
+        vendor: gr.getValue('vendor'),
+        active: parseBool(gr.getValue('active')),
+      });
+    }
+  } catch (e) {
+    gs.info('  sys_store_app not accessible: ' + e.message);
+  }
+  return out;
+}
+
+function fetchCustomApps() {
+  var out = [];
+  try {
+    var gr = newGR('sys_app');
+    gr.query();
+    while (gr.next()) {
+      out.push({
+        scope: gr.getValue('scope'),
+        name: gr.getValue('name'),
+        version: gr.getValue('version'),
+        active: parseBool(gr.getValue('active')),
+      });
+    }
+  } catch (e) {
+    gs.info('  sys_app not accessible: ' + e.message);
+  }
+  return out;
+}
+
+function fetchProperties() {
+  var out = [];
+  // When values are OFF we deliberately never read getValue('value') — the
+  // value never enters memory. When ON, the shared builder still redacts
+  // denylisted names centrally.
+  var includeValues = CONFIG.includePropertyValues === true;
+  try {
+    var gr = newGR('sys_properties');
+    if (CONFIG.propertyEncodedQuery) gr.addEncodedQuery(CONFIG.propertyEncodedQuery);
+    gr.query();
+    while (gr.next()) {
+      var row = {
+        name: gr.getValue('name'),
+        type: gr.getValue('type'),
+        description: gr.getValue('description'),
+      };
+      if (includeValues) row.value = gr.getValue('value');
+      out.push(row);
+    }
+  } catch (e) {
+    gs.info('  sys_properties not accessible: ' + e.message);
+  }
+  return out;
+}
+
+/**
+ * Build the opt-in metadata input ({plugins?, storeApps?, customApps?,
+ * properties?}) from CONFIG.metadataSections. Only requested sections are
+ * fetched; a key is present only when its section was requested, so the
+ * builder omits absent sections entirely.
+ */
+function fetchMetadataSections() {
+  var sections = CONFIG.metadataSections || [];
+  var input = {};
+  if (sections.indexOf('plugins') !== -1) input.plugins = fetchPlugins();
+  if (sections.indexOf('storeApps') !== -1) input.storeApps = fetchStoreApps();
+  if (sections.indexOf('customApps') !== -1) input.customApps = fetchCustomApps();
+  if (sections.indexOf('properties') !== -1) input.properties = fetchProperties();
+  return input;
+}
+
 /**
  * Per-table record counts via GlideAggregate. Expensive — one query per table.
  * Honours the include/exclude regex lists in CONFIG.
@@ -622,9 +749,10 @@ function gatherInstanceInfo() {
     build_tag: prop('glide.buildtag'),
     build_date: prop('glide.builddate'),
     node_count: safeAggregate('sys_cluster_state'),
-    // v_plugin.active is a string column: active plugins carry the value 'active', not true
-    active_plugins: safeAggregate('v_plugin', function (ga) {
-      ga.addQuery('active', 'active');
+    // sys_plugins.active is a boolean column (active plugins carry true).
+    // Replaces the older v_plugin view (active='active') so bg + Node align.
+    active_plugins: safeAggregate('sys_plugins', function (ga) {
+      ga.addQuery('active', true);
     }),
     // sys_package.active is a proper boolean (active apps/packages installed on the instance)
     active_packages: safeAggregate('sys_package', function (ga) {
@@ -825,6 +953,51 @@ function gatherInstanceInfo() {
     return;
   }
 
+  // ── Optional metadata sections (JSON path only) ───────────────────────────
+  // Fetched here, after the markdown/jsonld early-returns, so the GlideRecord
+  // passes only run for the JSON output (metadata is JSON-only).
+  var metadataInput = {};
+  if (CONFIG.metadataSections && CONFIG.metadataSections.length) {
+    gs.info('Fetching metadata sections: ' + CONFIG.metadataSections.join(', ') + '...');
+    metadataInput = fetchMetadataSections();
+    var mdSummary = [];
+    for (var mdKey in metadataInput) {
+      if (Object.prototype.hasOwnProperty.call(metadataInput, mdKey)) {
+        mdSummary.push(mdKey + '=' + metadataInput[mdKey].length);
+      }
+    }
+    gs.info('  metadata: ' + mdSummary.join(', '));
+  }
+
+  // Build options forwarded to the shared builder. includePropertyValues gates
+  // sys_properties value emission; propertyDenylist overrides the central
+  // redaction pattern (defaults to the builder's own when undefined).
+  var buildOptions = {
+    includePropertyValues: CONFIG.includePropertyValues === true,
+    propertyDenylist: CONFIG.propertyValueDenylist,
+  };
+
+  // Assemble the builder input once, then graft on any requested metadata keys
+  // so absent sections stay absent (the builder omits them).
+  var jsonInput = {
+    sysDbObject: sysDbObject,
+    sysDictionary: sysDictionary,
+    sysM2m: sysM2m,
+    sysDbView: sysDbView,
+    sysDbViewTable: sysDbViewTable,
+    sysRelationship: sysRelationship,
+    sysGlideObject: sysGlideObject,
+    cmdbRelTypeSuggest: cmdbRelTypeSuggest,
+    recordCounts: recordCounts,
+    recordCountFailures: recordCountFailures,
+    instance: instance,
+  };
+  for (var miKey in metadataInput) {
+    if (Object.prototype.hasOwnProperty.call(metadataInput, miKey)) {
+      jsonInput[miKey] = metadataInput[miKey];
+    }
+  }
+
   gs.info('Building schema and accumulating chunks (sandbox-safe, no Java I/O)...');
 
   // ── Build JSON as a chunk array ────────────────────────────────────────
@@ -848,23 +1021,12 @@ function gatherInstanceInfo() {
   var chunks = [];
   var totalBytes = 0;
   var summary = SchemaBuilder.buildStreaming(
-    {
-      sysDbObject: sysDbObject,
-      sysDictionary: sysDictionary,
-      sysM2m: sysM2m,
-      sysDbView: sysDbView,
-      sysDbViewTable: sysDbViewTable,
-      sysRelationship: sysRelationship,
-      sysGlideObject: sysGlideObject,
-      cmdbRelTypeSuggest: cmdbRelTypeSuggest,
-      recordCounts: recordCounts,
-      recordCountFailures: recordCountFailures,
-      instance: instance,
-    },
+    jsonInput,
     function (chunk) {
       chunks.push(chunk);
       totalBytes += chunk.length;
-    }
+    },
+    buildOptions
   );
 
   var elapsed = (Date.now() - t0) / 1000;
@@ -1089,23 +1251,12 @@ function gatherInstanceInfo() {
     // For diagnostic use only — runs a second pass, chunked to gs.print's cap.
     gs.info('--- begin JSON (chunked to gs.print) ---');
     SchemaBuilder.buildStreaming(
-      {
-        sysDbObject: sysDbObject,
-        sysDictionary: sysDictionary,
-        sysM2m: sysM2m,
-        sysDbView: sysDbView,
-        sysDbViewTable: sysDbViewTable,
-        sysRelationship: sysRelationship,
-        sysGlideObject: sysGlideObject,
-        recordCounts: recordCounts,
-        cmdbRelTypeSuggest: cmdbRelTypeSuggest,
-        recordCountFailures: recordCountFailures,
-        instance: instance,
-      },
+      jsonInput,
       function (chunk) {
         var CAP = 4000;
         for (var i = 0; i < chunk.length; i += CAP) gs.print(chunk.substring(i, i + CAP));
-      }
+      },
+      buildOptions
     );
     gs.info('--- end JSON ---');
   }

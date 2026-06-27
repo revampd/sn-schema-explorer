@@ -414,6 +414,19 @@ describe('metadata — build() emission', () => {
     expect(out._metadata.properties.every(p => !('value' in p))).toBe(true);
   });
 
+  it('honours a custom options.propertyDenylist override (used by the bg CONFIG)', () => {
+    // Override redacts "theme" instead of the default secret patterns, so the
+    // normally-safe glide.ui.theme value is dropped while my.api.secret survives.
+    const out = build(
+      { ...BUILDER_INPUT, properties: PROPS_RAW },
+      { includePropertyValues: true, propertyDenylist: /theme/i }
+    );
+    const byName = Object.fromEntries(out._metadata.properties.map(p => [p.name, p]));
+    expect('value' in byName['glide.ui.theme']).toBe(false);
+    expect(byName['my.api.secret'].value).toBe('hunter2');
+    expect(out._capabilities.metadata.properties.redactedCount).toBe(1);
+  });
+
   it('properties capability reflects values ON with denylist redaction', () => {
     const out = build({ ...BUILDER_INPUT, properties: PROPS_RAW }, { includePropertyValues: true });
     expect(out._capabilities.metadata.properties).toEqual({
