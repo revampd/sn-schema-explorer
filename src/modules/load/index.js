@@ -6,6 +6,7 @@ import {
   buildIndexes,
   getInstance,
   selectInstance,
+  notifyFocusChange,
 } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { Settings } from '../settings/index.js';
@@ -271,5 +272,8 @@ export function selectInstanceForGraph(id) {
   if (!entry || !entry.data) return false;
   selectInstance(id);
   loadGraph(entry.data);
+  // Instance changed (and loadGraph resets the selected table) — surface both as
+  // a single focus change so lenses can re-hydrate. See focus-state.js (#131).
+  notifyFocusChange();
   return true;
 }
