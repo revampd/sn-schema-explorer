@@ -100,7 +100,10 @@ test('diff layer: canvas colouring, summary counts, sidebar list, inspector deta
   await expect(page.locator('g.node-group.diff-changed')).not.toHaveCount(0);
   const insp = page.locator('#inspector-content');
   await expect(insp).toContainText('Fields');
-  await expect(insp).toContainText('Compare');
+  // #150: the comparison inspector is now an N-column matrix — columns are headed
+  // by the actual instance labels (Base + each compare), not the generic word
+  // "Compare". The compare instance's label appears as a column header.
+  await expect(insp).toContainText('compare-inst');
 });
 
 test('path: pf sidebar + default regions hidden + a path renders', async ({ page }) => {

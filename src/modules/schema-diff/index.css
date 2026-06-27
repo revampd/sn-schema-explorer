@@ -468,6 +468,44 @@ path.diff-edge-removed {
   background: rgba(255, 255, 255, 0.03);
   color: var(--muted);
 }
+.diff-field-row.dfr-base {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+
+/* N-column comparison (#150): the per-instance status strip above the matrix. */
+.diff-col-strip {
+  margin: 6px 0 8px;
+}
+.diff-col-chip {
+  padding: 4px 7px;
+  border-radius: 4px;
+  min-width: 0;
+}
+.diff-col-chip.dcc-base {
+  background: rgba(255, 255, 255, 0.05);
+}
+.diff-col-name {
+  font-size: 9px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-col-status {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+.diff-rel-group-head {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 6px 0 3px;
+}
 .diff-field-name {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   flex: 1;

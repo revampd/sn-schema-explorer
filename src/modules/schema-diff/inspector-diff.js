@@ -1,10 +1,22 @@
 /**
- * Schema-diff inspector renderer — extracted from schema-diff/index.js (#73).
+ * Unified N-column comparison inspector (#150).
  *
- * Renders the inspector panel for a table that is added / removed / changed in
- * the current diff: the status banner, the field list (or side-by-side base vs
- * compare view for changed tables), and the relationship-change rows. Registered
- * as the fill-inspector hook by index.js; behaviour-preserving.
+ * Renders the inspector for a table while a comparison is active, as a matrix that
+ * scales from one compare (the classic Base | Compare diff) up to N compares (one
+ * column per selected instance). It consumes the diff matrix (`diffState._diffMatrix`
+ * — one pairwise diff per compare, primary first; see compute-matrix.js) so it
+ * stays in lock-step with the canvas, which keys off the primary (`_diffData`).
+ *
+ * Sections, all column-aware:
+ *   • a column-status strip (Base + one chip per compare),
+ *   • a Fields matrix (row per field, cell per column, diff-coloured vs Base),
+ *   • Relationship changes (grouped per compare),
+ *   • Configuration drift (per compare; pairwise resolver reused per column).
+ *
+ * Registered as the fill-inspector hook by index.js. Returns false — so the rich
+ * single-subject inspector (core/inspector.js) renders — when the focused table is
+ * identical across every compare and has no config drift (#150: N=1 keeps the rich
+ * view; comparison-only content lives here).
  */
 import { uiState, diffState, instancesState, getInstance, isComparing } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
@@ -14,325 +26,326 @@ import { focusTable, clearSelection } from '../../core/inspector.js';
 import { makeConfigDrift } from './config-drift.js';
 import { STATUS_LABELS } from '../config-data/reconcile.js';
 
-// Resolve a table's config-drift entry for the active comparison, or null when
-// not comparable / no owning app. Base = the loaded instance; compare defaults to
-// the unified compare selection (the per-layer reference seam — see memory:
-// per-layer-comparison-reference).
-function configEntryFor(scope) {
-  if (!scope) return null;
-  const baseData = getInstance(instancesState.selectedId)?.data;
-  const compareData = getInstance(diffState._compareId)?.data;
-  return makeConfigDrift(baseData, compareData).forScope(scope);
+const el = (tag, cls) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+};
+const setText = (e, t) => {
+  e.textContent = t;
+  return e;
+};
+
+// Per-compare status of a table within one pairwise diff.
+function tableStatus(diff, id) {
+  if (diff.added.has(id)) return 'added';
+  if (diff.removed.has(id)) return 'removed';
+  if (diff.changed.has(id)) return 'changed';
+  if (diff.baseMap.has(id) && diff.compareMap.has(id)) return 'same';
+  return 'absent';
 }
 
-// Append the Configuration section: owning app, status, and base-vs-compare
-// version/active. el()/setText() are passed in from the caller for consistency.
-function appendConfigSection(ic, el, setText, entry) {
-  if (!entry) return;
-  const title = el('div', 'diff-insp-section-title');
-  setText(title, 'Configuration');
-  ic.appendChild(title);
+const STATUS_CLASS = {
+  added: 'dfr-added',
+  removed: 'dfr-removed',
+  changed: 'dfr-changed',
+  same: 'dfr-same',
+  absent: '',
+};
+const STATUS_TEXT = {
+  added: '+ added',
+  removed: '− removed',
+  changed: '~ changed',
+  same: 'identical',
+  absent: '— absent',
+};
 
-  const appRow = el('div', 'cfg-insp-app');
-  const nameEl = el('span', 'cfg-insp-app-name');
-  setText(nameEl, entry.app?.name || '(unknown app)');
-  const chip = el('span', 'cfg-insp-chip');
-  setText(chip, entry.app?._section === 'customApps' ? 'Custom app' : 'Store app');
-  appRow.appendChild(nameEl);
-  appRow.appendChild(chip);
-  ic.appendChild(appRow);
-
-  const banner = el('div', 'cfg-insp-status cfgs-' + entry.status);
-  setText(banner, STATUS_LABELS[entry.status] || entry.status);
-  ic.appendChild(banner);
-
-  const sbs = el('div', 'diff-sbs');
-  const cell = (label, rec) => {
-    const c = el('div', 'cfg-insp-cell');
-    const h = el('div', 'cfg-insp-cell-head');
-    setText(h, label);
-    c.appendChild(h);
-    if (!rec) {
-      const dash = el('div', 'diff-field-absent');
-      setText(dash, '— not present');
-      c.appendChild(dash);
-    } else {
-      const ver = el('div', 'cfg-insp-ver');
-      setText(ver, 'v' + (rec.version || '?'));
-      const act = el('div', 'cfg-insp-act');
-      setText(act, rec.active === false ? 'inactive' : 'active');
-      c.appendChild(ver);
-      c.appendChild(act);
-    }
-    return c;
-  };
-  sbs.appendChild(cell('Base', entry.base));
-  sbs.appendChild(cell('Compare', entry.compare));
-  ic.appendChild(sbs);
+// Set a grid to N equal columns (the .diff-sbs base style is a 2-col grid).
+function setCols(node, n) {
+  node.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+  return node;
 }
 
 export function diffFillInspector(d) {
   if (!isComparing() || uiState.viewMode !== 'force') return false;
-  const tableId = d.id || d;
-  const isAdded = diffState._diffData.added.has(tableId);
-  const isRemoved = diffState._diffData.removed.has(tableId);
-  const isChanged = diffState._diffData.changed.has(tableId);
-  const isStructural = isAdded || isRemoved || isChanged;
+  const matrix = diffState._diffMatrix;
+  if (!matrix || !matrix.length) return false;
 
-  const baseNode = diffState._diffData.baseMap.get(tableId);
-  const compareNode = diffState._diffData.compareMap.get(tableId);
-  const displayNode = baseNode || compareNode;
-  const cfgEntry = configEntryFor(displayNode?.scope || (typeof d === 'object' ? d.scope : null));
+  const tableId = typeof d === 'object' ? d.id : d;
 
-  // No structural change AND no config drift → let the normal inspector render.
-  if (!isStructural && !cfgEntry) return false;
+  // Column model: Base first, then one column per compare (matrix order).
+  const baseLabel = getInstance(instancesState.selectedId)?.label || 'Base';
+  const baseData = getInstance(instancesState.selectedId)?.data || null;
+  const cols = [
+    { id: '__base__', label: baseLabel, kind: 'base' },
+    ...matrix.map(diff => ({
+      id: diff._compareId,
+      label: diff._compareLabel || diff._compareId,
+      kind: 'compare',
+      diff,
+      status: tableStatus(diff, tableId),
+    })),
+  ];
+
+  const baseNode = matrix[0].baseMap.get(tableId) || null;
+  const displayNode = baseNode || matrix.map(m => m.compareMap.get(tableId)).find(Boolean) || null;
+  const scope = displayNode?.scope || (typeof d === 'object' ? d.scope : null);
+
+  // Config drift per compare (pairwise resolver reused per column — config stays
+  // pairwise base-vs-each by design; see memory: per-layer-comparison-reference).
+  const cfgByCompare = new Map();
+  let anyConfig = false;
+  for (const diff of matrix) {
+    const cmpData = getInstance(diff._compareId)?.data;
+    const entry = scope ? makeConfigDrift(baseData, cmpData).forScope(scope) : null;
+    cfgByCompare.set(diff._compareId, entry);
+    if (entry) anyConfig = true;
+  }
+
+  const differsAnywhere = cols.some(
+    c => c.kind === 'compare' && c.status !== 'same' && c.status !== 'absent'
+  );
+  // Identical across every compare AND no config drift → let the rich inspector render.
+  if (!differsAnywhere && !anyConfig) return false;
 
   Dom.inspectorEmpty.style.display = 'none';
   Dom.inspectorContent.style.display = 'block';
   const ic = Dom.inspectorContent;
   ic.innerHTML = '';
 
-  const setText = (el, t) => {
-    el.textContent = t;
-    return el;
-  };
-  const el = (tag, cls) => {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    return e;
-  };
+  // ── Header: name, label, per-column status strip ────────────────────────────
+  ic.appendChild(setText(el('div', 'insp-name'), tableId));
+  ic.appendChild(setText(el('div', 'insp-label'), displayNode?.label || ''));
 
-  // Config-only: the table's schema is identical but its owning app drifted.
-  if (!isStructural) {
-    const cName = el('div', 'insp-name');
-    setText(cName, tableId);
-    const cLabel = el('div', 'insp-label');
-    setText(cLabel, displayNode?.label || '');
-    ic.appendChild(cName);
-    ic.appendChild(cLabel);
-    const cBanner = el('div', 'diff-insp-banner dib-changed');
-    setText(cBanner, '~ Configuration drift');
-    ic.appendChild(cBanner);
-    const note = el('div', 'diff-field-absent');
-    setText(note, 'No structural changes — field & relationship schema is identical.');
-    ic.appendChild(note);
-    appendConfigSection(ic, el, setText, cfgEntry);
-    return true;
-  }
+  const strip = setCols(el('div', 'diff-sbs diff-col-strip'), cols.length);
+  cols.forEach(c => {
+    const chip = el(
+      'div',
+      'diff-col-chip ' + (c.kind === 'base' ? 'dcc-base' : STATUS_CLASS[c.status] || 'dfr-same')
+    );
+    const nm = setText(el('div', 'diff-col-name'), c.label);
+    const st = setText(
+      el('div', 'diff-col-status'),
+      c.kind === 'base' ? 'base' : STATUS_TEXT[c.status]
+    );
+    chip.appendChild(nm);
+    chip.appendChild(st);
+    strip.appendChild(chip);
+  });
+  ic.appendChild(strip);
 
-  const nameEl = el('div', 'insp-name');
-  setText(nameEl, tableId);
-  const labelEl = el('div', 'insp-label');
-  setText(labelEl, displayNode?.label || '');
-  ic.appendChild(nameEl);
-  ic.appendChild(labelEl);
+  // ── Fields matrix ───────────────────────────────────────────────────────────
+  renderFieldsMatrix(ic, cols, baseNode, tableId);
 
-  const banner = el('div', 'diff-insp-banner');
-  if (isAdded) {
-    banner.className += ' dib-added';
-    banner.textContent = '+ Added in compare';
-  }
-  if (isRemoved) {
-    banner.className += ' dib-removed';
-    banner.textContent = '− Removed in compare';
-  }
-  if (isChanged) {
-    const ch0 = diffState._diffData.changed.get(tableId);
-    const hasFields =
-      ch0.addedFields.length || ch0.removedFields.length || ch0.changedFields.length;
-    const hasEdges = ch0.addedEdges.length || ch0.removedEdges.length;
-    const parts = [];
-    if (hasFields) parts.push('fields');
-    if (hasEdges) parts.push('relationships');
-    banner.className += ' dib-changed';
-    banner.textContent = '~ Changed: ' + (parts.join(' & ') || 'details below');
-  }
-  ic.appendChild(banner);
+  // ── Relationship changes (grouped per compare) ──────────────────────────────
+  renderRelChanges(ic, cols, tableId);
 
-  if (isAdded || isRemoved) {
-    const node = isAdded ? compareNode : baseNode;
-    const secTitle = el('div', 'diff-insp-section-title');
-    secTitle.textContent = isAdded ? 'Fields (compare schema)' : 'Fields (base schema)';
-    ic.appendChild(secTitle);
-    const fields = node?.fields || [];
-    if (!fields.length) {
-      const empty = el('div', 'diff-field-absent');
-      empty.textContent = 'No field data available';
-      ic.appendChild(empty);
-    } else {
-      fields.forEach(f => {
-        const row = el('div', isAdded ? 'diff-field-row dfr-added' : 'diff-field-row dfr-removed');
-        const wrap = el('div', 'diff-field-text');
-        const name = el('div', 'diff-field-name');
-        setText(name, f.name);
-        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
-          const badge = el('span', 'insp-custom-badge');
-          badge.textContent = 'custom';
-          name.appendChild(badge);
-        }
-        wrap.appendChild(name);
-        if (f.label && f.label !== f.name) {
-          const lbl = el('div', 'diff-field-label');
-          setText(lbl, f.label);
-          wrap.appendChild(lbl);
-        }
-        const type = el('span', 'diff-field-type');
-        setText(type, typeLabel(f.type));
-        row.appendChild(wrap);
-        row.appendChild(type);
-        ic.appendChild(row);
-      });
-    }
-    const schema = isAdded ? compareNode : baseNode;
-    if (schema) {
-      const edgeSec = el('div', 'diff-insp-section-title');
-      edgeSec.textContent = 'Relationships';
-      ic.appendChild(edgeSec);
-      const note = el('div', 'diff-field-absent');
-      note.textContent = isAdded
-        ? 'All relationships for this table are new in the compare schema.'
-        : 'All relationships for this table are gone in the compare schema.';
-      ic.appendChild(note);
-    }
-    appendConfigSection(ic, el, setText, cfgEntry);
-    return true;
-  }
+  // ── Configuration (per compare) ─────────────────────────────────────────────
+  renderConfig(ic, cols, cfgByCompare);
 
-  // Changed table — side-by-side fields view
-  const ch = diffState._diffData.changed.get(tableId);
-  const bFields = new Map((baseNode?.fields || []).map(f => [f.name, f]));
-  const cFields = new Map((compareNode?.fields || []).map(f => [f.name, f]));
-  const allNames = [...new Set([...bFields.keys(), ...cFields.keys()])].sort();
+  return true;
+}
 
-  const secTitle = el('div', 'diff-insp-section-title');
-  secTitle.textContent = 'Fields — side by side';
-  ic.appendChild(secTitle);
+// Field type for a node's field, or undefined if the field/node is absent.
+function fieldType(node, name) {
+  if (!node) return undefined;
+  const f = (node.fields || []).find(x => x.name === name);
+  return f ? f.type : undefined;
+}
 
-  const colHeaders = el('div', 'diff-sbs');
-  const bh = el('div', 'diff-sbs-col-header dsc-base');
-  bh.textContent = 'Base';
-  const ch2 = el('div', 'diff-sbs-col-header dsc-compare');
-  ch2.textContent = 'Compare';
-  colHeaders.appendChild(bh);
-  colHeaders.appendChild(ch2);
-  ic.appendChild(colHeaders);
+function renderFieldsMatrix(ic, cols, baseNode, tableId) {
+  // Per-column node for this table.
+  const nodeFor = c => (c.kind === 'base' ? baseNode : c.diff.compareMap.get(tableId) || null);
+  const colNodes = cols.map(nodeFor);
 
-  let unchangedCount = 0;
-  for (const name of allNames) {
-    const bf = bFields.get(name);
-    const cf = cFields.get(name);
-    if (bf && cf && bf.type === cf.type) {
-      unchangedCount++;
+  // Union of every field name across all columns.
+  const names = new Set();
+  colNodes.forEach(n => (n?.fields || []).forEach(f => names.add(f.name)));
+  if (!names.size) return;
+
+  const baseType = name => fieldType(baseNode, name);
+
+  // A field row is "interesting" if any compare column differs from base.
+  const rows = [];
+  let unchanged = 0;
+  for (const name of [...names].sort()) {
+    const bt = baseType(name);
+    const differs = cols.some(c => {
+      if (c.kind === 'base') return false;
+      const ct = fieldType(c.diff.compareMap.get(tableId), name);
+      return ct !== bt; // absent-vs-present or type change
+    });
+    if (!differs) {
+      unchanged++;
       continue;
     }
+    rows.push(name);
+  }
 
-    const row = el('div', 'diff-sbs');
-    let rowCls = 'dfr-same';
-    if (!bf) rowCls = 'dfr-added';
-    else if (!cf) rowCls = 'dfr-removed';
-    else rowCls = 'dfr-changed';
+  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Fields — by instance'));
 
-    // Colour only the cell that has content — the absent (—) cell gets no highlight
-    // so green/red never lands on a dash.
-    const _diffFieldCell = (f, cls) => {
-      const cell = el('div', cls);
-      if (f) {
-        const wrap = el('div', 'diff-field-text');
-        const n = el('div', 'diff-field-name');
-        setText(n, f.name);
-        if (Settings.isEnabled('customHighlight') && Settings.isCustomName(f.name)) {
-          const badge = el('span', 'insp-custom-badge');
-          badge.textContent = 'custom';
-          n.appendChild(badge);
-        }
-        wrap.appendChild(n);
-        if (f.label && f.label !== f.name) {
-          const lbl = el('div', 'diff-field-label');
-          setText(lbl, f.label);
-          wrap.appendChild(lbl);
-        }
-        const t = el('span', 'diff-field-type');
-        setText(t, typeLabel(f.type));
-        cell.appendChild(wrap);
-        cell.appendChild(t);
+  const header = setCols(el('div', 'diff-sbs'), cols.length);
+  cols.forEach(c => {
+    const h = el('div', 'diff-sbs-col-header ' + (c.kind === 'base' ? 'dsc-base' : 'dsc-compare'));
+    setText(h, c.label);
+    header.appendChild(h);
+  });
+  ic.appendChild(header);
+
+  const customOn = Settings.isEnabled('customHighlight');
+  for (const name of rows) {
+    const bt = baseType(name);
+    const row = setCols(el('div', 'diff-sbs'), cols.length);
+    cols.forEach(c => {
+      const node = nodeFor(c);
+      const t = fieldType(node, name);
+      let cls;
+      if (c.kind === 'base') {
+        cls = t === undefined ? '' : 'dfr-base';
+      } else if (t === undefined) {
+        cls = bt === undefined ? '' : 'dfr-removed'; // present in base, gone here
+      } else if (bt === undefined) {
+        cls = 'dfr-added'; // new here vs base
+      } else if (t !== bt) {
+        cls = 'dfr-changed';
       } else {
-        cell.appendChild(el('div', 'diff-field-absent')).textContent = '—';
+        cls = 'dfr-same';
       }
-      return cell;
-    };
-    const bCell = _diffFieldCell(bf, `diff-field-row${bf ? ' ' + rowCls : ''}`);
-    const cCell = _diffFieldCell(cf, `diff-field-row${cf ? ' ' + rowCls : ''}`);
-
-    row.appendChild(bCell);
-    row.appendChild(cCell);
+      const cell = el('div', 'diff-field-row' + (cls ? ' ' + cls : ''));
+      if (t === undefined) {
+        cell.appendChild(setText(el('div', 'diff-field-absent'), '—'));
+      } else {
+        const wrap = el('div', 'diff-field-text');
+        const nm = setText(el('div', 'diff-field-name'), name);
+        if (customOn && Settings.isCustomName(name)) {
+          const badge = setText(el('span', 'insp-custom-badge'), 'custom');
+          nm.appendChild(badge);
+        }
+        wrap.appendChild(nm);
+        cell.appendChild(wrap);
+        cell.appendChild(setText(el('span', 'diff-field-type'), typeLabel(t)));
+      }
+      row.appendChild(cell);
+    });
     ic.appendChild(row);
   }
 
-  if (unchangedCount) {
-    const summary2 = el('div', 'diff-field-absent');
-    summary2.textContent =
-      unchangedCount + ' unchanged field' + (unchangedCount === 1 ? '' : 's') + ' not shown';
-    ic.appendChild(summary2);
+  if (unchanged) {
+    setText(
+      ic.appendChild(el('div', 'diff-field-absent')),
+      `${unchanged} field${unchanged === 1 ? '' : 's'} identical across all instances — not shown`
+    );
+  }
+}
+
+function renderRelChanges(ic, cols, tableId) {
+  const compareCols = cols.filter(c => c.kind === 'compare');
+  const groups = [];
+  for (const c of compareCols) {
+    const ch = c.diff.changed.get(tableId);
+    const added = (ch && ch.addedEdges) || [];
+    const removed = (ch && ch.removedEdges) || [];
+    if (added.length || removed.length) groups.push({ col: c, added, removed });
+  }
+  if (!groups.length) return;
+
+  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Relationship changes'));
+  const single = compareCols.length === 1;
+
+  for (const g of groups) {
+    // With more than one compare, head each group with the instance label so the
+    // change is attributable; with a single compare keep the flat list (parity
+    // with the classic diff).
+    if (!single) {
+      ic.appendChild(setText(el('div', 'diff-rel-group-head'), 'vs ' + g.col.label));
+    }
+    const rows = [
+      ...g.added.map(e => ({ e, sign: '+', cls: 'dfr-added' })),
+      ...g.removed.map(e => ({ e, sign: '−', cls: 'dfr-removed' })),
+    ];
+    for (const { e, sign, cls } of rows) {
+      const s = typeof e.source === 'object' ? e.source.id : e.source;
+      const t = typeof e.target === 'object' ? e.target.id : e.target;
+      const otherId = s === tableId ? t : s;
+      const row = el('div', 'diff-field-row ' + cls);
+      row.dataset.id = otherId;
+      row.title = otherId;
+      row.appendChild(
+        setText(el('span', 'diff-edge-sign ' + (sign === '+' ? 'des-added' : 'des-removed')), sign)
+      );
+      row.appendChild(setText(el('span', 'diff-edge-type'), e.type || ''));
+      row.appendChild(setText(el('span', 'diff-field-name'), otherId));
+      ic.appendChild(row);
+    }
   }
 
-  const hasEdgeChanges = ch.addedEdges.length || ch.removedEdges.length;
-  if (hasEdgeChanges) {
-    const edgeSec = el('div', 'diff-insp-section-title');
-    edgeSec.textContent = 'Relationships';
-    ic.appendChild(edgeSec);
-    // Build a label lookup from both base and compare schemas so we can show
-    // the human-readable table label (e.g. "Business Application") in the far-right column
-    const labelById = new Map();
-    for (const [id, node] of diffState._diffData.baseMap) {
-      if (node.label) labelById.set(id, node.label);
-    }
-    for (const [id, node] of diffState._diffData.compareMap) {
-      if (node.label && !labelById.has(id)) labelById.set(id, node.label);
-    }
-    function renderEdgeRows(edges, rowCls, sign) {
-      for (const e of edges) {
-        const s = typeof e.source === 'object' ? e.source.id : e.source;
-        const t = typeof e.target === 'object' ? e.target.id : e.target;
-        const otherId = s === tableId ? t : s;
-        const row = el('div', 'diff-field-row ' + rowCls);
-        row.dataset.id = otherId;
-        row.title = otherId;
-        const signEl = el(
-          'span',
-          'diff-edge-sign ' + (rowCls === 'dfr-added' ? 'des-added' : 'des-removed')
-        );
-        setText(signEl, sign);
-        const typeEl = el('span', 'diff-edge-type');
-        setText(typeEl, e.type || '');
-        const tgt = el('span', 'diff-field-name');
-        setText(tgt, otherId);
-        if (e.field) {
-          const fld = el('span', 'diff-field-type');
-          setText(fld, labelById.get(otherId) || otherId);
-          row.appendChild(signEl);
-          row.appendChild(typeEl);
-          row.appendChild(tgt);
-          row.appendChild(fld);
-        } else {
-          row.appendChild(signEl);
-          row.appendChild(typeEl);
-          row.appendChild(tgt);
-        }
-        ic.appendChild(row);
-      }
-    }
-    renderEdgeRows(ch.addedEdges, 'dfr-added', '+');
-    renderEdgeRows(ch.removedEdges, 'dfr-removed', '−');
+  // Delegate row clicks → navigate to the related table (idempotent listener).
+  if (!ic._relClickWired) {
     ic.addEventListener('click', e => {
       const row = e.target.closest('.diff-field-row[data-id]');
       if (!row) return;
       const id = row.dataset.id;
-      if (id) {
-        id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
-      }
+      if (id) (id === uiState.selectedNode ? clearSelection : () => focusTable(id, false))();
     });
+    ic._relClickWired = true;
   }
+}
 
-  appendConfigSection(ic, el, setText, cfgEntry);
-  return true;
+function renderConfig(ic, cols, cfgByCompare) {
+  const compareCols = cols.filter(c => c.kind === 'compare');
+  const entries = compareCols.map(c => cfgByCompare.get(c.id)).filter(Boolean);
+  if (!entries.length) return;
+
+  // App identity comes from any resolved entry (same scope → same app).
+  const app = entries[0].app;
+  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Configuration'));
+
+  const appRow = el('div', 'cfg-insp-app');
+  appRow.appendChild(setText(el('span', 'cfg-insp-app-name'), app?.name || '(unknown app)'));
+  appRow.appendChild(
+    setText(
+      el('span', 'cfg-insp-chip'),
+      app?._section === 'customApps' ? 'Custom app' : 'Store app'
+    )
+  );
+  ic.appendChild(appRow);
+
+  // Status banner: a single pairwise status when there's one compare (parity with
+  // the classic inspector + e2e), else "Drift" if any compare drifts/misses.
+  const statuses = entries.map(e => e.status);
+  const bannerStatus =
+    compareCols.length === 1
+      ? statuses[0]
+      : statuses.some(s => s === 'drift' || s === 'missing')
+        ? 'drift'
+        : 'sync';
+  ic.appendChild(
+    setText(
+      el('div', 'cfg-insp-status cfgs-' + bannerStatus),
+      STATUS_LABELS[bannerStatus] || bannerStatus
+    )
+  );
+
+  // Base + per-compare version/active cells. Base record is shared across entries.
+  const grid = setCols(el('div', 'diff-sbs'), cols.length);
+  const cell = (label, rec) => {
+    const c = el('div', 'cfg-insp-cell');
+    c.appendChild(setText(el('div', 'cfg-insp-cell-head'), label));
+    if (!rec) {
+      c.appendChild(setText(el('div', 'diff-field-absent'), '— not present'));
+    } else {
+      c.appendChild(setText(el('div', 'cfg-insp-ver'), 'v' + (rec.version || '?')));
+      c.appendChild(
+        setText(el('div', 'cfg-insp-act'), rec.active === false ? 'inactive' : 'active')
+      );
+    }
+    return c;
+  };
+  // Base column: any entry's base record is the same instance.
+  grid.appendChild(cell(cols[0].label, entries[0].base));
+  compareCols.forEach(c => {
+    const entry = cfgByCompare.get(c.id);
+    grid.appendChild(cell(c.label, entry ? entry.compare : null));
+  });
+  ic.appendChild(grid);
 }
