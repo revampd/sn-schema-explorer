@@ -20,6 +20,8 @@ import { focusTable } from '../../core/inspector.js';
 import { setSearchData } from '../search/index.js';
 import { resetHistory } from '../history/index.js';
 import { refreshReferenceTableLinks } from '../reference/index.js';
+import { refreshToolSwitcher } from '../../core/tool-switcher.js';
+import { refreshHeaderInstance } from '../../core/header-instance.js';
 
 /**
  * Inject _ciRelationships into data.edges as cmdb_rel edges.
@@ -228,15 +230,12 @@ export function loadGraph(data) {
   updateMaxNodesSlider();
   updateHopDepthSlider();
   render();
-  // Enable all view-mode buttons + nav controls now that data is present.
-  // Each feature module controls its own button's *visibility*; the load
-  // module is only responsible for the enabled/disabled state.
-  document
-    .querySelectorAll('#view-mode-seg .vms-btn, #btn-refresh, #btn-reset, #btn-export')
-    .forEach(btn => {
-      btn.disabled = false;
-      btn.classList.remove('btn-nav-disabled');
-    });
+  // Enable nav controls now that data is present. (The header tool switcher
+  // manages its own enabled state via each tool's enabled() gate.)
+  document.querySelectorAll('#btn-refresh, #btn-reset, #btn-export').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('btn-nav-disabled');
+  });
   Dom.edgeLegend.style.display = 'block';
   syncLegendRows();
   Dom.densityGroup.style.display = 'block';
@@ -250,6 +249,9 @@ export function loadGraph(data) {
     data.nodes.slice().sort((a, b) => (data._edgeCnt[b.id] || 0) - (data._edgeCnt[a.id] || 0))[0];
   if (preselect) focusTable(preselect.id);
   refreshReferenceTableLinks();
+  // Tool availability + header instance value depend on the loaded instance.
+  refreshToolSwitcher();
+  refreshHeaderInstance();
 }
 
 /**

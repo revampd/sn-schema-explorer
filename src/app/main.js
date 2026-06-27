@@ -30,8 +30,21 @@ import {
   setHistoryClearSelFn,
   pushHistory,
 } from '../modules/history/index.js';
-import { setViewModeHistoryHook, setViewMode } from '../core/view-mode.js';
-import { initWorkspaces } from '../core/workspace.js';
+import { setViewModeHistoryHook, setViewMode, onViewModeChange } from '../core/view-mode.js';
+import { initWorkspaces, setWorkspace, getWorkspace } from '../core/workspace.js';
+import { uiState } from '../core/state.js';
+import { instancesState, getInstance } from '../core/instances-state.js';
+import { selectInstanceForGraph } from '../modules/load/index.js';
+import {
+  registerSwitcherTool,
+  initToolSwitcher,
+  refreshToolSwitcher,
+} from '../core/tool-switcher.js';
+import {
+  initHeaderInstance,
+  setInstanceSelectHandler,
+  refreshHeaderInstance,
+} from '../core/header-instance.js';
 
 // ── Genuine circular dependencies wired at startup ───────────────────────────
 //
@@ -57,8 +70,40 @@ setViewModeHistoryHook(pushHistory); // view-mode.js calls pushHistory after set
 setHistoryViewModeHook(setViewMode); // history uses setViewMode to sync DOM during restore
 setHistoryClearSelFn(clearSelection); // history calls clearSelection for null-selection restores
 
+// ── Header tool switcher + instance dropdown ─────────────────────────────────
+// The header switcher replaces the old view-mode segment. Schema Map is the
+// baseline tool registered here; the feature modules (path-finder, schema-diff,
+// config-data) register their own switcher entries when they evaluate. The
+// header instance dropdown switches the loaded instance (load wires the handler;
+// schema-diff wires the diff-base handler when it evaluates).
+const selectedHasSchema = () => {
+  const e = instancesState.selectedId && getInstance(instancesState.selectedId);
+  return !!(e && e.capabilities && e.capabilities.schema);
+};
+registerSwitcherTool({
+  key: 'schema-map',
+  label: 'Schema Map',
+  icon: '◎',
+  order: 10,
+  enabled: selectedHasSchema,
+  isActive: () => getWorkspace() === 'schema-explorer' && uiState.viewMode === 'force',
+  activate: () => {
+    setWorkspace('schema-explorer');
+    setViewMode('force');
+  },
+});
+setInstanceSelectHandler(selectInstanceForGraph);
+
 initWorkspaces();
 initLanding();
+initToolSwitcher();
+initHeaderInstance();
+// The header switcher + instance dropdown reflect the active view-mode; wire the
+// re-render here so those core modules stay off the view-mode → canvas import chain.
+onViewModeChange(() => {
+  refreshToolSwitcher();
+  refreshHeaderInstance();
+});
 initSearchListeners();
 initExportListeners();
 initControlsListeners();

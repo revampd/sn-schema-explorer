@@ -9,7 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Schema Diff: swap base ↔ compare**
+- **Header tool switcher + instance dropdown**
+  ([#127](https://github.com/revampd/sn-schema-explorer/issues/127)). The header
+  is reorganised around an always-visible **tool switcher** that replaces the old
+  `Schema Map | Path Finder | Diff` segment — it lists every tool available for
+  the loaded instance (Schema Map, Path Finder, Schema Diff, Configuration Data)
+  and works from any of them, so you can move between tools without going Home. A
+  new **instance dropdown** sits beside it: it switches the loaded instance in
+  Schema Map / Path Finder, and in Schema Diff it sets the **Base** and stays in
+  sync with the sidebar's Base picker. The Home button is now text-only, and
+  **Path Finder** is also launchable from an instance card like the other tools.
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). A **⇄**
   button between the Base and Compare pickers flips the two sides in place (the
   current compare becomes the base and vice-versa), so you can reverse the

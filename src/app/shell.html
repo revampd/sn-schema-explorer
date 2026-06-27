@@ -17,8 +17,6 @@
   <div class="logo">
     <span class="logo-tag" style="font-size:15px;font-weight:700;color:var(--text)">Schema Explorer</span>
   </div>
-  <button class="btn desk-only" id="btn-home" title="Back to the landing page">⌂ Home</button>
-  <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
   <div class="search-wrap">
     <input id="search-box" type="text" placeholder="search tables…" autocomplete="off" spellcheck="false">
     <div class="search-mode-toggle" id="search-mode-seg" role="group" aria-label="Search mode" title="Click to switch between table-name and field-name search">
@@ -30,11 +28,12 @@
   <div class="header-sep desk-only" style="width:1px;height:22px;align-self:center;background:var(--border);flex-shrink:0;opacity:.6"></div>
 
   <div class="header-btns">
-    <!-- View mode — segmented control: Schema Map | Domain Map | Path Finder -->
-    <div class="view-mode-seg desk-only" id="view-mode-seg" role="group" aria-label="View mode">
-      <button class="vms-btn active btn-nav-disabled" data-vm="force"  id="vms-force"  disabled title="Schema Map: physics-based graph view">Schema Map</button>
-      <!--INJECT:toolbar-extras-->
-    </div>
+    <!-- Home, instance picker, and the tool switcher (replaces the old view-mode
+         segment). Home is text-only; the switcher + instance dropdown are
+         rendered by core/tool-switcher.js + core/header-instance.js. -->
+    <button class="btn desk-only" id="btn-home" title="Back to the landing page">Home</button>
+    <div class="header-instance desk-only" id="header-instance" style="display:none"></div>
+    <div class="tool-switcher desk-only" id="tool-switcher" role="group" aria-label="Tool" style="display:none"></div>
     <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
     <!-- History back / forward -->
     <button class="btn desk-only btn-nav-disabled" id="btn-hist-back"

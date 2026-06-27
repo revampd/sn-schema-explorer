@@ -61,7 +61,9 @@ header > * {
   align-items: center;
   position: relative;
   flex-shrink: 1;
-  min-width: 0;
+  /* Keep a floor so the wrap can't collapse to zero (which would drop the
+     absolute-positioned Tbl/Fld toggle onto the logo) when the header is busy. */
+  min-width: 150px;
 }
 /* Tables/Fields toggle — compact pill that lives INSIDE the search input
      on its right edge. Visually distinct from the view-mode segmented
@@ -354,8 +356,8 @@ header > * {
   font-weight: 700;
 }
 
-/* View-mode segmented control */
-.view-mode-seg {
+/* Header tool switcher (replaces the old view-mode segmented control) */
+.tool-switcher {
   display: inline-flex;
   gap: 0;
   border: 1px solid var(--sn-border);
@@ -364,35 +366,51 @@ header > * {
   align-self: center;
   height: 26px;
 }
-.vms-btn {
+.ts-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: none;
   color: var(--muted);
   cursor: pointer;
   font-family: inherit;
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 4px 11px;
   line-height: 1;
   transition: all 0.15s;
   border-right: 1px solid var(--sn-border);
   white-space: nowrap;
 }
-.vms-btn:last-child {
+.ts-btn:last-child {
   border-right: none;
 }
-.vms-btn:hover {
+.ts-btn .ts-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.ts-btn:hover {
   color: var(--sn-wasabi);
   background: rgba(99, 223, 78, 0.06);
 }
-.vms-btn.active {
+.ts-btn.active {
   background: var(--sn-wasabi-dim);
   color: var(--sn-wasabi);
   font-weight: 600;
 }
-.vms-btn[disabled] {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
+
+/* Header instance dropdown */
+.header-instance {
+  align-self: center;
+  min-width: 120px;
+  max-width: 190px;
+  flex-shrink: 1;
+}
+.header-instance .sn-dd-btn {
+  height: 26px;
+  border-radius: 13px;
+  font-size: 11px;
+  padding: 4px 10px;
 }
 
 .btn-icon {

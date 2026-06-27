@@ -13,6 +13,8 @@ import {
 import { syncSidebarForMode } from '../../core/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../core/view-mode.js';
 import { getWorkspace, setWorkspace } from '../../core/workspace.js';
+import { registerSwitcherTool, refreshToolSwitcher } from '../../core/tool-switcher.js';
+import { setDiffBaseHandler } from '../../core/header-instance.js';
 import {
   registerHistoryExtractor,
   registerHistoryRestorer,
@@ -169,8 +171,9 @@ function clearDiff() {
 
 function diffSyncVisibility() {
   const enabled = Settings.isEnabled('schemaDiff');
-  const segBtn = document.getElementById('vms-diff');
-  if (segBtn) segBtn.style.display = enabled ? '' : 'none';
+  // Diff's availability is gated by the header tool switcher's enabled(); refresh
+  // it, and leave diff view if the feature was turned off.
+  refreshToolSwitcher();
   if (!enabled && uiState.viewMode === 'diff') {
     setViewMode('force', { historyPush: false });
   }
@@ -415,6 +418,24 @@ registerTool({
     setViewMode('diff');
   },
 });
+
+// Header tool switcher entry — needs ≥2 schema-capable instances to compare.
+const schemaInstanceCount = () =>
+  instancesState.instances.filter(e => e.capabilities && e.capabilities.schema).length;
+registerSwitcherTool({
+  key: 'diff',
+  label: 'Diff',
+  icon: '⇄',
+  order: 30,
+  enabled: () => Settings.isEnabled('schemaDiff') && schemaInstanceCount() >= 2,
+  isActive: () => getWorkspace() === 'schema-explorer' && uiState.viewMode === 'diff',
+  activate: () => {
+    setWorkspace('schema-explorer');
+    setViewMode('diff');
+  },
+});
+// The header instance dropdown sets the Base when in diff view.
+setDiffBaseHandler(baseId => loadDiffFromInstances(baseId, diffState._compareId));
 
 // Rebuild diff list when the header search changes while in diff view
 onSearchChange(() => {

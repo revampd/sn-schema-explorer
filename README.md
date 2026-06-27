@@ -135,7 +135,8 @@ Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_
 4. Use the **Max Nodes** and **Hop Depth** sliders to control graph density
 5. Use **Filter** in the header to narrow the canvas by scope, type, field, or edge
 6. Enable **Path Finder** or **Schema Diff** via **Settings → Features**
-7. Use the **⌂ Home** button in the header to return to the landing page — register more instances or switch tools
+7. Switch between tools (Schema Map, Path Finder, Schema Diff, Configuration Data) from the **tool switcher** in the header, and switch the loaded instance from the **instance dropdown** beside it
+8. Use the **Home** button in the header to return to the landing page — register more instances or switch tools
 
 Register multiple instance exports to compare across them; tool tiles light up when enough instances carry the data they need. Large schemas are split into a manifest + `.part*.json` files — drop all files at once and the loader reassembles them automatically.
 

@@ -103,7 +103,7 @@ test.describe('Path Finder dot-walk', () => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await page.locator('#pf-source').fill('incident');
     await page.locator('#pf-target').fill('sys_user');
     await page.locator('#pf-find').click();
@@ -130,11 +130,11 @@ test.describe('Sidebar sync', () => {
     // Default view: table list visible, path sidebar hidden.
     await expect(page.locator('#table-list')).toBeVisible();
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await expect(page.locator('#pf-sidebar')).toBeVisible();
     await expect(page.locator('#table-list')).toBeHidden();
 
-    await page.locator('#vms-force').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
     await expect(page.locator('#pf-sidebar')).toBeHidden();
     await expect(page.locator('#table-list')).toBeVisible();
   });
