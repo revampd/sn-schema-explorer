@@ -308,8 +308,20 @@ header > * {
 
 .header-btns {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+/* Uniform control height across the header cluster, so the text buttons (Home,
+   swap, Refresh, Fit, Reference, Guide, Settings) line up with the 26px instance
+   / compare dropdowns and the tool switcher — no more 24-vs-26px stagger when the
+   row's contents change across views/modules. (Mobile icon buttons keep their own
+   square size — they're hidden on desktop anyway.) */
+.header-btns .btn:not(.btn-icon) {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 .btn {
