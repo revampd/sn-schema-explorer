@@ -31,7 +31,11 @@
 // trigger drift).
 export const SECTION_CONFIG = {
   plugins: {
-    key: 'id',
+    // Key on `name`, NOT `id`: the exporter's plugin `id` falls back to the
+    // record sys_id, which differs across instances, so keying on it makes the
+    // same plugin reconcile as two "missing" rows. The plugin name (the
+    // `@scope/plugin` source id from sys_plugins) is stable across instances.
+    key: 'name',
     name: 'name',
     showKey: false,
     fields: ['version', 'active', 'installDate'],

@@ -189,6 +189,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Configuration Data: plugins compared as all "missing"**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The Plugins
+  tab keyed each plugin on its `id`, but the exporter falls back to the plugin
+  record's **sys_id** when the `id` column is empty — and sys_ids differ across
+  instances. The same plugin therefore reconciled as two separate "missing" rows.
+  Plugins are now keyed on their **name** (the stable `@scope/plugin` source id),
+  so a plugin present on both instances reconciles to a single row that reflects
+  its true in-sync / drift status.
 - **Configuration Data: trailing instance columns scrolled off-screen**
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). On the
   Properties tab (and any section), a long unbreakable property name or value

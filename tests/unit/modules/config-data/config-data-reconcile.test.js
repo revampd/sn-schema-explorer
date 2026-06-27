@@ -31,6 +31,18 @@ describe('reconcile — union + cells', () => {
     expect(x.cells.c.version).toBe('1.0');
   });
 
+  it('keys plugins on name, not the per-instance sys_id (same plugin reconciles to one row)', () => {
+    // sys_plugins `id` can be blank, so the exporter falls back to the record
+    // sys_id — which differs per instance. Keying on the stable plugin name
+    // must collapse the same plugin into a single row instead of two "missing".
+    const a = inst('a', 'Dev', 'plugins', [P('sysid_aaa', '1.0', true, '@devsnc/wizard')]);
+    const b = inst('b', 'Test', 'plugins', [P('sysid_bbb', '1.0', true, '@devsnc/wizard')]);
+    const r = reconcile('plugins', [a, b]);
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].key).toBe('@devsnc/wizard');
+    expect(r.rows[0].status).toBe('sync');
+  });
+
   it('excludes instances that do not carry the section', () => {
     const a = inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)]);
     const b = { id: 'b', label: 'NoMeta', data: { nodes: [], edges: [] } }; // no _metadata
@@ -141,7 +153,8 @@ describe('reconcileToCsv', () => {
     expect(header).toBe(
       'name,key,Dev_version,Dev_active,Dev_installDate,Test_version,Test_active,Test_installDate,status'
     );
-    expect(row).toBe('X Plugin,com.x,1.0,active,,2.0,inactive,,Drift');
+    // Plugins key on name (stable across instances), so name === key here.
+    expect(row).toBe('X Plugin,X Plugin,1.0,active,,2.0,inactive,,Drift');
   });
 
   it('leaves blank cells for missing entries', () => {
@@ -151,7 +164,7 @@ describe('reconcileToCsv', () => {
     ]);
     const row = reconcileToCsv(r).split('\n')[1];
     // Dev: 1.0,active,(installDate) · Test: blank,blank,blank
-    expect(row).toBe('X,com.x,1.0,active,,,,,' + STATUS_LABELS.missing);
+    expect(row).toBe('X,X,1.0,active,,,,,' + STATUS_LABELS.missing);
   });
 
   it('quotes fields containing commas or quotes', () => {
