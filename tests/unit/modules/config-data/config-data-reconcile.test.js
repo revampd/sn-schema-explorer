@@ -7,6 +7,7 @@ import {
   reconcile,
   reconcileToCsv,
   reconcileToJson,
+  classifyAppDrift,
   SECTION_CONFIG,
   STATUS_LABELS,
 } from '../../../../src/modules/config-data/reconcile.js';
@@ -247,5 +248,38 @@ describe('reconcile — dates are display-only (never drift)', () => {
       inst('b', 'Test', 'storeApps', [base('2025-06-15')]),
     ]);
     expect(r.rows[0].status).toBe('sync');
+  });
+});
+
+describe('classifyAppDrift — drift status for the map overlay (#133)', () => {
+  const cells = recs => recs; // { instId: record|null }
+  const insts = ids => ids.map(id => ({ id }));
+
+  it('is in sync when present everywhere with the same version + active', () => {
+    const c = cells({ a: { version: '1.0', active: true }, b: { version: '1.0', active: true } });
+    expect(classifyAppDrift(c, insts(['a', 'b']))).toBe('sync');
+  });
+  it('reports drift on a version difference', () => {
+    const c = cells({ a: { version: '2.0', active: true }, b: { version: '1.0', active: true } });
+    expect(classifyAppDrift(c, insts(['a', 'b']))).toBe('drift');
+  });
+  it('reports missing when absent from an instance', () => {
+    const c = cells({ a: { version: '1.0', active: true }, b: null });
+    expect(classifyAppDrift(c, insts(['a', 'b']))).toBe('missing');
+  });
+  it('reports a state mismatch when active differs at the same version', () => {
+    const c = cells({ a: { version: '1.0', active: true }, b: { version: '1.0', active: false } });
+    expect(classifyAppDrift(c, insts(['a', 'b']))).toBe('active');
+  });
+  it('agrees with the Config Data table (same classifier)', () => {
+    const r = reconcile('storeApps', [
+      inst('a', 'Dev', 'storeApps', [{ scope: 'x', name: 'X', version: '2.0', active: true }]),
+      inst('b', 'Prod', 'storeApps', [{ scope: 'x', name: 'X', version: '1.0', active: true }]),
+    ]);
+    const overlay = classifyAppDrift(
+      { a: { version: '2.0', active: true }, b: { version: '1.0', active: true } },
+      insts(['a', 'b'])
+    );
+    expect(overlay).toBe(r.rows[0].status); // both 'drift'
   });
 });
