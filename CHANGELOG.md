@@ -76,15 +76,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Comparison inspector now reads like the single-instance inspector**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). Relationship
-  changes are grouped under the same friendly headings as the edge-type legend
-  and the single inspector — **Reference to / Referenced by / Child tables / M2M
-  junction / Named relationship / DB view member / CI topology** (with reference
-  direction and the related table's label) — instead of raw `reference`/`rel`/`m2m`
-  type strings. The field matrix is now **inheritance-aware**: it shows a table's
-  effective schema (own + inherited from parent tables, tagged `inherited`),
-  matching what the single view shows. And a column that is **identical** to Base
-  now reads **green** ("in sync"), not amber — the per-instance status strip and
-  the field-matrix column headers are coloured by each instance's status.
+  changes are grouped by **Added / Removed** (what a change report is about), with
+  the friendly relationship type from the edge-type legend shown inline on each
+  row — **Reference to / Referenced by / Child tables / M2M junction / Named
+  relationship / DB view member / CI topology** (plus reference direction, the
+  related table's label, and the dot-walk field) — instead of raw
+  `reference`/`rel`/`m2m` type strings. The inspector is now fully
+  **inheritance-aware**, like the single-instance view: it shows a table's
+  effective schema (own + inherited from parent tables, tagged `inherited`), and
+  **flags a table whose only difference is inherited** — e.g. a parent field
+  changed — even though `computeDiff` (own-fields-only) would call it identical.
+  (The sidebar list and canvas stay own-change-based, attributing the change to
+  the parent, so one parent edit doesn't flood the report with every descendant.)
+  And a column that is **identical** to Base now reads **green** ("in sync"), not
+  amber — the per-instance status strip and the field-matrix column headers are
+  coloured by each instance's status.
 - **The Compare control and swap (⇄) button now hide together** when a comparison
   isn't applicable — on the Home/landing page or when fewer than two schema
   instances are registered. The swap button previously stayed visible after the
