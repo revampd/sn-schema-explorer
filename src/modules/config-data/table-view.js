@@ -88,7 +88,12 @@ export function renderComparisonTable(
   const loaded = result.instances;
   const q = search.trim().toLowerCase();
 
-  const headCells = [h('th', {}, 'Name'), h('th', {}, 'Key')];
+  // The Key column is redundant when it's the same field as Name (properties:
+  // both are the property name). Drop it so the value columns get the space.
+  const showKey = cfg.key !== cfg.name;
+
+  const headCells = [h('th', {}, 'Name')];
+  if (showKey) headCells.push(h('th', {}, 'Key'));
   loaded.forEach(i => headCells.push(h('th', {}, i.label)));
   headCells.push(h('th', {}, 'Status'));
 
@@ -103,7 +108,7 @@ export function renderComparisonTable(
       'tr',
       {},
       h('td', { class: 'cd-name' }, r.name),
-      h('td', { class: 'cd-key' }, r.key),
+      ...(showKey ? [h('td', { class: 'cd-key' }, r.key)] : []),
       ...loaded.map(i => instanceCell(r.cells[i.id], cfg, showDates)),
       h(
         'td',

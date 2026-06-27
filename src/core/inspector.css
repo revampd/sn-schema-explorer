@@ -30,13 +30,6 @@
   padding: 14px;
   display: none;
 }
-#inspector-content::-webkit-scrollbar {
-  width: 4px;
-}
-#inspector-content::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
 
 .insp-name {
   font-family:

@@ -86,6 +86,37 @@
   --glass-bg-hover: rgba(255, 255, 255, 0.08);
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-blur: 10px;
+
+  /* Scrollbar theme — single source of truth (see global rules below). Any
+     scrollable surface inherits this automatically; override these vars on a
+     specific element only when it genuinely needs a different size/colour. */
+  --sb-size: 4px;
+  --sb-thumb: rgba(255, 255, 255, 0.15);
+  --sb-thumb-hover: var(--sn-wasabi);
+}
+
+/* ── Global scrollbar theme ────────────────────────────────────────────────
+   Themes every scrollable element by default (Firefox + WebKit/Blink), so new
+   features never have to re-declare scrollbar styles. To hide a scrollbar,
+   set `scrollbar-width: none` + `::-webkit-scrollbar { display: none }` on that
+   element (more specific, so it wins over these `*` rules). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) transparent;
+}
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: var(--sb-size);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
 }
 
 /* ── Shared theming utilities ──────────────────────────────────────────────

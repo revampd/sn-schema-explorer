@@ -83,13 +83,6 @@ aside {
   flex-direction: column;
   gap: 1px;
 }
-#scope-info-list::-webkit-scrollbar {
-  width: 3px;
-}
-#scope-info-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
 .scope-info-row {
   display: flex;
   align-items: center;
@@ -563,19 +556,6 @@ aside {
   .table-item {
     contain-intrinsic-size: 0 42px;
   }
-}
-#table-list::-webkit-scrollbar {
-  width: 4px;
-}
-#table-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-#table-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-}
-#table-list::-webkit-scrollbar-thumb:hover {
-  background: var(--sn-wasabi);
 }
 
 /* ── SORT BAR ── */

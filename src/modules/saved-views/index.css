@@ -6,13 +6,6 @@
   max-height: 200px;
   overflow-y: auto;
 }
-#views-list::-webkit-scrollbar {
-  width: 3px;
-}
-#views-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
-}
 .views-empty {
   font-size: 10px;
   color: var(--muted);
@@ -100,13 +93,6 @@
   gap: 1px;
   max-height: 220px;
   overflow-y: auto;
-}
-#scope-list::-webkit-scrollbar {
-  width: 3px;
-}
-#scope-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 2px;
 }
 
 .scope-empty {

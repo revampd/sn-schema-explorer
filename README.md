@@ -16,7 +16,7 @@ No installation, no server, no external dependencies.
 - Search by table name **or** field name across the full dataset
 - Path Finder — shortest dot-walk path between any two tables or to a specific field; hop exclusions to suppress hub tables
 - Schema Diff — compare two registered instances to see added, removed, and changed tables/fields
-- Configuration Data — view and reconcile plugins, store apps, custom apps, and system properties across your registered instances; available from a single instance (one column) and lights up version drift, missing entries, active-state mismatches, and the store-app update signal as you add more; export as CSV
+- Configuration Data — view and reconcile plugins, store apps, custom apps, and system properties across your registered instances; available from a single instance (one column) and lights up version drift, missing entries, active-state mismatches, and the store-app update signal as you add more; an **Instance Data** tab compares instance identity/runtime/export metadata and schema stats side by side, and an instance picker chooses which instances to compare; export as CSV
 - Saved Views — snapshot and restore named view configurations
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML
 - Custom colour-coded export background with opacity control, plus an optional edge-type legend embedded in PNG/SVG exports
@@ -32,7 +32,8 @@ No installation, no server, no external dependencies.
 One file does everything. Download `sn_schema_explorer.html` from [Releases](../../releases).
 
 It includes the Schema Map, Inspector, Path Finder, Schema Diff, Export, Settings, Guide,
-and Setup Instructions (with the exporter scripts embedded for easy copy-paste).
+and Setup Instructions (with the exporter scripts embedded for easy copy-paste,
+plus a small form to configure the background script's CONFIG block before you copy it).
 
 ## Exporting your schema from ServiceNow
 

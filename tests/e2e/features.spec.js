@@ -223,4 +223,77 @@ test.describe('Configuration Data', () => {
     expect(download.suggestedFilename()).toMatch(/plugins_configuration\.csv$/);
     void testInfo;
   });
+
+  // A schema export carrying instance metadata + stats for the Instance Data tab.
+  const withStats = (name, tables) => ({
+    _instance: {
+      instance_name: name,
+      build_name: 'Washington',
+      exported_at: '2026-06-27 11:05:53',
+    },
+    _stats: { counts: { tables, fields: tables * 20, references: tables }, coverage: {} },
+    _schema_version: 1,
+    nodes: [{ id: 'task' }],
+    edges: [],
+    _metadata: { plugins: [{ id: 'com.x', name: 'X', active: true, version: '1.0' }] },
+  });
+
+  test('Instance Data tab shows per-instance sections and an N-column stats table', async ({
+    page,
+  }) => {
+    await loadApp(page, { enableFeatures: { configData: true } });
+    await register(page, withStats('dev', 9356), 'dev.json');
+    await register(page, withStats('prod', 20), 'prod.json');
+
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="configData"]')
+      .click();
+    await expect(page.locator('#config-data')).toBeVisible();
+
+    // Switch to the Instance Data tab.
+    await page.locator('.cd-tab[data-section="__instance__"]').click();
+    await expect(page.locator('.cd-tab.active')).toContainText('Instance Data');
+
+    const panel = page.locator('#cd-instance');
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText('Identity');
+    await expect(panel).toContainText('Schema stats');
+    await expect(panel.locator('.insti-compare')).toBeVisible();
+    // prod (20) vs base dev (9356) → negative delta rendered.
+    await expect(panel.locator('.isd-down').first()).toBeVisible();
+    // Metadata-comparison controls are hidden in this mode.
+    await expect(page.locator('#config-data .cd-controls')).toBeHidden();
+    // One aligned table: a header column per instance (blank label col + 2).
+    await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
+  });
+
+  test('instance picker narrows the comparison to the selected instances', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { configData: true } });
+    await register(page, withStats('dev', 9356), 'dev.json');
+    await register(page, withStats('prod', 20), 'prod.json');
+    await register(page, withStats('qa', 100), 'qa.json');
+
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="configData"]')
+      .click();
+    await page.locator('.cd-tab[data-section="__instance__"]').click();
+
+    const panel = page.locator('#cd-instance');
+    // 3 instances → blank label column + 3 instance columns = 4 header cells.
+    await expect(panel.locator('.insti-compare thead th')).toHaveCount(4);
+
+    // The picker is visible with a chip per instance; deselect one.
+    const picker = page.locator('#cd-instances');
+    await expect(picker).toBeVisible();
+    await expect(picker.locator('.cd-inst-chip')).toHaveCount(3);
+    await picker.locator('.cd-inst-chip', { hasText: 'qa' }).click();
+
+    // The comparison now covers only the two remaining instances (3 header cells).
+    await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
+    await expect(picker.locator('.cd-inst-chip.active')).toHaveCount(2);
+  });
 });

@@ -220,13 +220,6 @@
 .diff-list.visible {
   display: flex;
 }
-.diff-list::-webkit-scrollbar {
-  width: 4px;
-}
-.diff-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
 .diff-group-header {
   padding: 6px 12px 3px;
   font-size: 8px;

@@ -61,13 +61,6 @@
   padding: 0 24px 32px;
   background: var(--sn-deep);
 }
-.guide-modal-body::-webkit-scrollbar {
-  width: 6px;
-}
-.guide-modal-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
 /* Tab bar */
 .guide-modal-body .g-tabs {
   display: flex;
