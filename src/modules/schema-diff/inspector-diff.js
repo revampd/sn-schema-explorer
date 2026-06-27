@@ -188,6 +188,9 @@ export function diffFillInspector(d) {
   });
   ic.appendChild(strip);
 
+  // ── Properties matrix (parity with the single inspector's Properties) ────────
+  renderPropsMatrix(ic, cols, tableId);
+
   // ── Fields matrix (inheritance-aware) ────────────────────────────────────────
   renderFieldsMatrix(ic, cols, colFields);
 
@@ -198,6 +201,55 @@ export function diffFillInspector(d) {
   renderConfig(ic, cols, cfgByCompare);
 
   return true;
+}
+
+// Per-subject node for a table.
+function nodeOf(data, tableId) {
+  return (data?.nodes || []).find(n => n.id === tableId) || null;
+}
+// Count of direct child tables (extends-in) for a table in one subject.
+function childCount(data, tableId) {
+  let n = 0;
+  for (const e of data?.edges || []) {
+    if (e.type !== 'extends') continue;
+    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    if (t === tableId) n++;
+  }
+  return n;
+}
+
+// Properties matrix — mirrors the single inspector's Properties (scope, core,
+// children, records) but column-aware, so the same facts read across instances.
+// A compare cell that differs from Base is highlighted.
+function renderPropsMatrix(ic, cols, tableId) {
+  const valueFns = [
+    ['scope', c => nodeOf(c.data, tableId)?.scope || '—'],
+    ['core', c => (nodeOf(c.data, tableId)?.core ? '✓ yes' : 'no')],
+    ['children', c => String(childCount(c.data, tableId))],
+    [
+      'records',
+      c => {
+        const n = nodeOf(c.data, tableId)?.recordCount;
+        return typeof n === 'number' ? n.toLocaleString() : '—';
+      },
+    ],
+  ];
+
+  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Properties'));
+  const gcols = `minmax(70px, 0.8fr) repeat(${cols.length}, minmax(0, 1fr))`;
+  for (const [key, fn] of valueFns) {
+    const row = el('div', 'diff-props-row');
+    row.style.gridTemplateColumns = gcols;
+    row.appendChild(setText(el('div', 'diff-props-key'), key));
+    const baseVal = fn(cols[0]);
+    cols.forEach(c => {
+      const v = fn(c);
+      const differs = c.kind === 'compare' && v !== baseVal;
+      const cell = setText(el('div', 'diff-props-cell' + (differs ? ' dfr-changed' : '')), v);
+      row.appendChild(cell);
+    });
+    ic.appendChild(row);
+  }
 }
 
 // Build child→parent map from a subject's `extends` edges (source extends target).

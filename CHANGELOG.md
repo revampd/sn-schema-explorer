@@ -55,6 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Comparison inspector layout matches the single-instance inspector**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The diff
+  inspector now opens with a **Properties** section (scope / core / children /
+  records, column-aware, differences highlighted) like the single view, and its
+  section headers use the same uppercase, underlined style — so switching between
+  a single table and a comparison no longer feels like two different panels.
 - **Relationships in the comparison inspector are now an N-column matrix**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). Like the
   field matrix, relationship changes render as one row per related table (with the

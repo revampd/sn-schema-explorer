@@ -117,6 +117,16 @@ describe('diffFillInspector — N≥3 columns', () => {
     expect(chips).toHaveLength(3);
     expect(chips[0].textContent).toContain('base');
   });
+
+  it('renders a Properties section (parity with the single inspector)', () => {
+    diffFillInspector({ id: 'task', scope: 'global' });
+    const titles = [...inspectorContent.querySelectorAll('.diff-insp-section-title')].map(
+      e => e.textContent
+    );
+    expect(titles).toContain('Properties');
+    const keys = [...inspectorContent.querySelectorAll('.diff-props-key')].map(e => e.textContent);
+    expect(keys).toEqual(['scope', 'core', 'children', 'records']);
+  });
 });
 
 describe('diffFillInspector — N=2 parity + fall-through', () => {
