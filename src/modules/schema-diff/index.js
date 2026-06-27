@@ -33,7 +33,7 @@ import {
 } from '../history/index.js';
 import { injectCiRelEdges, selectInstanceForGraph } from '../load/index.js';
 import { registerTool, refreshLanding } from '../landing/index.js';
-import { computeDiff } from './compute-diff.js';
+import { computeDiffMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
@@ -82,7 +82,27 @@ function loadDiffSchema(compareData) {
   // ~90+ false "changed" tables, all driven by missing cmdb_rel edges.
   injectCiRelEdges(compareData);
   diffUngraftAddedFromBase();
-  diffState._diffData = computeDiff(graphState.graphData, compareData);
+  // #150 — build the N-way diff matrix (one pairwise diff per selected compare),
+  // and keep `_diffData` === the primary entry so the canvas/graft path is
+  // unchanged. With a single compare this is a one-element matrix; the
+  // multi-select header (PR ④) widens the subjects list. Extra subjects (index
+  // ≥ 1) are cloned + ci-rel-injected here exactly as the primary is, since
+  // computeDiff needs the same edge representation on both sides.
+  const subjects = diffState._compareIds.map((id, i) => {
+    if (i === 0) {
+      return { id, label: getInstance(id)?.label || id, data: compareData };
+    }
+    const entry = getInstance(id);
+    if (!entry || !entry.data) return null;
+    const clone =
+      typeof structuredClone === 'function'
+        ? structuredClone(entry.data)
+        : JSON.parse(JSON.stringify(entry.data));
+    injectCiRelEdges(clone);
+    return { id, label: entry.label || id, data: clone };
+  });
+  diffState._diffMatrix = computeDiffMatrix(graphState.graphData, subjects.filter(Boolean));
+  diffState._diffData = diffState._diffMatrix[0];
   diffState._diffData._compareInstance = compareData._instance || null;
   diffState._diffData._compareStats = compareData._stats || null;
   diffState._diffData._compareCapabilities = compareData._capabilities || null;
@@ -172,6 +192,7 @@ function loadDiffFromInstances(baseId, compareId) {
 function clearDiff() {
   diffUngraftAddedFromBase();
   diffState._diffData = null;
+  diffState._diffMatrix = null;
   setCompareId(null);
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';

@@ -91,6 +91,7 @@ export function loadGraph(data) {
   // loadGraph no longer hides any overlay itself.
   uiState.connectedNodes = new Set();
   diffState._diffData = null;
+  diffState._diffMatrix = null;
   diffState._diffShowAll = false;
   uiState._viewPositionCache.force = null;
   uiState._viewPositionCache.diff = null;

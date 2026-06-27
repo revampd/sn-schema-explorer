@@ -100,7 +100,29 @@ export const focusState = {
  */
 export function setCompareId(id) {
   const next = id == null ? null : id;
-  if (diffState._compareId === next) return;
+  if (diffState._compareId === next && diffState._compareIds.length <= 1) return;
   diffState._compareId = next;
+  // Keep the N-way list (#150) in sync with the single-compare writer: setting one
+  // compare collapses the list to that one (or empties it).
+  diffState._compareIds = next ? [next] : [];
+  notifyFocusChange();
+}
+
+/**
+ * The N-way writer (#150) — set the full ordered list of compare instances. The
+ * primary (`_compareId`, the canvas/graft reference) follows the first entry.
+ * Filters falsy ids and de-dupes while preserving order.
+ */
+export function setCompareIds(ids) {
+  const seen = new Set();
+  const arr = (Array.isArray(ids) ? ids : [])
+    .filter(Boolean)
+    .filter(id => (seen.has(id) ? false : (seen.add(id), true)));
+  const sameList =
+    arr.length === diffState._compareIds.length &&
+    arr.every((id, i) => id === diffState._compareIds[i]);
+  if (sameList) return;
+  diffState._compareIds = arr;
+  diffState._compareId = arr[0] || null;
   notifyFocusChange();
 }

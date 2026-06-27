@@ -14,6 +14,7 @@ export {
   focusSnapshot,
   notifyFocusChange,
   setCompareId,
+  setCompareIds,
 } from './focus-state.js';
 export {
   buildSpine,
