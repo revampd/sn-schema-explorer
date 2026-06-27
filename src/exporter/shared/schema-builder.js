@@ -82,6 +82,109 @@
         ? global
         : this,
   function () {
+    // ── Metadata sections (cross-instance comparison) ────────────────────────────
+    // Opt-in sections describing the instance beyond its table schema: plugins,
+    // store apps, custom apps, system properties. Emitted under the top-level
+    // `_metadata` key (only for sections actually present in the input) so the
+    // viewer's Instance Comparison tool can reconcile them across instances.
+    //
+    // The shape is defined HERE (the shared UMD builder) so the Node and
+    // background exporters emit identical output.
+    var METADATA_SECTIONS = ['plugins', 'storeApps', 'customApps', 'properties'];
+
+    // Property names matching this pattern hold secrets and have their VALUE
+    // redacted even when value export is opted in. Applied centrally so every
+    // exporter shares the same denylist. Case-insensitive substring match.
+    var PROPERTY_VALUE_DENYLIST = /password|secret|key|token|cred|private|passwd/i;
+
+    // Unwrap a cell that may be a flat string/boolean or a Table-API
+    // { value, displayValue } / { value, display_value } object. Returns a string.
+    function cellVal(v) {
+      if (v == null) return '';
+      if (typeof v === 'object') return v.value != null ? String(v.value) : '';
+      return String(v);
+    }
+    function cellBoolVal(v) {
+      return cellVal(v) === 'true';
+    }
+
+    function normalizePlugins(arr) {
+      var out = [];
+      if (!arr) return out;
+      for (var i = 0; i < arr.length; i++) {
+        var p = arr[i] || {};
+        out.push({
+          id: cellVal(p.id) || cellVal(p.source) || '',
+          name: cellVal(p.name),
+          active: cellBoolVal(p.active),
+          version: cellVal(p.version),
+        });
+      }
+      return out;
+    }
+
+    function normalizeStoreApps(arr) {
+      var out = [];
+      if (!arr) return out;
+      for (var i = 0; i < arr.length; i++) {
+        var a = arr[i] || {};
+        out.push({
+          scope: cellVal(a.scope),
+          name: cellVal(a.name),
+          version: cellVal(a.version),
+          vendor: cellVal(a.vendor),
+          active: cellBoolVal(a.active),
+        });
+      }
+      return out;
+    }
+
+    function normalizeCustomApps(arr) {
+      var out = [];
+      if (!arr) return out;
+      for (var i = 0; i < arr.length; i++) {
+        var a = arr[i] || {};
+        out.push({
+          scope: cellVal(a.scope),
+          name: cellVal(a.name),
+          version: cellVal(a.version),
+          active: cellBoolVal(a.active),
+        });
+      }
+      return out;
+    }
+
+    // Returns { items, redactedCount }. When includePropertyValues is false NO
+    // values are emitted at all (redactedCount stays 0). When true, values are
+    // included EXCEPT for properties whose name matches the denylist — those have
+    // their value dropped and increment redactedCount.
+    function normalizeProperties(arr, opts) {
+      opts = opts || {};
+      var includeValues = !!opts.includePropertyValues;
+      var denylist = opts.denylist || PROPERTY_VALUE_DENYLIST;
+      var items = [];
+      var redactedCount = 0;
+      if (!arr) return { items: items, redactedCount: redactedCount };
+      for (var i = 0; i < arr.length; i++) {
+        var p = arr[i] || {};
+        var name = cellVal(p.name);
+        var entry = {
+          name: name,
+          type: cellVal(p.type),
+          description: cellVal(p.description),
+        };
+        if (includeValues) {
+          if (denylist.test(name)) {
+            redactedCount++;
+          } else {
+            entry.value = cellVal(p.value);
+          }
+        }
+        items.push(entry);
+      }
+      return { items: items, redactedCount: redactedCount };
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────
     function ref(name, displayValue) {
       // Normalise the {name, displayValue} ref shape. Strips empties.
@@ -596,6 +699,54 @@
         nodes: nodes,
         edges: edges,
       };
+
+      // ── 11. Optional metadata sections ──────────────────────────────────────
+      // Each section is included only when its input array is provided (a section
+      // the exporter did not fetch is absent entirely — distinct from an empty
+      // section that was fetched but had no rows). Capability `enabled` reflects
+      // real data (count > 0) so downstream tooling gates on content, not presence.
+      var metadata = {};
+      var metadataCaps = {};
+      var hasMetadata = false;
+
+      if (input.plugins) {
+        var plugins = normalizePlugins(input.plugins);
+        metadata.plugins = plugins;
+        metadataCaps.plugins = { enabled: plugins.length > 0, count: plugins.length };
+        hasMetadata = true;
+      }
+      if (input.storeApps) {
+        var storeApps = normalizeStoreApps(input.storeApps);
+        metadata.storeApps = storeApps;
+        metadataCaps.storeApps = { enabled: storeApps.length > 0, count: storeApps.length };
+        hasMetadata = true;
+      }
+      if (input.customApps) {
+        var customApps = normalizeCustomApps(input.customApps);
+        metadata.customApps = customApps;
+        metadataCaps.customApps = { enabled: customApps.length > 0, count: customApps.length };
+        hasMetadata = true;
+      }
+      if (input.properties) {
+        var includeValues = !!options.includePropertyValues;
+        var props = normalizeProperties(input.properties, {
+          includePropertyValues: includeValues,
+        });
+        metadata.properties = props.items;
+        metadataCaps.properties = {
+          enabled: props.items.length > 0,
+          count: props.items.length,
+          valuesIncluded: includeValues,
+          redactedCount: props.redactedCount,
+        };
+        hasMetadata = true;
+      }
+
+      if (hasMetadata) {
+        output._metadata = metadata;
+        output._capabilities.metadata = metadataCaps;
+      }
+
       return output;
     }
 
@@ -614,10 +765,13 @@
      * @return {Object}           Summary of what was emitted: { counts, sizeBytes, elapsedMs }
      *                            (no big strings — counts only — safe under cap)
      */
-    function buildStreaming(input, writeFn) {
+    function buildStreaming(input, writeFn, options) {
       // We reuse build() to construct the full in-memory object graph. The 32 MB
       // limit is on STRINGS in Rhino, not on heap object size, so this is fine.
-      var schema = build(input);
+      // options (e.g. includePropertyValues) MUST be forwarded — build()'s
+      // top-level keys here are emitted manually, so any field added to build()
+      // also has to be streamed below or it silently drops from the JSON path.
+      var schema = build(input, options);
       var totalBytes = 0;
 
       function emit(chunk) {
@@ -647,6 +801,12 @@
       emitJSON(schema._stats);
       emit(',"_capabilities":');
       emitJSON(schema._capabilities);
+      // Optional metadata sections — emitted only when build() produced them.
+      // Small (plugins/apps/properties lists), so a single chunk is safe.
+      if (schema._metadata) {
+        emit(',"_metadata":');
+        emitJSON(schema._metadata);
+      }
       emit(',"_typeCatalog":');
       emitJSON(schema._typeCatalog);
       emit(',"_restrictedHints":');
@@ -687,6 +847,12 @@
       _internal: {
         parseRelationshipTargetTable: parseRelationshipTargetTable,
         parseRelationshipApplyTable: parseRelationshipApplyTable,
+        normalizePlugins: normalizePlugins,
+        normalizeStoreApps: normalizeStoreApps,
+        normalizeCustomApps: normalizeCustomApps,
+        normalizeProperties: normalizeProperties,
+        PROPERTY_VALUE_DENYLIST: PROPERTY_VALUE_DENYLIST,
+        METADATA_SECTIONS: METADATA_SECTIONS,
       },
     };
   }

@@ -13,13 +13,13 @@ import { BUILDER_INPUT } from '../fixtures/builder-input.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ── Load schema-builder as a self-contained script ─────────────────────────
-let build, buildStreaming;
+let build, buildStreaming, _internal;
 
 beforeAll(() => {
   const src = readFileSync(join(__dirname, '../../src/exporter/shared/schema-builder.js'), 'utf8');
   const mod = { exports: {} };
   new Function('module', 'exports', src)(mod, mod.exports);
-  ({ build, buildStreaming } = mod.exports);
+  ({ build, buildStreaming, _internal } = mod.exports);
 });
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -309,5 +309,137 @@ describe('buildStreaming', () => {
     expect(json).toHaveProperty('edges');
     expect(result).toHaveProperty('counts');
     expect(result.counts).toHaveProperty('tables');
+  });
+});
+
+// ── 14. Metadata sections ──────────────────────────────────────────────────────
+const PLUGINS_RAW = [
+  { id: 'com.snc.incident', name: 'Incident', active: 'true', version: '1.0.0' },
+  { id: 'com.snc.change', name: 'Change', active: 'false', version: '2.1' },
+];
+const STORE_APPS_RAW = [
+  { scope: 'x_acme_app', name: 'Acme App', version: '1.2.3', vendor: 'Acme', active: 'true' },
+];
+const PROPS_RAW = [
+  { name: 'glide.ui.theme', value: 'dark', type: 'string', description: 'UI theme' },
+  { name: 'my.api.secret', value: 'hunter2', type: 'string', description: 'API secret' },
+  { name: 'auth.token.ttl', value: '3600', type: 'integer', description: 'token ttl' },
+];
+
+describe('metadata — normalizers (_internal)', () => {
+  it('normalizePlugins maps id/name/active/version and coerces active to bool', () => {
+    const out = _internal.normalizePlugins(PLUGINS_RAW);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toEqual({
+      id: 'com.snc.incident',
+      name: 'Incident',
+      active: true,
+      version: '1.0.0',
+    });
+    expect(out[1].active).toBe(false);
+  });
+
+  it('normalizePlugins falls back to source when id is absent', () => {
+    const out = _internal.normalizePlugins([{ source: 'com.x', name: 'X' }]);
+    expect(out[0].id).toBe('com.x');
+  });
+
+  it('normalizers tolerate Table-API {value,display_value} cells', () => {
+    const out = _internal.normalizeStoreApps([
+      {
+        scope: { value: 'x_acme_app', display_value: 'Acme' },
+        name: { value: 'Acme App' },
+        active: { value: 'true' },
+      },
+    ]);
+    expect(out[0].scope).toBe('x_acme_app');
+    expect(out[0].name).toBe('Acme App');
+    expect(out[0].active).toBe(true);
+  });
+
+  it('normalizeProperties omits all values when includePropertyValues is false', () => {
+    const { items, redactedCount } = _internal.normalizeProperties(PROPS_RAW, {
+      includePropertyValues: false,
+    });
+    expect(redactedCount).toBe(0);
+    expect(items.every(p => !('value' in p))).toBe(true);
+    expect(items[0]).toEqual({ name: 'glide.ui.theme', type: 'string', description: 'UI theme' });
+  });
+
+  it('normalizeProperties includes safe values but redacts denylisted names', () => {
+    const { items, redactedCount } = _internal.normalizeProperties(PROPS_RAW, {
+      includePropertyValues: true,
+    });
+    // my.api.secret and auth.token.ttl both match the denylist (secret|token)
+    expect(redactedCount).toBe(2);
+    const byName = Object.fromEntries(items.map(p => [p.name, p]));
+    expect(byName['glide.ui.theme'].value).toBe('dark');
+    expect('value' in byName['my.api.secret']).toBe(false);
+    expect('value' in byName['auth.token.ttl']).toBe(false);
+  });
+});
+
+describe('metadata — build() emission', () => {
+  it('omits _metadata and _capabilities.metadata when no section is provided', () => {
+    const out = buildFrom();
+    expect(out).not.toHaveProperty('_metadata');
+    expect(out._capabilities).not.toHaveProperty('metadata');
+  });
+
+  it('emits only the sections present in input', () => {
+    const out = buildFrom({ plugins: PLUGINS_RAW, storeApps: STORE_APPS_RAW });
+    expect(out._metadata).toHaveProperty('plugins');
+    expect(out._metadata).toHaveProperty('storeApps');
+    expect(out._metadata).not.toHaveProperty('customApps');
+    expect(out._metadata).not.toHaveProperty('properties');
+    expect(out._capabilities.metadata.plugins).toEqual({ enabled: true, count: 2 });
+    expect(out._capabilities.metadata.storeApps).toEqual({ enabled: true, count: 1 });
+    expect(out._capabilities.metadata).not.toHaveProperty('customApps');
+  });
+
+  it('treats an empty array as present but disabled (count 0)', () => {
+    const out = buildFrom({ customApps: [] });
+    expect(out._metadata.customApps).toEqual([]);
+    expect(out._capabilities.metadata.customApps).toEqual({ enabled: false, count: 0 });
+  });
+
+  it('properties capability reports valuesIncluded + redactedCount (default OFF)', () => {
+    const out = buildFrom({ properties: PROPS_RAW });
+    expect(out._capabilities.metadata.properties).toEqual({
+      enabled: true,
+      count: 3,
+      valuesIncluded: false,
+      redactedCount: 0,
+    });
+    expect(out._metadata.properties.every(p => !('value' in p))).toBe(true);
+  });
+
+  it('properties capability reflects values ON with denylist redaction', () => {
+    const out = build({ ...BUILDER_INPUT, properties: PROPS_RAW }, { includePropertyValues: true });
+    expect(out._capabilities.metadata.properties).toEqual({
+      enabled: true,
+      count: 3,
+      valuesIncluded: true,
+      redactedCount: 2,
+    });
+  });
+});
+
+describe('metadata — buildStreaming emits _metadata', () => {
+  it('streams _metadata matching build() output', () => {
+    const input = { ...BUILDER_INPUT, plugins: PLUGINS_RAW, properties: PROPS_RAW };
+    const opts = { includePropertyValues: true };
+    const chunks = [];
+    buildStreaming(input, chunk => chunks.push(chunk), opts);
+    const json = JSON.parse(chunks.join(''));
+    expect(json._metadata).toEqual(build(input, opts)._metadata);
+    expect(json._capabilities.metadata.properties.redactedCount).toBe(2);
+  });
+
+  it('omits _metadata from the stream when no section is provided', () => {
+    const chunks = [];
+    buildStreaming(BUILDER_INPUT, chunk => chunks.push(chunk));
+    const json = JSON.parse(chunks.join(''));
+    expect(json).not.toHaveProperty('_metadata');
   });
 });
