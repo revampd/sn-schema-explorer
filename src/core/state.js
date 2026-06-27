@@ -10,6 +10,13 @@ export { uiState } from './ui-state.js';
 export { diffState } from './diff-state.js';
 export { focusState, onFocusChange, focusSnapshot, notifyFocusChange } from './focus-state.js';
 export {
+  buildSpine,
+  buildScopeIndex,
+  buildAppIndex,
+  normKey,
+  isGlobalScope,
+} from './entity-spine.js';
+export {
   instancesState,
   METADATA_SECTIONS,
   detectCapabilities,
