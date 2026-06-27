@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **N-way comparison seam — internal groundwork**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150); the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). The comparison state now carries an ordered list of compare
+  instances (`_compareIds`, primary first) and a per-subject **diff matrix**
+  (`_diffMatrix` — one pairwise diff per compare, built via `computeDiffMatrix`),
+  alongside a `rollupMatrix` aggregator. The single-compare picker still drives
+  everything today, so there is no visible change yet; this is the foundation for
+  the upcoming N-column inspector, N-column change-report sidebar, and
+  multi-select Compare control. The canvas/graft path stays keyed to the
+  **primary** compare (`_diffData` === `_diffMatrix[0]`).
+
 ### Changed
 
 - **Schema Diff is now a layer on the Schema Map, not a separate view**

@@ -14,6 +14,7 @@ import {
   focusSnapshot,
   notifyFocusChange,
   setCompareId,
+  setCompareIds,
 } from '../../../src/core/focus-state.js';
 import { instancesState } from '../../../src/core/instances-state.js';
 import { diffState } from '../../../src/core/diff-state.js';
@@ -22,6 +23,7 @@ import { uiState } from '../../../src/core/ui-state.js';
 beforeEach(() => {
   instancesState.selectedId = null;
   diffState._compareId = null;
+  diffState._compareIds = [];
   uiState.selectedNode = null;
 });
 
@@ -93,6 +95,49 @@ describe('setCompareId — the single writer for the compare instance', () => {
     setCompareId('i_a');
     setCompareId(null);
     expect(focusState.compareId).toBeNull();
+  });
+  it('keeps the N-way list (#150) in sync — one compare = a one-element list', () => {
+    setCompareId('i_prod');
+    expect(diffState._compareIds).toEqual(['i_prod']);
+    setCompareId(null);
+    expect(diffState._compareIds).toEqual([]);
+  });
+  it('collapses a multi-element list back to one when called after setCompareIds', () => {
+    setCompareIds(['i_a', 'i_b']);
+    setCompareId('i_a'); // same primary, but list must collapse — so not a no-op
+    expect(diffState._compareId).toBe('i_a');
+    expect(diffState._compareIds).toEqual(['i_a']);
+  });
+});
+
+describe('setCompareIds — the N-way writer (#150)', () => {
+  it('sets the ordered list and follows the primary to the first entry', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareIds(['i_prod', 'i_uat']);
+    expect(diffState._compareIds).toEqual(['i_prod', 'i_uat']);
+    expect(diffState._compareId).toBe('i_prod');
+    expect(focusState.compareId).toBe('i_prod');
+    expect(spy).toHaveBeenCalledTimes(1);
+    off();
+  });
+  it('filters falsy ids and de-dupes while preserving order', () => {
+    setCompareIds(['i_a', null, 'i_b', 'i_a', '', 'i_c']);
+    expect(diffState._compareIds).toEqual(['i_a', 'i_b', 'i_c']);
+  });
+  it('is a no-op (no notify) when the list is unchanged', () => {
+    setCompareIds(['i_a', 'i_b']);
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareIds(['i_a', 'i_b']);
+    expect(spy).not.toHaveBeenCalled();
+    off();
+  });
+  it('clears to empty with [] or non-array, dropping the primary', () => {
+    setCompareIds(['i_a']);
+    setCompareIds([]);
+    expect(diffState._compareIds).toEqual([]);
+    expect(diffState._compareId).toBeNull();
   });
 });
 
