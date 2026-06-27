@@ -60,8 +60,8 @@ export function _resetTools() {
 const SECTION_DEFS = [
   {
     key: 'schema',
-    label: 'Schema',
-    short: 'Schema',
+    label: 'Nodes',
+    short: 'Nodes',
     count: e => e.data?._stats?.counts?.tables ?? e.data?.nodes?.length,
   },
   {
