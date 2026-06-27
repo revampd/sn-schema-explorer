@@ -413,6 +413,29 @@ setFillInspectorHook(diffFillInspector);
 
 // ── Diff sidebar event delegation ─────────────────────────────────────────────
 
+// Select a table from the diff sidebar. Tables added only in a (non-primary)
+// compare aren't grafted onto the base map, so focusTable() — which bails when the
+// node isn't in the graph — silently no-ops on them. Here we still select the
+// table and render the comparison inspector directly, so every differing row is
+// navigable whether or not it lives on the map (#150).
+export function selectDiffTable(id) {
+  if (!id) return;
+  if (id === uiState.selectedNode) {
+    clearSelection();
+    return;
+  }
+  const inGraph = !!graphState.graphData?._nodeById?.get(id);
+  if (inGraph) {
+    focusTable(id, false);
+    return;
+  }
+  uiState.selectedNode = id;
+  Dom.statFocus.textContent = id;
+  fillInspector({ id });
+  render();
+  pushHistory();
+}
+
 (function wireDiffSidebar() {
   const list = document.getElementById('diff-list');
   if (list) {
@@ -420,19 +443,13 @@ setFillInspectorHook(diffFillInspector);
       // Edge row inside a table entry — navigate to the related table
       const edgeItem = e.target.closest('.diff-edge-item');
       if (edgeItem) {
-        const id = edgeItem.dataset.id;
-        if (id) {
-          id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
-        }
+        selectDiffTable(edgeItem.dataset.id);
         return;
       }
       // Table row
       const item = e.target.closest('.diff-item');
       if (!item) return;
-      const id = item.dataset.id;
-      if (!id) return;
-      if (id === uiState.selectedNode) clearSelection();
-      else focusTable(id, false);
+      selectDiffTable(item.dataset.id);
     });
   }
 
@@ -476,8 +493,7 @@ setFillInspectorHook(diffFillInspector);
     } else if (e.key === 'Enter') {
       const item = getFocusedDiffItem();
       if (!item) return;
-      const id = item.dataset.id;
-      if (id) id === uiState.selectedNode ? clearSelection() : focusTable(id, false);
+      selectDiffTable(item.dataset.id);
     } else if (e.key === 'Escape') {
       clearSelection();
       clearDiffCursor();
