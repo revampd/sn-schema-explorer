@@ -38,8 +38,7 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { makeConfigDrift, tablesForApp } from './config-drift.js';
-import { diffBuildConfigList } from './config-list.js';
+import { makeConfigDrift, tablesForApp, appDriftSummary } from './config-drift.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -115,7 +114,6 @@ function loadDiffSchema(compareData) {
   diffGraftAddedIntoBase();
   diffUpdateSummary();
   diffBuildList();
-  diffBuildConfigList();
   // #141: starting a comparison no longer changes the view-mode, so sync the
   // sidebar here to reveal the diff report on the map.
   diffSyncSidebar();
@@ -215,7 +213,6 @@ function clearDiff() {
   if (modeWarn) modeWarn.style.display = 'none';
   diffUpdateSummary();
   diffBuildList();
-  diffBuildConfigList();
   // Comparison dropped — restore the default sidebar and hide the layer toggle.
   diffSyncSidebar();
   refreshStructureToggle();
@@ -285,6 +282,61 @@ function diffUpdateSummary() {
     const el = document.getElementById('diff-stat-' + k);
     if (el) el.classList.toggle('active', diffState._diffFilter === k);
   });
+
+  renderConfigTiles();
+}
+
+// Config-drift summary tiles, rendered into the SAME summary strip as the table
+// tiles (#150/#149 — one unified report). Opt-in: shown only when both sides
+// carry app metadata. Clicking a tile filters the unified list to that status.
+const CONFIG_TILES = [
+  ['drift', 'Drift'],
+  ['missing', 'Missing'],
+  ['state', 'State'],
+  ['sync', 'In sync'],
+];
+function renderConfigTiles() {
+  const summary = document.getElementById('diff-summary');
+  if (!summary) return;
+  let host = document.getElementById('diff-cfg-tiles');
+  const baseData = getInstance(instancesState.selectedId)?.data;
+  const compareData = getInstance(diffState._compareId)?.data;
+  const cfg = appDriftSummary(baseData, compareData);
+  if (!cfg.comparable) {
+    if (host) host.remove();
+    return;
+  }
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'diff-cfg-tiles';
+    host.className = 'diff-cfg-tiles';
+    host.addEventListener('click', e => {
+      const tile = e.target.closest('[data-cfg]');
+      if (!tile) return;
+      const status = tile.dataset.cfg;
+      diffState._diffFilter = diffState._diffFilter === status ? 'all' : status;
+      diffUpdateSummary();
+      diffBuildList();
+      pushHistory();
+    });
+    summary.appendChild(host);
+  }
+  host.innerHTML = '';
+  for (const [status, label] of CONFIG_TILES) {
+    const count = status === 'state' ? cfg.counts.active : cfg.counts[status] || 0;
+    const tile = document.createElement('div');
+    tile.className =
+      'diff-stat dcs-' + status + (diffState._diffFilter === status ? ' active' : '');
+    tile.dataset.cfg = status;
+    const n = document.createElement('span');
+    n.className = 'diff-stat-n';
+    n.textContent = String(count);
+    const l = document.createElement('span');
+    l.className = 'diff-stat-label';
+    l.textContent = label;
+    tile.append(n, l);
+    host.appendChild(tile);
+  }
 }
 
 // ── Canvas overlays ───────────────────────────────────────────────────────────
@@ -436,6 +488,27 @@ export function selectDiffTable(id) {
   pushHistory();
 }
 
+// Toggle the config-drift app highlight from a unified-list app row: activating
+// it highlights the app's tables on the canvas and jumps to the first one (so a
+// config-only-drifted table — absent from the structural changes — is reachable);
+// re-clicking clears the highlight. Mirrors the old #diff-config behaviour.
+function selectDiffApp(key, row) {
+  if (!key) return;
+  const isActive = diffState._activeConfigApp?.key === key;
+  if (isActive) {
+    diffState._activeConfigApp = null;
+    diffBuildList();
+    render();
+    return;
+  }
+  const name = row?.dataset.name || key;
+  diffState._activeConfigApp = { key, name };
+  diffBuildList();
+  const owned = tablesForApp(diffState._activeConfigApp, graphState.graphData?.nodes || []);
+  if (owned.length) focusTable(owned[0], false);
+  else render();
+}
+
 (function wireDiffSidebar() {
   const list = document.getElementById('diff-list');
   if (list) {
@@ -446,9 +519,14 @@ export function selectDiffTable(id) {
         selectDiffTable(edgeItem.dataset.id);
         return;
       }
-      // Table row
       const item = e.target.closest('.diff-item');
       if (!item) return;
+      // Config-drift app row — toggle the app highlight (and jump to its tables).
+      if (item.dataset.kind === 'app') {
+        selectDiffApp(item.dataset.key, item);
+        return;
+      }
+      // Table row
       selectDiffTable(item.dataset.id);
     });
   }

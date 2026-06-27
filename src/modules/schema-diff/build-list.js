@@ -1,4 +1,4 @@
-import { uiState, diffState } from '../../core/state.js';
+import { uiState, diffState, instancesState, getInstance } from '../../core/state.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
 import { h } from '../../core/template.js';
@@ -6,12 +6,28 @@ import { getSearchMode } from '../search/index.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { clearDiffCursor } from './list-cursor.js';
 import { rollupMatrix } from './compute-matrix.js';
+import { appDriftSummary } from './config-drift.js';
+import { STATUS_LABELS } from '../config-data/reconcile.js';
 
 // ── diffBuildList ─────────────────────────────────────────────────────────────
 //
-// Renders the diff sidebar list (Added / Removed / Changed groups, with per-table
-// relationship-change subgroups). Extracted verbatim from schema-diff/index.js
-// (#73); reads diffState/uiState directly and clears the shared keyboard cursor.
+// The single unified "Differences" report (#150 / #149): one list mixing
+// structural table changes and application config-drift, each row type-tagged
+// (table | app). Config-drift apps render first (few, high-value), then the
+// table changes (the classic Added/Removed/Changed grouping for one compare, or
+// the N-column roll-up for several). One filter (`diffState._diffFilter`) spans
+// both axes — table statuses (added/removed/changed) show table rows; config
+// statuses (drift/missing/state/sync) show app rows; 'all' shows the changes.
+
+const TABLE_STATUSES = new Set(['added', 'removed', 'changed']);
+const CONFIG_STATUSES = new Set(['drift', 'missing', 'state', 'sync']);
+
+function typeTag(kind) {
+  const tag = document.createElement('span');
+  tag.className = 'diff-type-tag dtt-' + kind;
+  tag.textContent = kind;
+  return tag;
+}
 
 export function diffBuildList() {
   clearDiffCursor();
@@ -21,17 +37,138 @@ export function diffBuildList() {
   list.innerHTML = '';
   if (!diffState._diffData) return;
 
-  // #150 — with more than one compare, the pairwise Added/Removed/Changed grouping
-  // no longer holds (a table can be added in one instance and changed in another),
-  // so render the N-column roll-up: one row per differing table with a per-instance
-  // status strip. A single compare keeps the classic grouped list below.
-  const matrix = diffState._diffMatrix;
-  if (matrix && matrix.length > 1) {
-    buildMatrixList(list, matrix);
-    return;
+  const frag = document.createDocumentFragment();
+  const filter = diffState._diffFilter;
+
+  // Config-drift app rows first (unless a table-only status is active).
+  if (!TABLE_STATUSES.has(filter)) appendAppRows(frag, filter);
+
+  // Table rows — hidden when a config-only status is the active filter.
+  if (!CONFIG_STATUSES.has(filter)) {
+    const matrix = diffState._diffMatrix;
+    if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
+    else appendGroupedRows(frag, filter);
   }
 
-  const frag = document.createDocumentFragment();
+  list.appendChild(frag);
+}
+
+// ── Config-drift app rows ───────────────────────────────────────────────────────
+
+function appendAppRows(frag, filter) {
+  const baseData = getInstance(instancesState.selectedId)?.data;
+  const compareData = getInstance(diffState._compareId)?.data;
+  const summary = appDriftSummary(baseData, compareData);
+  if (!summary.comparable) return;
+
+  // 'state' tile maps to the 'active' drift status (parity with the old config block).
+  const want = filter === 'state' ? 'active' : filter;
+  const visible = summary.apps.filter(a =>
+    CONFIG_STATUSES.has(filter) ? a.status === want : a.status !== 'sync' && a.status !== 'inactive'
+  );
+  if (!visible.length) return;
+
+  const header = document.createElement('div');
+  header.className = 'diff-group-header dgh-config';
+  header.textContent = 'Configuration (' + visible.length + ')';
+  frag.appendChild(header);
+
+  for (const a of visible) {
+    const item = document.createElement('div');
+    item.className = 'diff-item dci-' + a.status;
+    item.dataset.kind = 'app';
+    item.dataset.key = a.key;
+    item.dataset.name = a.name;
+    if (diffState._activeConfigApp?.key === a.key) item.classList.add('selected');
+
+    const pill = document.createElement('div');
+    pill.className = 'diff-item-pill dcp-' + a.status;
+
+    const names = document.createElement('div');
+    names.className = 'diff-item-names';
+    const lbl = document.createElement('div');
+    lbl.className = 'diff-item-label';
+    lbl.append(typeTag('app'), document.createTextNode(a.name));
+    const ver = document.createElement('div');
+    ver.className = 'diff-item-id';
+    ver.textContent = 'v' + (a.base?.version ?? '—') + ' → v' + (a.compare?.version ?? '—');
+    names.append(lbl, ver);
+
+    const status = document.createElement('div');
+    status.className = 'dci-status';
+    status.textContent = STATUS_LABELS[a.status] || a.status;
+
+    item.append(pill, names, status);
+    frag.appendChild(item);
+  }
+}
+
+// ── Table change rows ───────────────────────────────────────────────────────────
+
+// Shared header-search / advanced-filter gate for a table row.
+function tablePasses(id, nodeLabel, node) {
+  if (uiState.filterConditions?.length && node && !filterOk(node)) return false;
+  if (Dom.searchBox && getSearchMode() === 'tables') {
+    const q = Dom.searchBox.value.toLowerCase().trim();
+    if (q && !id.toLowerCase().includes(q) && !(nodeLabel || '').toLowerCase().includes(q)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function tableRow(id, nodeLabel, kind, { count, statuses, matrix } = {}) {
+  const item = document.createElement('div');
+  item.className = 'diff-item';
+  item.dataset.id = id;
+  item.dataset.kind = kind;
+  if (uiState.selectedNode === id) item.classList.add('selected');
+
+  const pill = document.createElement('div');
+  pill.className = 'diff-item-pill dp-' + kind;
+
+  const names = document.createElement('div');
+  names.className = 'diff-item-names';
+  const lbl = document.createElement('div');
+  lbl.className = 'diff-item-label';
+  lbl.appendChild(typeTag('table'));
+  lbl.append(document.createTextNode(nodeLabel || id));
+  if (Settings.isEnabled('customHighlight') && Settings.isCustomName(id)) {
+    const badge = document.createElement('span');
+    badge.className = 'ti-custom-badge';
+    badge.textContent = 'custom';
+    lbl.appendChild(badge);
+  }
+  const tid = document.createElement('div');
+  tid.className = 'diff-item-id';
+  tid.textContent = id;
+  names.append(lbl, tid);
+  item.append(pill, names);
+
+  // Per-instance status strip (N-column roll-up).
+  if (statuses && matrix) {
+    const strip = document.createElement('div');
+    strip.className = 'diff-item-cols';
+    for (const diff of matrix) {
+      const st = statuses.get(diff._compareId) || 'same';
+      const chip = document.createElement('span');
+      chip.className = 'dic-chip ' + (DIC_CHIP[st] || 'dic-same');
+      chip.title = (diff._compareLabel || diff._compareId) + ': ' + st;
+      strip.appendChild(chip);
+    }
+    item.appendChild(strip);
+  } else if (count !== undefined) {
+    const cnt = document.createElement('div');
+    cnt.className = 'diff-item-count';
+    cnt.textContent = (count > 0 ? '+' : '') + count;
+    item.appendChild(cnt);
+  }
+  return item;
+}
+
+// Single-compare: classic Added / Removed / Changed groups (with edge subgroups).
+function appendGroupedRows(frag, filter) {
+  const d = diffState._diffData;
 
   function appendEdgeSubgroup(tableId, addedEdges, removedEdges) {
     if (!addedEdges.length && !removedEdges.length) return;
@@ -50,8 +187,6 @@ export function diffBuildList() {
         row.className = 'diff-edge-item';
         row.dataset.id = otherId;
         row.title = otherId;
-        // Built with h() so schema-derived edge fields (type, source, target,
-        // field) become text nodes — never interpreted as HTML.
         row.append(
           h('span', { class: `diff-edge-sign ${signCls}` }, sign),
           h('span', { class: 'diff-edge-type' }, e.type),
@@ -70,143 +205,81 @@ export function diffBuildList() {
   }
 
   function makeGroup(label, items, kind) {
+    items = items.filter(it => tablePasses(it.id, it.nodeLabel, it.node));
     if (!items.length) return;
-    // Apply advanced filter conditions (same predicate as the schema map)
-    if (uiState.filterConditions?.length) {
-      const nodeMap =
-        kind === 'added' ? diffState._diffData.compareMap : diffState._diffData.baseMap;
-      items = items.filter(({ id }) => {
-        const n = nodeMap?.get(id);
-        return !n || filterOk(n);
-      });
-      if (!items.length) return;
-    }
-    // Apply header search bar filter (Tbl mode only) when in diff view
-    if (Dom.searchBox && getSearchMode() === 'tables') {
-      const q = Dom.searchBox.value.toLowerCase().trim();
-      if (q) {
-        items = items.filter(
-          ({ id, nodeLabel }) =>
-            id.toLowerCase().includes(q) || (nodeLabel && nodeLabel.toLowerCase().includes(q))
-        );
-        if (!items.length) return;
-      }
-    }
     const header = document.createElement('div');
     header.className = 'diff-group-header dgh-' + kind;
     header.textContent = label + ' (' + items.length + ')';
     frag.appendChild(header);
-    for (const { id, nodeLabel, count, addedEdges, removedEdges } of items) {
-      const item = document.createElement('div');
-      item.className = 'diff-item';
-      item.dataset.id = id;
-      item.dataset.kind = kind;
-      if (uiState.selectedNode === id) item.classList.add('selected');
-      const pill = document.createElement('div');
-      pill.className = `diff-item-pill dp-${kind}`;
-      const names = document.createElement('div');
-      names.className = 'diff-item-names';
-      const lbl = document.createElement('div');
-      lbl.className = 'diff-item-label';
-      lbl.textContent = nodeLabel || id;
-      if (Settings.isEnabled('customHighlight') && Settings.isCustomName(id)) {
-        const badge = document.createElement('span');
-        badge.className = 'ti-custom-badge';
-        badge.textContent = 'custom';
-        lbl.appendChild(badge);
-      }
-      const tid = document.createElement('div');
-      tid.className = 'diff-item-id';
-      tid.textContent = id;
-      names.appendChild(lbl);
-      names.appendChild(tid);
-      item.appendChild(pill);
-      item.appendChild(names);
-      if (count !== undefined) {
-        const cnt = document.createElement('div');
-        cnt.className = 'diff-item-count';
-        cnt.textContent = (count > 0 ? '+' : '') + count;
-        item.appendChild(cnt);
-      }
-      frag.appendChild(item);
-      if (addedEdges || removedEdges) {
-        appendEdgeSubgroup(id, addedEdges || [], removedEdges || []);
+    for (const it of items) {
+      frag.appendChild(tableRow(it.id, it.nodeLabel, kind, { count: it.count }));
+      if (it.addedEdges || it.removedEdges) {
+        appendEdgeSubgroup(it.id, it.addedEdges || [], it.removedEdges || []);
       }
     }
   }
 
-  const filter = diffState._diffFilter;
-
   if (filter === 'all' || filter === 'added') {
-    const items = [...diffState._diffData.added].sort().map(id => {
-      const n = diffState._diffData.compareMap.get(id);
-      return { id, nodeLabel: n?.label || id };
-    });
-    makeGroup('Added', items, 'added');
+    makeGroup(
+      'Added',
+      [...d.added].sort().map(id => {
+        const n = d.compareMap.get(id);
+        return { id, nodeLabel: n?.label || id, node: n };
+      }),
+      'added'
+    );
   }
-
   if (filter === 'all' || filter === 'removed') {
-    const items = [...diffState._diffData.removed].sort().map(id => {
-      const n = diffState._diffData.baseMap.get(id);
-      return { id, nodeLabel: n?.label || id };
-    });
-    makeGroup('Removed', items, 'removed');
+    makeGroup(
+      'Removed',
+      [...d.removed].sort().map(id => {
+        const n = d.baseMap.get(id);
+        return { id, nodeLabel: n?.label || id, node: n };
+      }),
+      'removed'
+    );
   }
-
   if (filter === 'all' || filter === 'changed') {
-    const items = [...diffState._diffData.changed.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([id, ch]) => {
-        const n = diffState._diffData.baseMap.get(id);
-        const fieldDelta = ch.addedFields.length - ch.removedFields.length;
-        return {
-          id,
-          nodeLabel: n?.label || id,
-          count: fieldDelta,
-          addedEdges: ch.addedEdges,
-          removedEdges: ch.removedEdges,
-        };
-      });
-    makeGroup('Changed', items, 'changed');
+    makeGroup(
+      'Changed',
+      [...d.changed.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([id, ch]) => {
+          const n = d.baseMap.get(id);
+          return {
+            id,
+            nodeLabel: n?.label || id,
+            node: n,
+            count: ch.addedFields.length - ch.removedFields.length,
+            addedEdges: ch.addedEdges,
+            removedEdges: ch.removedEdges,
+          };
+        }),
+      'changed'
+    );
   }
-
-  list.appendChild(frag);
 }
 
-// ── N-column roll-up list (#150) ────────────────────────────────────────────────
-//
-// One row per table that differs in at least one compare, with a per-instance
-// status strip (a chip per compare, coloured by that table's status there). The
-// row keeps the `.diff-item` shape + `data-id` so the existing click handler and
-// keyboard cursor navigate it exactly like the single-compare list.
-
-const STATUS_CHIP = {
+// N-column roll-up: one row per table differing in ≥1 compare, with a per-instance
+// status strip. Row keeps the .diff-item shape + data-id for navigation/keyboard.
+const DIC_CHIP = {
   added: 'dic-added',
   removed: 'dic-removed',
   changed: 'dic-changed',
   same: 'dic-same',
   absent: 'dic-absent',
 };
-// Overall pill colour for the row: changed dominates, then added, then removed.
-function overallKind(row) {
-  if (row.anyChanged) return 'changed';
-  if (row.anyAdded) return 'added';
-  if (row.anyRemoved) return 'removed';
+function overallKind(info) {
+  if (info.anyChanged) return 'changed';
+  if (info.anyAdded) return 'added';
+  if (info.anyRemoved) return 'removed';
   return 'changed';
 }
 
-function buildMatrixList(list, matrix) {
+function appendMatrixRows(frag, matrix, filter) {
   const { tables } = rollupMatrix(matrix);
-  const frag = document.createDocumentFragment();
-
-  // Resolve a display label + a node for filtering (base side, else any compare).
   const baseMap = matrix[0].baseMap;
   const nodeFor = id => baseMap.get(id) || matrix.map(m => m.compareMap.get(id)).find(Boolean);
-
-  const filter = diffState._diffFilter;
-  const q =
-    Dom.searchBox && getSearchMode() === 'tables' ? Dom.searchBox.value.toLowerCase().trim() : '';
-  const advanced = uiState.filterConditions?.length;
 
   let rows = [...tables.entries()].map(([id, info]) => ({ id, ...info, node: nodeFor(id) }));
   rows.sort((a, b) => a.id.localeCompare(b.id));
@@ -214,12 +287,7 @@ function buildMatrixList(list, matrix) {
     if (filter === 'added' && !r.anyAdded) return false;
     if (filter === 'removed' && !r.anyRemoved) return false;
     if (filter === 'changed' && !r.anyChanged) return false;
-    if (advanced && r.node && !filterOk(r.node)) return false;
-    if (q) {
-      const label = (r.node?.label || '').toLowerCase();
-      if (!r.id.toLowerCase().includes(q) && !label.includes(q)) return false;
-    }
-    return true;
+    return tablePasses(r.id, r.node?.label, r.node);
   });
 
   const header = document.createElement('div');
@@ -228,45 +296,8 @@ function buildMatrixList(list, matrix) {
   frag.appendChild(header);
 
   for (const r of rows) {
-    const item = document.createElement('div');
-    item.className = 'diff-item';
-    item.dataset.id = r.id;
-    item.dataset.kind = overallKind(r);
-    if (uiState.selectedNode === r.id) item.classList.add('selected');
-
-    const pill = document.createElement('div');
-    pill.className = 'diff-item-pill dp-' + overallKind(r);
-
-    const names = document.createElement('div');
-    names.className = 'diff-item-names';
-    const lbl = document.createElement('div');
-    lbl.className = 'diff-item-label';
-    lbl.textContent = r.node?.label || r.id;
-    if (Settings.isEnabled('customHighlight') && Settings.isCustomName(r.id)) {
-      const badge = document.createElement('span');
-      badge.className = 'ti-custom-badge';
-      badge.textContent = 'custom';
-      lbl.appendChild(badge);
-    }
-    const tid = document.createElement('div');
-    tid.className = 'diff-item-id';
-    tid.textContent = r.id;
-    names.append(lbl, tid);
-
-    // Per-instance status strip: one chip per compare, in matrix order.
-    const strip = document.createElement('div');
-    strip.className = 'diff-item-cols';
-    for (const diff of matrix) {
-      const st = r.statuses.get(diff._compareId) || 'same';
-      const chip = document.createElement('span');
-      chip.className = 'dic-chip ' + (STATUS_CHIP[st] || 'dic-same');
-      chip.title = (diff._compareLabel || diff._compareId) + ': ' + st;
-      strip.appendChild(chip);
-    }
-
-    item.append(pill, names, strip);
-    frag.appendChild(item);
+    frag.appendChild(
+      tableRow(r.id, r.node?.label, overallKind(r), { statuses: r.statuses, matrix })
+    );
   }
-
-  list.appendChild(frag);
 }
