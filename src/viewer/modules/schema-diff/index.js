@@ -1,4 +1,4 @@
-import { graphState, uiState, diffState } from '../../core/state.js';
+import { graphState, uiState, diffState, getInstance, instancesState } from '../../core/state.js';
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -12,18 +12,19 @@ import {
 } from '../../shared/inspector.js';
 import { syncSidebarForMode } from '../../shared/sidebar-sync.js';
 import { setViewMode, onViewModeChange, registerModeValidator } from '../../engine/view-mode.js';
-import { getWorkspace } from '../../engine/workspace.js';
+import { getWorkspace, setWorkspace } from '../../engine/workspace.js';
 import {
   registerHistoryExtractor,
   registerHistoryRestorer,
   pushHistory,
 } from '../history/index.js';
-import { injectCiRelEdges } from '../load/index.js';
+import { injectCiRelEdges, selectInstanceForGraph } from '../load/index.js';
+import { registerTool, refreshLanding } from '../landing/index.js';
 import { computeDiff } from './compute-diff.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { initDiffFileInput } from './file-input.js';
+import { initDiffInstancePicker, refreshDiffPicker } from './instance-picker.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -117,6 +118,52 @@ function loadDiffSchema(compareData) {
   render();
 }
 
+// ── Registry-driven diff ──────────────────────────────────────────────────────
+
+/**
+ * Run a diff between two registered instances. Base is loaded into the graph
+ * (if not already the selected instance); Compare is diffed against it. An empty
+ * compareId clears the comparison (base stays loaded).
+ *
+ * The compare data is CLONED before use — injectCiRelEdges + the graft mutate it
+ * in place, and it must never corrupt the stored export. (The base is the
+ * loaded instance's data, mutated in place exactly as the Schema Explorer does.)
+ */
+function loadDiffFromInstances(baseId, compareId) {
+  if (baseId && baseId !== instancesState.selectedId) {
+    if (!selectInstanceForGraph(baseId)) return;
+  }
+  if (!compareId) {
+    clearDiff();
+    refreshDiffPicker();
+    return;
+  }
+  const compareEntry = getInstance(compareId);
+  if (!compareEntry || !compareEntry.data) return;
+  const compareClone =
+    typeof structuredClone === 'function'
+      ? structuredClone(compareEntry.data)
+      : JSON.parse(JSON.stringify(compareEntry.data));
+  loadDiffSchema(compareClone);
+  refreshDiffPicker();
+}
+
+/** Clear the active comparison (ungraft + reset diff state), keeping the base. */
+function clearDiff() {
+  diffUngraftAddedFromBase();
+  diffState._diffData = null;
+  diffState._diffShowAll = false;
+  diffState._diffFilter = 'all';
+  diffState._diffSearch = '';
+  uiState._viewPositionCache.diff = null;
+  const modeWarn = document.getElementById('diff-mode-warn');
+  if (modeWarn) modeWarn.style.display = 'none';
+  diffUpdateSummary();
+  diffBuildList();
+  updateInstancePill();
+  render();
+}
+
 // ── Visibility sync ───────────────────────────────────────────────────────────
 
 function diffSyncVisibility() {
@@ -134,6 +181,7 @@ function diffSyncSidebar() {
   if (!document.getElementById('diff-sidebar')) return;
   syncSidebarForMode();
   if (uiState.viewMode === 'diff') {
+    refreshDiffPicker();
     diffUpdateSummary();
     diffBuildList();
   }
@@ -238,14 +286,9 @@ addRenderHook(() => {
 
 setFillInspectorHook(diffFillInspector);
 
-// ── Diff file input wiring ────────────────────────────────────────────────────
+// ── Diff instance picker wiring ───────────────────────────────────────────────
 
-initDiffFileInput({
-  loadDiffSchema,
-  diffUngraftAddedFromBase,
-  diffUpdateSummary,
-  diffBuildList,
-});
+initDiffInstancePicker({ loadDiffFromInstances });
 
 // ── Diff sidebar event delegation ─────────────────────────────────────────────
 
@@ -366,8 +409,29 @@ onViewModeChange((mode, prevMode) => {
   diffSyncSidebar();
 });
 
-Settings.onChange('schemaDiff', diffSyncVisibility);
+Settings.onChange('schemaDiff', () => {
+  diffSyncVisibility();
+  refreshLanding(); // reflect the Diff card icon's enabled state on the landing page
+});
 diffSyncVisibility();
+
+// ── Landing tool: launch Schema Diff with an instance as the base ─────────────
+// The icon enables only when Schema Diff is on AND ≥2 schema-capable instances
+// are registered; the compare instance is then chosen from the diff sidebar.
+registerTool({
+  key: 'schemaDiff',
+  label: 'Compare in Schema Diff',
+  icon: '⇄',
+  requires: ['schema'],
+  minInstances: 2,
+  enabled: () => Settings.isEnabled('schemaDiff'),
+  disabledHint: 'Enable Schema Diff in Settings, and register a second instance',
+  enter: baseId => {
+    if (!selectInstanceForGraph(baseId)) return;
+    setWorkspace('schema-explorer');
+    setViewMode('diff');
+  },
+});
 
 // Rebuild diff list when the header search changes while in diff view
 onSearchChange(() => {

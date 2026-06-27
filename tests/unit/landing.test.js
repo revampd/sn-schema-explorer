@@ -146,6 +146,34 @@ describe('per-instance tool icons', () => {
     cardTool(a.id, 'cmp').click();
     expect(enter).not.toHaveBeenCalled();
   });
+
+  it('minInstances gates the icon until enough eligible instances exist', () => {
+    registerTool({ key: 'diff', label: 'Diff', icon: '⇄', requires: ['schema'], minInstances: 2 });
+    const a = addInstance({ label: 'a', data: SCHEMA_DATA });
+    refreshLanding();
+    expect(cardTool(a.id, 'diff').disabled).toBe(true); // only 1 instance
+    const b = addInstance({ label: 'b', data: SCHEMA_DATA });
+    refreshLanding();
+    expect(cardTool(a.id, 'diff').disabled).toBe(false); // now 2
+    expect(cardTool(b.id, 'diff').disabled).toBe(false);
+  });
+
+  it('an enabled() predicate can disable the icon (e.g. a Settings feature off)', () => {
+    let featureOn = false;
+    registerTool({
+      key: 'gated',
+      label: 'Gated',
+      icon: '⚑',
+      requires: ['schema'],
+      enabled: () => featureOn,
+    });
+    const a = addInstance({ label: 'a', data: SCHEMA_DATA });
+    refreshLanding();
+    expect(cardTool(a.id, 'gated').disabled).toBe(true);
+    featureOn = true;
+    refreshLanding();
+    expect(cardTool(a.id, 'gated').disabled).toBe(false);
+  });
 });
 
 describe('initLanding (built-in Schema Explorer + add card)', () => {

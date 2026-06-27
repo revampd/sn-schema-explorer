@@ -53,10 +53,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   graph sidebars, canvas, minimap, and graph-only header controls are hidden,
   leaving the brand plus Guide / Settings.
 
+- **Schema Diff consumes the instance registry**
+  ([#102](https://github.com/revampd/sn-schema-explorer/issues/102)). Schema Diff
+  no longer has its own file upload. Launch it from an instance card's **⇄** icon
+  (with that instance as the base), then pick the **Compare** instance from a
+  dropdown in the diff sidebar — the Base/Compare both come from the registered
+  instances. The compare export is cloned before diffing so the stored instance
+  is never mutated. The Diff card icon enables only when Schema Diff is on and at
+  least two schema-capable instances are registered.
+
 ### Changed
 
 - The front door is now the landing page rather than a load overlay; the graph
   loads when you open an instance in a tool.
+- Schema Diff's compare schema is now chosen from the registry instead of a
+  separate drag-and-drop upload.
 - Both exporters now read the active-plugin count from `sys_plugins`
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.

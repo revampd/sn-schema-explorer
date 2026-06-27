@@ -29,17 +29,20 @@ import { setWorkspace, onWorkspaceChange } from '../../engine/workspace.js';
 import { selectInstanceForGraph } from '../load/index.js';
 
 // ── Per-instance tool registry ───────────────────────────────────────────────
-// { key, label, icon, requires:[capKey], enter(instanceId) }
-//   requires     — capability keys an instance must carry for the icon to enable
-//                  on that card
-//   enter(id)    — launch the tool with this instance as its primary/base; a
-//                  multi-instance tool then lets the user add others from within
+// { key, label, icon, requires:[capKey], minInstances, enabled?, enter(instanceId) }
+//   requires      — capability keys an instance must carry for the icon to enable
+//                   on that card
+//   minInstances  — how many registered instances must carry ALL `requires` caps
+//                   for the icon to enable (e.g. Schema Diff needs 2)
+//   enabled()     — optional extra predicate (e.g. a Settings feature must be on)
+//   enter(id)     — launch the tool with this instance as its primary/base; a
+//                   multi-instance tool then lets the user add others from within
 const _tools = [];
 
 export function registerTool(def) {
   if (!def || !def.key) return;
   if (_tools.some(t => t.key === def.key)) return; // idempotent
-  _tools.push({ requires: [], label: def.key, icon: '•', ...def });
+  _tools.push({ requires: [], minInstances: 1, label: def.key, icon: '•', ...def });
   if (document.getElementById('landing-instances')) renderInstances();
 }
 
@@ -63,6 +66,29 @@ const SECTION_DEFS = [
 
 function instanceEligible(entry, requires) {
   return (requires || []).every(cap => entry.capabilities && entry.capabilities[cap]);
+}
+
+// Count registered instances carrying ALL the given capability keys.
+function eligibleCount(requires) {
+  return instancesState.instances.filter(e => instanceEligible(e, requires)).length;
+}
+
+// Whether a tool's icon is enabled on a given instance card, plus a reason when
+// it is not (for the tooltip).
+function toolState(tool, entry) {
+  if (!instanceEligible(entry, tool.requires)) {
+    return { ok: false, reason: `needs ${tool.requires.join(', ')}` };
+  }
+  if (eligibleCount(tool.requires) < tool.minInstances) {
+    return {
+      ok: false,
+      reason: `needs ${tool.minInstances} instances with ${tool.requires.join(', ') || 'data'}`,
+    };
+  }
+  if (tool.enabled && !tool.enabled()) {
+    return { ok: false, reason: tool.disabledHint || `${tool.label} is unavailable` };
+  }
+  return { ok: true, reason: tool.label };
 }
 
 // ── Registration from files / demo ─────────────────────────────────────────
@@ -194,14 +220,14 @@ async function loadFileList(files) {
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 function toolIcon(tool, entry) {
-  const ok = instanceEligible(entry, tool.requires);
+  const { ok, reason } = toolState(tool, entry);
   return h(
     'button',
     {
       class: 'ic-tool' + (ok ? '' : ' disabled'),
       dataTool: tool.key,
       disabled: !ok,
-      title: ok ? tool.label : `${tool.label} — needs ${tool.requires.join(', ')}`,
+      title: ok ? tool.label : `${tool.label} — ${reason}`,
       onclick: ev => {
         ev.stopPropagation();
         if (ok) tool.enter(entry.id);
