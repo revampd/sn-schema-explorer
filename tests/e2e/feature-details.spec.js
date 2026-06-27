@@ -142,16 +142,25 @@ test.describe('Sidebar sync', () => {
 
 // ── Schema Diff interactions ──────────────────────────────────────────────────
 test.describe('Schema Diff interactions', () => {
+  // Register a schema export as an instance from the landing page (stays on landing).
+  async function registerInstance(page, schema, name) {
+    await page.locator('#file-input').setInputFiles({
+      name,
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(schema)),
+    });
+  }
+
   async function openDiff(page) {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
-    await injectSchema(page, SCHEMA_OUTPUT);
-    await page.locator('#vms-diff').click();
+    // Register the base + compare instances, then launch Schema Diff on the base
+    // card and pick the compare from the diff sidebar.
+    await registerInstance(page, SCHEMA_OUTPUT, 'base.json'); // test-instance
+    await registerInstance(page, SCHEMA_OUTPUT_B, 'compare.json'); // test-instance-b
+    const baseCard = page.locator('.inst-card:not(.add-card)').first();
+    await baseCard.locator('[data-tool="schemaDiff"]').click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.locator('#diff-file-input').setInputFiles({
-      name: 'compare.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT_B)),
-    });
+    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -174,10 +183,14 @@ test.describe('Schema Diff interactions', () => {
     await expect(page.locator('#diff-list .diff-item').first()).toContainText(/problem/i);
   });
 
-  test('clear returns to the base-only view', async ({ page }) => {
+  test('clearing the compare returns to the base-only view', async ({ page }) => {
     await openDiff(page);
-    await page.locator('#diff-drop-clear').click();
-    // After clearing, the compare is gone — the diff list no longer shows items.
+    // Selecting the blank Compare option clears the comparison.
+    await page.selectOption('#diff-compare-select', { value: '' });
     await expect(page.locator('#diff-list .diff-item')).toHaveCount(0);
+    // Re-selecting the same compare reproduces the diff — proving the stored
+    // compare export was not mutated by the first run (clone-before-graft).
+    await page.selectOption('#diff-compare-select', { label: 'test-instance-b' });
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   });
 });

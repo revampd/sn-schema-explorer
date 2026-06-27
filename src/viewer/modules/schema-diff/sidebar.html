@@ -1,12 +1,16 @@
   <!-- DIFF SIDEBAR — shown when viewMode === 'diff' -->
   <div id="diff-sidebar">
-    <div class="diff-drop-zone" id="diff-drop-zone" title="Drop a compare schema JSON here">
-      <input type="file" id="diff-file-input" accept=".json">
-      <button class="diff-drop-clear" id="diff-drop-clear" title="Clear comparison" aria-label="Clear comparison" style="display:none">✕</button>
-      <div class="diff-drop-zone-icon">⇄</div>
-      <div class="diff-drop-zone-text" id="diff-dz-text">Drop compare schema here</div>
-      <div class="diff-drop-zone-hint">or tap to browse</div>
-      <div class="diff-drop-zone-filename" id="diff-dz-filename" style="display:none"></div>
+    <!-- Base / Compare pickers — populated from the registered instances -->
+    <div class="diff-picker" id="diff-instance-picker">
+      <label class="diff-picker-row">
+        <span class="diff-picker-label">Base</span>
+        <select id="diff-base-select" class="diff-select" title="The instance loaded into the graph"></select>
+      </label>
+      <label class="diff-picker-row">
+        <span class="diff-picker-label">Compare</span>
+        <select id="diff-compare-select" class="diff-select" title="Compare against this instance"></select>
+      </label>
+      <div class="diff-picker-empty" id="diff-picker-empty" style="display:none">Register a second instance on the Home page to compare.</div>
     </div>
     <!-- Export method mismatch warning — shown when base and compare schemas use different export_mode -->
     <div class="diff-mode-warn" id="diff-mode-warn" style="display:none"></div>

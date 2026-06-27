@@ -6,73 +6,44 @@
   flex: 1;
   min-height: 0;
 }
-.diff-drop-zone {
+/* Base / Compare instance pickers (replaces the old compare-file drop zone) */
+.diff-picker {
   margin: 10px 12px 8px;
-  border: 1.5px dashed var(--sn-border);
-  border-radius: 6px;
-  padding: 12px 10px;
-  text-align: center;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   flex-shrink: 0;
-  position: relative;
 }
-.diff-drop-zone:hover,
-.diff-drop-zone.dragover {
-  border-color: var(--diff-changed);
-  background: rgba(251, 191, 36, 0.06);
+.diff-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-/* "Clear comparison" × button — appears only when a compare schema is loaded. */
-.diff-drop-clear {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 18px;
-  cursor: pointer;
-  border-radius: 3px;
-  transition:
-    background 0.12s,
-    color 0.12s;
-}
-.diff-drop-clear:hover {
-  background: var(--sn-border);
-  color: var(--text);
-}
-.diff-drop-zone-icon {
-  font-size: 18px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.diff-drop-zone-text {
+.diff-picker-label {
   font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  width: 56px;
+  flex-shrink: 0;
+}
+.diff-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 6px;
+  border: 1px solid var(--sn-border);
+  border-radius: 6px;
+  background: var(--sn-panel, transparent);
   color: var(--text);
 }
-.diff-drop-zone-hint {
-  font-size: 9px;
+.diff-select:focus {
+  outline: none;
+  border-color: var(--diff-changed);
+}
+.diff-picker-empty {
+  font-size: 10px;
   color: var(--muted);
-  margin-top: 2px;
-}
-.diff-drop-zone-filename {
-  font-size: 9px;
-  color: var(--diff-changed);
-  margin-top: 3px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 4px;
-}
-#diff-file-input {
-  display: none;
+  font-style: italic;
 }
 /* Export method mismatch warning banner */
 .diff-mode-warn {

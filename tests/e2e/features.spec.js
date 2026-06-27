@@ -126,12 +126,19 @@ test.describe('Path Finder', () => {
 
 // ── Schema Diff ───────────────────────────────────────────────────────────────
 test.describe('Schema Diff', () => {
-  test('compares two schemas and reports added tables', async ({ page }) => {
+  test('compares two registered instances and reports added tables', async ({ page }) => {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
-    await injectSchema(page, SCHEMA_OUTPUT);
 
-    // Build a compare schema that adds one table relative to the base.
+    // Base instance.
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
+    });
+
+    // Compare instance — adds one table (problem) relative to the base.
     const compare = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
+    compare._instance = { ...(compare._instance || {}), instance_name: 'compare-inst' };
     compare.nodes.push({
       id: 'problem',
       label: 'Problem',
@@ -150,15 +157,17 @@ test.describe('Schema Diff', () => {
         },
       ],
     });
-
-    await page.locator('#vms-diff').click();
-    await expect(page.locator('#diff-sidebar')).toBeVisible();
-
-    await page.locator('#diff-file-input').setInputFiles({
+    await page.locator('#file-input').setInputFiles({
       name: 'compare.json',
       mimeType: 'application/json',
       buffer: Buffer.from(JSON.stringify(compare)),
     });
+
+    // Launch Schema Diff on the base card, then pick the compare instance.
+    const baseCard = page.locator('.inst-card:not(.add-card)').first();
+    await baseCard.locator('[data-tool="schemaDiff"]').click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+    await page.selectOption('#diff-compare-select', { label: 'compare-inst' });
 
     // One table added (problem); the added counter should read at least 1.
     const added = page.locator('#diff-stat-added, #diff-n-added').first();
