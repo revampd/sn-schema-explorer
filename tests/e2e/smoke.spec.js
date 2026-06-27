@@ -37,6 +37,7 @@ async function injectSchema(page, schema) {
     buffer: Buffer.from(JSON.stringify(schema)),
   });
   // Wait for the SVG graph to contain at least one rendered node
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 }
 
@@ -55,24 +56,20 @@ test('core UI structure is present on load', async ({ page }) => {
   await expect(page.locator('footer')).toBeVisible();
 });
 
-test('default workspace is schema-explorer with regions hidden (no visible change)', async ({
-  page,
-}) => {
+test('app boots into the landing workspace as the front door (#101)', async ({ page }) => {
   await loadApp(page);
-  // The workspace seam (#100) stamps body[data-workspace] from first paint and
-  // keeps the Schema Explorer chrome as the baseline.
-  await expect(page.locator('body')).toHaveAttribute('data-workspace', 'schema-explorer');
-  await expect(page.locator('#canvas')).toBeVisible();
-  // The empty landing + comparison regions exist but stay hidden.
-  await expect(page.locator('#landing-root')).toBeHidden();
+  // The landing page is now the default workspace.
+  await expect(page.locator('body')).toHaveAttribute('data-workspace', 'landing');
+  await expect(page.locator('#landing-root')).toBeVisible();
+  // The (still empty) instance-comparison region stays hidden until its workspace.
   await expect(page.locator('#instance-compare')).toBeHidden();
 });
 
-test('load overlay is visible before a schema is loaded', async ({ page }) => {
+test('landing page front door is visible before a schema is loaded', async ({ page }) => {
   await loadApp(page);
-  // The load overlay should be visible on first open
-  const overlay = page.locator('#load-overlay, .load-overlay, #drop-zone');
-  await expect(overlay.first()).toBeVisible();
+  // The landing page (front door) and its drop zone are visible on first open.
+  await expect(page.locator('#landing-root')).toBeVisible();
+  await expect(page.locator('#drop-zone')).toBeVisible();
 });
 
 test('footer shows disclaimer text', async ({ page }) => {

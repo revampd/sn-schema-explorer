@@ -5,9 +5,10 @@ export const uiState = {
   // Workspace is a SIBLING of viewMode, not a 4th mode: it selects which
   // top-level tool is showing ('landing' | 'schema-explorer' |
   // 'instance-comparison'), while viewMode ('force'|'path'|'diff') stays the
-  // graph sub-mode within the Schema Explorer workspace. Default keeps current
-  // behaviour until the landing page becomes the front door (later PR).
-  workspace: 'schema-explorer',
+  // graph sub-mode within the Schema Explorer workspace. The landing page is
+  // the front door, so the app boots into it; render() early-returns on null
+  // graphData, so nothing graph-related fires until an instance is selected.
+  workspace: 'landing',
   viewMode: 'force',
   showLabels: false,
   showRefTo: true,

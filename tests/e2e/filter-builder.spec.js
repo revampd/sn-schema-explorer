@@ -18,6 +18,7 @@ test('adding a condition via the portalled picker updates the badge and rows', a
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 
   await page.locator('#scope-filter-btn').click();

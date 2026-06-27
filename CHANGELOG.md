@@ -36,11 +36,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [#100](https://github.com/revampd/sn-schema-explorer/issues/100)). New
   `engine/workspace.js` adds a workspace layer (`landing` / `schema-explorer` /
   `instance-comparison`) that is a sibling of the graph view-mode, plus empty
-  landing + comparison regions. The default stays `schema-explorer`, so there is
-  no visible change; the landing page becomes the front door in a later PR.
+  landing + comparison regions.
+- **Landing page front door**
+  ([#101](https://github.com/revampd/sn-schema-explorer/issues/101)). The app now
+  opens on a landing page where you **register one or more instance exports** and
+  pick a tool. Each instance shows capability badges (Schema / Plugins / Store /
+  Custom / Properties); tool tiles are gated by what the registered instances
+  carry. The **Schema Explorer** tile visualises a selected instance. A **Home**
+  button in the header returns to the landing page. File-drop, demo load, and
+  multi-part manifest stitching moved from the load overlay into the landing page;
+  loading a file registers an instance (and selects it) rather than entering a
+  tool directly.
 
 ### Changed
 
+- The front door is now the landing page rather than a load overlay; the graph
+  loads when you open an instance in a tool.
 - Both exporters now read the active-plugin count from `sys_plugins`
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.

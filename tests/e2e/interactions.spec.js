@@ -17,6 +17,7 @@ async function loadAndInject(page) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
 }
 

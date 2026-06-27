@@ -1,0 +1,26 @@
+<!-- GUIDE:TAB -->
+<button class="g-tab" data-gpanel="landing">Getting Started</button>
+<!-- GUIDE:PANEL -->
+<div class="g-panel" id="gpanel-landing">
+  <div class="guide-card">
+    <h3>The landing page</h3>
+    <p>The landing page is the front door. You <strong>register one or more instance exports</strong>, then pick a tool. Each instance advertises what it contains, and tools light up only when enough instances carry the data they need.</p>
+  </div>
+  <div class="guide-card">
+    <h4>📄 Registering instances</h4>
+    <p>Drop a <code>schema_graph.json</code> export onto the drop zone, or click to browse. Each load adds an instance to the list — drop several to compare across them.</p>
+    <p><strong>Single file:</strong> the standard output from the Background Script or Node.js extractor.</p>
+    <p><strong>Multi-part:</strong> large instances split into a manifest plus <code>.part*.json</code> chunks — select or drop them all together and the loader reassembles them.</p>
+    <p><strong>Demo:</strong> click <strong>Load Demo Dataset</strong> to register a pre-built sample covering ITSM, CMDB, HR, CSM, Risk, and Asset tables.</p>
+    <div class="guide-tip"><p>Expand <strong>How to export a schema from ServiceNow</strong> for step-by-step guidance on running the exporter scripts. To capture plugins, store/custom apps, and system properties for cross-instance comparison, enable the metadata sections in the exporter.</p></div>
+  </div>
+  <div class="guide-card">
+    <h4>🧰 Tools</h4>
+    <p>Select an instance in the list, then click a tool tile. <strong>Schema Explorer</strong> visualises the selected instance. Other tools (e.g. Instance Comparison) unlock once enough instances carry the right data.</p>
+    <p>A disabled tile shows what it needs (for example, two instances with plugin data).</p>
+  </div>
+  <div class="guide-card">
+    <h4>Returning to the landing page</h4>
+    <p>Use the <strong>Home</strong> button in the header to come back here at any time — to register another instance or switch tools.</p>
+  </div>
+</div>

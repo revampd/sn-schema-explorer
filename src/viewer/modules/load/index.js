@@ -4,12 +4,13 @@ import {
   diffState,
   buildScopeColorMap,
   buildIndexes,
+  getInstance,
+  selectInstance,
 } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { Settings } from '../settings/index.js';
 import { render, updateInstancePill, updateStats } from '../../engine/render.js';
 import { SavedViews } from '../saved-views/index.js';
-import { DEMO_DATA } from '../../core/constants.js';
 import { applyFilters } from '../schema-map/controls.js';
 import { buildScopeDisplay, buildFilterPanel } from '../../core/advanced-filter.js';
 import { updateMaxNodesSlider, updateHopDepthSlider } from '../../shared/density-controls.js';
@@ -82,7 +83,9 @@ export function loadGraph(data) {
     }
   }
   updateInstancePill();
-  Dom.loadOverlay.style.display = 'none';
+  // Visibility of the front door vs. the graph is owned by the workspace
+  // controller now (the caller switches to the schema-explorer workspace) —
+  // loadGraph no longer hides any overlay itself.
   uiState.connectedNodes = new Set();
   diffState._diffData = null;
   diffState._diffShowAll = false;
@@ -243,166 +246,20 @@ export function loadGraph(data) {
   refreshReferenceTableLinks();
 }
 
-export function promptMultiPartLoad(manifest) {
-  const expected = manifest.parts.map(p => p.fileName).sort();
-  const msg =
-    `This is a multi-part schema export (${manifest.parts.length} parts, ${(manifest.totalBytes / 1048576).toFixed(1)} MB total).\n\n` +
-    `Select all of these part files in the next dialog:\n  ${expected.join('\n  ')}\n\n` +
-    `Tip: in the file picker you can multi-select with Ctrl+click (Cmd+click on Mac).`;
-  if (!confirm(msg + '\n\nOK to pick the part files now?')) return;
-  const picker = document.createElement('input');
-  picker.type = 'file';
-  picker.accept = '.json,application/json';
-  picker.multiple = true;
-  picker.addEventListener('change', ev => {
-    const files = Array.from(ev.target.files || []);
-    if (!files.length) return;
-    const byName = new Map(files.map(f => [f.name, f]));
-    const missing = expected.filter(name => !byName.has(name));
-    if (missing.length) {
-      alert('Missing part files:\n' + missing.join('\n'));
-      return;
-    }
-    (async () => {
-      try {
-        const ordered = manifest.parts.slice().sort((a, b) => a.idx - b.idx);
-        const texts = [];
-        for (const p of ordered) texts.push(await byName.get(p.fileName).text());
-        const parsed = JSON.parse(texts.join(''));
-        texts.length = 0;
-        loadGraph(parsed);
-      } catch (err) {
-        alert('Failed to stitch parts: ' + (err.message || err));
-      }
-    })();
-  });
-  picker.click();
-}
-
-async function loadFileList(files) {
-  if (!files || !files.length) return;
-
-  if (files.length === 1) {
-    const f = files[0];
-    const r = new FileReader();
-    r.onload = ev => {
-      const raw = ev.target.result;
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed._manifest_version && Array.isArray(parsed.parts)) {
-          promptMultiPartLoad(parsed);
-          return;
-        }
-        loadGraph(parsed);
-      } catch (err) {
-        const msg = err.message || String(err);
-        const posMatch = msg.match(/position (\d+)/i);
-        let detail = msg;
-        if (posMatch) {
-          const pos = parseInt(posMatch[1]);
-          const start = Math.max(0, pos - 40);
-          const snippet = raw.slice(start, pos + 40).replace(/\n/g, '↵');
-          const arrow = ' '.repeat(Math.min(pos - start, 40)) + '▲';
-          detail = `${msg}\n\nNear position ${pos}:\n"…${snippet}…"\n  ${arrow}`;
-        }
-        alert('Could not load JSON file:\n\n' + detail);
-      }
-    };
-    r.readAsText(f);
-    return;
-  }
-
-  try {
-    const byName = new Map(Array.from(files).map(f => [f.name, f]));
-    const manifestFile = Array.from(files).find(f => /\.manifest\.json$/i.test(f.name));
-    if (!manifestFile) {
-      alert('Multiple files selected but none look like a schema manifest (*.manifest.json).');
-      return;
-    }
-    const manifest = JSON.parse(await manifestFile.text());
-    if (!manifest._manifest_version || !Array.isArray(manifest.parts)) {
-      alert('Manifest is missing _manifest_version or parts.');
-      return;
-    }
-    const missing = manifest.parts.map(p => p.fileName).filter(n => !byName.has(n));
-    if (missing.length) {
-      alert('Missing part files:\n' + missing.join('\n'));
-      return;
-    }
-    const ordered = manifest.parts.slice().sort((a, b) => a.idx - b.idx);
-    const texts = [];
-    for (const p of ordered) texts.push(await byName.get(p.fileName).text());
-    const parsed = JSON.parse(texts.join(''));
-    texts.length = 0;
-    loadGraph(parsed);
-  } catch (err) {
-    alert('Failed to load multi-part schema:\n\n' + (err.message || err));
-  }
-}
-
-function toggleSetupGuide(btn) {
-  const bodyId = btn.id.replace('sg-toggle-', 'sg-body-');
-  const body = document.getElementById(bodyId);
-  const open = btn.classList.toggle('open');
-  body.classList.toggle('open', open);
-}
-
-function copyCode(btn) {
-  const pre = btn.closest('.code-block').querySelector('pre');
-  navigator.clipboard
-    .writeText(pre.textContent.trim())
-    .then(() => {
-      const orig = btn.textContent;
-      btn.textContent = '✓ Copied';
-      btn.style.color = 'var(--sn-wasabi)';
-      btn.style.borderColor = 'var(--sn-wasabi)';
-      setTimeout(() => {
-        btn.textContent = orig;
-        btn.style.color = '';
-        btn.style.borderColor = '';
-      }, 1800);
-    })
-    .catch(() => {
-      btn.textContent = 'Error';
-      setTimeout(() => {
-        btn.textContent = 'Copy';
-      }, 1500);
-    });
-}
-
-export function initLoadOverlay() {
-  Dom.btnDemo.addEventListener('click', () => loadGraph(DEMO_DATA));
-
-  Dom.fileInput.addEventListener('change', e => {
-    loadFileList(e.target.files);
-  });
-
-  const dz = Dom.dropZone;
-  dz.addEventListener('dragover', e => {
-    e.preventDefault();
-    dz.classList.add('dragover');
-  });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('dragover');
-    loadFileList(e.dataTransfer.files);
-  });
-
-  document.querySelectorAll('.ov-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.ov-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.ov-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    });
-  });
-
-  // Setup guide toggle + code copy (file tab)
-  document
-    .getElementById('sg-toggle-file')
-    ?.addEventListener('click', e => toggleSetupGuide(e.currentTarget));
-  document
-    .querySelectorAll('.code-copy-btn')
-    .forEach(btn => btn.addEventListener('click', e => copyCode(e.currentTarget)));
+/**
+ * Select a registered instance and load its schema into the graph. The single
+ * entry point tools use to switch the Schema Explorer to a given instance.
+ * Returns false when the id is unknown or the entry has no in-memory data (a
+ * restored placeholder whose file hasn't been re-dropped yet).
+ *
+ * Does NOT change the workspace — the caller (e.g. the landing tool tile) is
+ * responsible for `setWorkspace('schema-explorer')`. loadGraph already resets
+ * the diff/position caches, so switching instances cannot leave a stale diff.
+ */
+export function selectInstanceForGraph(id) {
+  const entry = getInstance(id);
+  if (!entry || !entry.data) return false;
+  selectInstance(id);
+  loadGraph(entry.data);
+  return true;
 }

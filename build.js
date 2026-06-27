@@ -56,6 +56,7 @@ const BASE_CSS = [
   'src/viewer/modules/guide/index.css',
   'src/viewer/modules/settings/index.css',
   'src/viewer/styles/workspace.css',
+  'src/viewer/modules/landing/index.css',
 ];
 
 const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
@@ -95,7 +96,7 @@ const FEATURE_PARTIALS = {
 // feature: optional — only included when that feature is in the target's features array.
 const GUIDE_MODULES = [
   { file: 'src/viewer/modules/guide/guide-overview.html' },
-  { file: 'src/viewer/modules/load/guide.html' },
+  { file: 'src/viewer/modules/landing/guide.html' },
   { file: 'src/viewer/modules/guide/guide-navigation.html' },
   { file: 'src/viewer/modules/schema-map/guide-filters.html' },
   { file: 'src/viewer/modules/guide/guide-inspector.html' },
@@ -142,10 +143,11 @@ const BASE_PARTIALS = [
   // marker                     file path
   ['export-toolbar', 'src/viewer/modules/export/toolbar.html'],
   ['schema-map-sidebar', 'src/viewer/modules/schema-map/sidebar.html'],
-  ['load-overlay', 'src/viewer/modules/load/overlay.html'],
   ['schema-map-overlays', 'src/viewer/modules/schema-map/canvas-overlays.html'],
-  // Empty workspace regions (v1.0.3) — populated by their modules in later PRs.
-  ['landing-root', 'src/viewer/modules/landing/region.html'],
+  // Landing page front door (v1.0.3) — contains the <!--INJECT:setup-instructions-->
+  // sub-marker, so it must precede the feature-partial pass.
+  ['landing-root', 'src/viewer/modules/landing/landing.html'],
+  // Instance Comparison region — still an empty stub until its module lands.
   ['instance-compare', 'src/viewer/modules/instance-compare/region.html'],
   ['context-menu', 'src/viewer/modules/schema-map/context-menu.html'],
   ['reference-modal', 'src/viewer/modules/reference/modal.html'],
