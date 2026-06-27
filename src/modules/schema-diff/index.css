@@ -559,13 +559,22 @@ path.diff-edge-removed {
   color: var(--muted);
   margin: 6px 0 3px;
 }
-/* Friendly relationship-type subheader inside the relationship-changes section. */
+/* Added/Removed subheader inside the relationship-changes section. */
 .diff-rel-subhead {
   font-size: 9px;
   font-weight: 600;
   color: var(--fg);
   opacity: 0.85;
   margin: 5px 0 2px;
+}
+/* Inline friendly relationship-type label on each change row (e.g. "Reference to"). */
+.diff-rel-kind {
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 /* "inherited" tag on a field that comes from a parent table (matches the single
    inspector's inheritance treatment). */

@@ -122,6 +122,28 @@ export function diffFillInspector(d) {
     })),
   ];
 
+  // Effective field set per column (own + inherited from parent tables) — computed
+  // once and reused by the matrix. The single inspector always shows inherited
+  // fields, so the diff must reflect inherited differences too: a column whose
+  // EFFECTIVE schema differs from Base reads 'changed' even when computeDiff (which
+  // only sees own fields) called it 'same'. This keeps a child consistent when a
+  // parent's field changed, without flooding the sidebar/canvas (those stay
+  // own-change-based — the change is attributed to the parent there).
+  const colFields = cols.map(c => effectiveFields(c.data, tableId));
+  const effectiveDiffersFromBase = i => {
+    const base = colFields[0];
+    const names = new Set([...base.keys(), ...colFields[i].keys()]);
+    for (const name of names) {
+      if (colFields[i].get(name)?.type !== base.get(name)?.type) return true;
+    }
+    return false;
+  };
+  cols.forEach((c, i) => {
+    if (c.kind === 'compare' && c.status === 'same' && effectiveDiffersFromBase(i)) {
+      c.status = 'changed';
+    }
+  });
+
   const baseNode = matrix[0].baseMap.get(tableId) || null;
   const displayNode = baseNode || matrix.map(m => m.compareMap.get(tableId)).find(Boolean) || null;
   const scope = displayNode?.scope || (typeof d === 'object' ? d.scope : null);
@@ -167,7 +189,7 @@ export function diffFillInspector(d) {
   ic.appendChild(strip);
 
   // ── Fields matrix (inheritance-aware) ────────────────────────────────────────
-  renderFieldsMatrix(ic, cols, tableId);
+  renderFieldsMatrix(ic, cols, colFields);
 
   // ── Relationship changes (grouped, friendly labels) ──────────────────────────
   renderRelChanges(ic, cols, tableId);
@@ -215,9 +237,7 @@ function effectiveFields(data, tableId) {
   return out;
 }
 
-function renderFieldsMatrix(ic, cols, tableId) {
-  // Per-column effective field set (own + inherited).
-  const colFields = cols.map(c => effectiveFields(c.data, tableId));
+function renderFieldsMatrix(ic, cols, colFields) {
   const baseFields = colFields[0];
 
   const names = new Set();
@@ -320,7 +340,11 @@ function renderRelChanges(ic, cols, tableId) {
 
   ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Relationship changes'));
   const single = compareCols.length === 1;
+  const friendly = e => EDGE_LABEL[edgeKind(e, tableId)] || e.type;
 
+  // One row per changed edge: sign + friendly relationship type + related table.
+  // The type label rides inline so a row is self-explanatory without a per-type
+  // header (e.g. "+ Reference to · sys_user (caller)").
   const renderRow = (e, sign) => {
     const otherId = otherOf(e);
     const row = el('div', 'diff-field-row ' + (sign === '+' ? 'dfr-added' : 'dfr-removed'));
@@ -329,39 +353,30 @@ function renderRelChanges(ic, cols, tableId) {
     row.appendChild(
       setText(el('span', 'diff-edge-sign ' + (sign === '+' ? 'des-added' : 'des-removed')), sign)
     );
+    row.appendChild(setText(el('span', 'diff-rel-kind'), friendly(e)));
     const name = setText(el('span', 'diff-field-name'), labelById.get(otherId) || otherId);
+    // For references, append the dot-walk field (the single inspector's "via field").
+    if (e.type === 'reference' && e.field) name.textContent += ' · ' + e.field;
     row.appendChild(name);
-    // For references, show the dot-walk field (the single inspector's "via field").
-    if (e.type === 'reference' && e.field) {
-      row.appendChild(setText(el('span', 'diff-field-type'), e.field));
-    }
     ic.appendChild(row);
   };
 
+  // Group by the diff-primary axis — Added vs Removed — which is what a change
+  // report is about; the relationship TYPE is shown inline on each row. (Ordered
+  // within a sign by the legend's type order for a stable, scannable list.)
+  const byTypeOrder = (a, b) =>
+    EDGE_ORDER.indexOf(edgeKind(a, tableId)) - EDGE_ORDER.indexOf(edgeKind(b, tableId));
   for (const g of groups) {
     // With more than one compare, head each group with the instance label so the
-    // change is attributable; a single compare keeps the flat grouped list.
+    // change is attributable; a single compare keeps the flat Added/Removed list.
     if (!single) ic.appendChild(setText(el('div', 'diff-rel-group-head'), 'vs ' + g.col.label));
-
-    // Group the changed edges by friendly relationship type (Reference to /
-    // Referenced by / Child tables / M2M junction / …), mirroring the legend and
-    // the single inspector — not raw edge-type strings.
-    const byKind = new Map();
-    const push = (e, sign) => {
-      const k = edgeKind(e, tableId);
-      if (!byKind.has(k)) byKind.set(k, []);
-      byKind.get(k).push({ e, sign });
-    };
-    g.added.forEach(e => push(e, '+'));
-    g.removed.forEach(e => push(e, '−'));
-
-    for (const kind of EDGE_ORDER) {
-      const list = byKind.get(kind);
-      if (!list || !list.length) continue;
-      ic.appendChild(
-        setText(el('div', 'diff-rel-subhead'), `${EDGE_LABEL[kind]} (${list.length})`)
-      );
-      list.forEach(({ e, sign }) => renderRow(e, sign));
+    if (g.added.length) {
+      ic.appendChild(setText(el('div', 'diff-rel-subhead'), `Added (${g.added.length})`));
+      [...g.added].sort(byTypeOrder).forEach(e => renderRow(e, '+'));
+    }
+    if (g.removed.length) {
+      ic.appendChild(setText(el('div', 'diff-rel-subhead'), `Removed (${g.removed.length})`));
+      [...g.removed].sort(byTypeOrder).forEach(e => renderRow(e, '−'));
     }
   }
 

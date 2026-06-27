@@ -178,11 +178,16 @@ describe('diffFillInspector — friendly relationship grouping (#150)', () => {
     diffState._diffData = diff;
 
     expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
+    // Grouped by the diff axis (Added / Removed); the friendly relationship type
+    // rides inline on each row.
     const subheads = [...inspectorContent.querySelectorAll('.diff-rel-subhead')].map(
       e => e.textContent
     );
-    expect(subheads).toContain('Reference to (1)'); // caller removed
-    expect(subheads).toContain('Named relationship (1)'); // plan added
+    expect(subheads).toContain('Added (1)'); // plan (rel) added
+    expect(subheads).toContain('Removed (1)'); // caller (reference) removed
+    const kinds = [...inspectorContent.querySelectorAll('.diff-rel-kind')].map(e => e.textContent);
+    expect(kinds).toContain('Reference to');
+    expect(kinds).toContain('Named relationship');
     // Raw edge-type words must not leak into the section.
     expect(inspectorContent.textContent).not.toMatch(/\breference\b/);
   });
@@ -223,5 +228,40 @@ describe('diffFillInspector — inheritance-aware fields (#150)', () => {
     );
     expect(names).toContain('a');
     expect(inspectorContent.querySelector('.diff-field-inh')).toBeTruthy();
+  });
+
+  it('flags a table whose ONLY difference is an inherited field (parent changed)', () => {
+    // incident's own field b is unchanged; only the parent task's inherited a
+    // differs. The single view always shows inherited fields, so the diff must
+    // surface incident too — even though computeDiff (own-fields-only) calls it
+    // "same". The column status upgrades to "changed".
+    const base2 = {
+      nodes: [node('task', [f('a')]), node('incident', [f('b')])],
+      edges: [{ source: 'incident', target: 'task', type: 'extends' }],
+    };
+    const cmp2 = {
+      nodes: [node('task', [f('a', 'integer')]), node('incident', [f('b')])],
+      edges: [{ source: 'incident', target: 'task', type: 'extends' }],
+    };
+    instancesState.instances = [
+      { id: 'i_base', label: 'base', data: base2, capabilities: { schema: true } },
+      { id: 'i_cmp', label: 'cmp', data: cmp2, capabilities: { schema: true } },
+    ];
+    instancesState.selectedId = 'i_base';
+    instancesState._byId.clear();
+    instancesState.instances.forEach((e, i) => instancesState._byId.set(e.id, i));
+    const diff = computeDiff(base2, cmp2);
+    diff._compareId = 'i_cmp';
+    diff._compareLabel = 'cmp';
+    diffState._diffMatrix = [diff];
+    diffState._diffData = diff;
+
+    // computeDiff alone would NOT flag incident (no own change)…
+    expect(diff.changed.has('incident')).toBe(false);
+    // …but the inheritance-aware inspector renders it, with the compare column
+    // marked changed (green→amber).
+    expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
+    const chips = [...inspectorContent.querySelectorAll('.diff-col-chip')];
+    expect(chips[1].className).toContain('cstat-changed');
   });
 });
