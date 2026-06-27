@@ -76,18 +76,17 @@ describe('instance cards', () => {
     expect(document.querySelector('.add-card')).toBeTruthy();
   });
 
-  it('shows count chips with counts present / dash absent', () => {
+  it('shows count grid with counts present / dash absent', () => {
     addInstance({ label: 'dev1', data: PLUGIN_DATA });
     renderInstances();
-    const chips = [...document.querySelectorAll('.ic-chip')];
-    // chips have title=label and text=count
+    const vals = [...document.querySelectorAll('.ic-count-val')];
     const byLabel = Object.fromEntries(
-      chips.map(c => [c.title, { v: c.textContent.replace(/\s/g, ''), absent: c.classList.contains('absent') }])
+      vals.map(v => [v.title, { val: v.textContent.trim(), absent: v.classList.contains('absent') }])
     );
-    expect(byLabel['Plugins'].v).toBe('2');
+    expect(byLabel['Plugins'].val).toBe('2');
     expect(byLabel['Plugins'].absent).toBe(false);
     expect(byLabel['Custom apps'].absent).toBe(true);
-    expect(byLabel['Custom apps'].v).toBe('—');
+    expect(byLabel['Custom apps'].val).toBe('—');
   });
 
   it('renders the title from the instance label', () => {
@@ -96,7 +95,7 @@ describe('instance cards', () => {
     expect(document.querySelector('.ic-title').textContent).toBe('Prod');
   });
 
-  it('renders meta rows (build · export date) when metadata is present', () => {
+  it('renders release badge and export date when metadata is present', () => {
     addInstance({
       label: 'dev1',
       data: SCHEMA_DATA,
@@ -108,17 +107,16 @@ describe('instance cards', () => {
       },
     });
     renderInstances();
-    const metas = [...document.querySelectorAll('.ic-meta')];
-    expect(metas.length).toBeGreaterThanOrEqual(1);
-    const text = metas.map(m => m.textContent).join(' ');
-    expect(text).toContain('Washington');
-    expect(text).toContain('·');
+    expect(document.querySelector('.ic-release-badge').textContent).toBe('Washington');
+    expect(document.querySelector('.ic-url').textContent).toBe('dev1.service-now.com');
+    expect(document.querySelector('.ic-export-date')).toBeTruthy();
   });
 
-  it('omits meta rows when no useful metadata is present', () => {
+  it('omits release row and url when no metadata is present', () => {
     addInstance({ label: 'dev1', data: { nodes: [{ id: 'task' }], edges: [] }, meta: {} });
     renderInstances();
-    expect(document.querySelector('.ic-meta')).toBeNull();
+    expect(document.querySelector('.ic-release-row')).toBeNull();
+    expect(document.querySelector('.ic-url')).toBeNull();
   });
 });
 
