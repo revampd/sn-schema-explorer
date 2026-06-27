@@ -90,6 +90,31 @@ describe('buildAppIndex', () => {
     expect(buildAppIndex(null).size).toBe(0);
     expect(buildAppIndex({ _metadata: {} }).size).toBe(0);
   });
+  it('never indexes a global-scoped app (would falsely own every global table)', () => {
+    const idx = buildAppIndex({
+      _metadata: { storeApps: [{ scope: 'global', name: 'Some Global App', version: '1.0' }] },
+    });
+    expect(idx.get('global')).toBeUndefined();
+    // Its display name is still a safe, specific key.
+    expect(idx.get('some global app')).toMatchObject({ version: '1.0' });
+  });
+});
+
+describe('global tables never resolve to an app (the mass-"missing" bug)', () => {
+  it('a global table resolves to no app even when an instance has a global-scoped app', () => {
+    const graph = { nodes: [{ id: 'cmdb_ci_server', scope: 'Global' }] };
+    const insts = [
+      {
+        id: 'a',
+        data: { _metadata: { storeApps: [{ scope: 'global', name: 'X', version: '1' }] } },
+      },
+      { id: 'b', data: { _metadata: { storeApps: [] } } },
+    ];
+    const spine = buildSpine(graph, insts);
+    const r = spine.resolveTable('cmdb_ci_server');
+    expect(r.apps.a).toBeNull();
+    expect(r.apps.b).toBeNull();
+  });
 });
 
 describe('buildSpine — cross-lens resolution', () => {

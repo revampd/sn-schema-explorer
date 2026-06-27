@@ -79,7 +79,11 @@ export function buildAppIndex(data) {
       const rec = { ...app, _section: section };
       for (const candidate of [app.scope, app.name]) {
         const k = normKey(candidate);
-        if (k && !byKey.has(k)) byKey.set(k, rec);
+        // Never index under a global key: the global scope is a shared bucket of
+        // thousands of platform tables, so a global-scoped app would falsely
+        // "own" every global table and light them all up. Global tables have no
+        // single owning app.
+        if (k && !isGlobalScope(k) && !byKey.has(k)) byKey.set(k, rec);
       }
     }
   }

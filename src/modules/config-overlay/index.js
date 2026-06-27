@@ -18,7 +18,7 @@
  * its own toggle/legend control in JS so it touches no Prettier-ignored partial.
  * ============================================================================ */
 
-import { graphState, uiState, buildSpine } from '../../core/state.js';
+import { graphState, uiState, buildSpine, isGlobalScope } from '../../core/state.js';
 import { instancesState } from '../../core/instances-state.js';
 import { onFocusChange } from '../../core/focus-state.js';
 import { render, addRenderHook } from '../../core/render.js';
@@ -67,6 +67,8 @@ function recompute() {
   if (compareSet.length < 2) return;
   const spine = buildSpine(graphState.graphData, compareSet);
   for (const n of graphState.graphData.nodes) {
+    // Global tables have no single owning app — never tint them.
+    if (isGlobalScope(n.scope)) continue;
     const { apps } = spine.resolveTable(n.id);
     const present = compareSet.filter(i => apps[i.id]);
     if (!present.length) continue; // scope owns no app anywhere — neutral
