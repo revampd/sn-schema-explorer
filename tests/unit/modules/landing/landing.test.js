@@ -9,25 +9,15 @@
  * the landing wiring. engine/workspace.js is stubbed to observe setWorkspace.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-// jsdom in this config doesn't expose localStorage — provide an in-memory shim.
-if (typeof globalThis.localStorage === 'undefined') {
-  const store = new Map();
-  globalThis.localStorage = {
-    getItem: k => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: k => store.delete(k),
-    clear: () => store.clear(),
-  };
-}
+import '../../../helpers/localstorage.js';
 
 const { selectInstanceForGraph, setWorkspace, onWorkspaceChange } = vi.hoisted(() => ({
   selectInstanceForGraph: vi.fn(() => true),
   setWorkspace: vi.fn(),
   onWorkspaceChange: vi.fn(),
 }));
-vi.mock('../../src/modules/load/index.js', () => ({ selectInstanceForGraph }));
-vi.mock('../../src/core/workspace.js', () => ({ setWorkspace, onWorkspaceChange }));
+vi.mock('../../../../src/modules/load/index.js', () => ({ selectInstanceForGraph }));
+vi.mock('../../../../src/core/workspace.js', () => ({ setWorkspace, onWorkspaceChange }));
 
 import {
   registerTool,
@@ -35,8 +25,8 @@ import {
   refreshLanding,
   initLanding,
   _resetTools,
-} from '../../src/modules/landing/index.js';
-import { addInstance, _resetInstances } from '../../src/core/instances-state.js';
+} from '../../../../src/modules/landing/index.js';
+import { addInstance, _resetInstances } from '../../../../src/core/instances-state.js';
 
 const SCHEMA_DATA = {
   _instance: { instance_name: 'dev1' },

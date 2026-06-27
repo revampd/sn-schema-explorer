@@ -6,31 +6,21 @@
  * (Dom, canvas, render, Settings); we mock those so it imports in tests.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import '../../../helpers/localstorage.js';
 
-vi.mock('../../src/core/dom.js', () => ({ Dom: {} }));
-vi.mock('../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
-vi.mock('../../src/core/render.js', () => ({ typeLabel: t => t || '' }));
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../../src/core/dom.js', () => ({ Dom: {} }));
+vi.mock('../../../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
+vi.mock('../../../../src/core/render.js', () => ({ typeLabel: t => t || '' }));
+vi.mock('../../../../src/modules/settings/index.js', () => ({
   Settings: { initMaxPngScale() {}, getMaxPngScale: () => 20 },
 }));
-
-// jsdom in this config doesn't expose localStorage — provide an in-memory shim.
-if (typeof globalThis.localStorage === 'undefined') {
-  const store = new Map();
-  globalThis.localStorage = {
-    getItem: k => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: k => store.delete(k),
-    clear: () => store.clear(),
-  };
-}
 
 import {
   _buildEdgeLegendGroup,
   _presentEdgeTypes,
   getExportIncludeLegend,
   setExportIncludeLegend,
-} from '../../src/modules/export/index.js';
+} from '../../../../src/modules/export/index.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

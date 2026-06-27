@@ -9,25 +9,25 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Isolate build-list from its heavier siblings — these collaborators have their
 // own tests; here we only care that the renderer wires them in.
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: () => false, isCustomName: () => false },
 }));
-vi.mock('../../src/core/dom.js', () => ({ Dom: { searchBox: null } }));
-vi.mock('../../src/modules/search/index.js', () => ({ getSearchMode: () => 'tables' }));
-vi.mock('../../src/core/advanced-filter.js', () => ({ filterOk: () => true }));
-vi.mock('../../src/core/table-list.js', () => ({ buildTableList: vi.fn() }));
+vi.mock('../../../../src/core/dom.js', () => ({ Dom: { searchBox: null } }));
+vi.mock('../../../../src/modules/search/index.js', () => ({ getSearchMode: () => 'tables' }));
+vi.mock('../../../../src/core/advanced-filter.js', () => ({ filterOk: () => true }));
+vi.mock('../../../../src/core/table-list.js', () => ({ buildTableList: vi.fn() }));
 
-import { diffBuildList } from '../../src/modules/schema-diff/build-list.js';
+import { diffBuildList } from '../../../../src/modules/schema-diff/build-list.js';
 import {
   diffGraftAddedIntoBase,
   diffUngraftAddedFromBase,
-} from '../../src/modules/schema-diff/graft.js';
+} from '../../../../src/modules/schema-diff/graft.js';
 import {
   moveDiffCursor,
   clearDiffCursor,
   getFocusedDiffItem,
-} from '../../src/modules/schema-diff/list-cursor.js';
-import { graphState, diffState, uiState } from '../../src/core/state.js';
+} from '../../../../src/modules/schema-diff/list-cursor.js';
+import { graphState, diffState, uiState } from '../../../../src/core/state.js';
 
 // A diff-data fixture: one added, one removed, one changed table.
 function makeDiffData() {

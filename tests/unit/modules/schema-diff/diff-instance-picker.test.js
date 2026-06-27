@@ -7,27 +7,18 @@
  * sync with the registry; loadDiffFromInstances is injected (stubbed here).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-if (typeof globalThis.localStorage === 'undefined') {
-  const store = new Map();
-  globalThis.localStorage = {
-    getItem: k => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: k => store.delete(k),
-    clear: () => store.clear(),
-  };
-}
+import '../../../helpers/localstorage.js';
 
 import {
   initDiffInstancePicker,
   refreshDiffPicker,
-} from '../../src/modules/schema-diff/instance-picker.js';
+} from '../../../../src/modules/schema-diff/instance-picker.js';
 import {
   instancesState,
   addInstance,
   selectInstance,
   _resetInstances,
-} from '../../src/core/instances-state.js';
+} from '../../../../src/core/instances-state.js';
 
 const SCHEMA_DATA = { nodes: [{ id: 'task' }], edges: [] };
 const NO_SCHEMA = { nodes: [], edges: [] }; // schema cap false (no nodes)

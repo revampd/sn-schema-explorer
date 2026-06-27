@@ -6,12 +6,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 let tooltipInheritedRefs = false;
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: key => (key === 'tooltipInheritedRefs' ? tooltipInheritedRefs : false) },
 }));
 
-import { makeEdgeTitleText } from '../../src/core/edge-title.js';
-import { graphState } from '../../src/core/state.js';
+import { makeEdgeTitleText } from '../../../src/core/edge-title.js';
+import { graphState } from '../../../src/core/state.js';
 
 // Edge data as it looks at render time: source/target are node objects.
 function nodeObj(id, label) {

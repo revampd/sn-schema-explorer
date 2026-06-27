@@ -7,17 +7,7 @@
  * persistence that never stores the heavy `data`.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-
-// jsdom in this config doesn't expose localStorage — provide an in-memory shim.
-if (typeof globalThis.localStorage === 'undefined') {
-  const store = new Map();
-  globalThis.localStorage = {
-    getItem: k => (store.has(k) ? store.get(k) : null),
-    setItem: (k, v) => store.set(k, String(v)),
-    removeItem: k => store.delete(k),
-    clear: () => store.clear(),
-  };
-}
+import '../../helpers/localstorage.js';
 
 import {
   instancesState,
@@ -31,7 +21,7 @@ import {
   persist,
   loadPersisted,
   _resetInstances,
-} from '../../src/core/instances-state.js';
+} from '../../../src/core/instances-state.js';
 
 const STORAGE_KEY = 'snse:instances:v1';
 

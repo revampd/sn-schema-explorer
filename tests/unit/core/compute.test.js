@@ -5,10 +5,10 @@
  * Both are mocked so tests control state directly without DOM or module init.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { computeNeighbourhood } from '../../src/core/compute.js';
-import { graphState, uiState } from '../../src/core/state.js';
+import { computeNeighbourhood } from '../../../src/core/compute.js';
+import { graphState, uiState } from '../../../src/core/state.js';
 
-vi.mock('../../src/core/state.js', () => {
+vi.mock('../../../src/core/state.js', () => {
   const graphState = {
     graphData: { nodes: [], edges: [], _adj: null, _nodeById: null, _edgeCnt: {} },
   };
@@ -35,7 +35,7 @@ vi.mock('../../src/core/state.js', () => {
   return { graphState, uiState, diffState, edgeSourceId, edgeTargetId };
 });
 
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: vi.fn().mockReturnValue(false) },
 }));
 

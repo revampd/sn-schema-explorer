@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = readFileSync(join(__dirname, '../../src/exporters/node/serialisers.js'), 'utf8');
+const SRC = readFileSync(join(__dirname, '../../../../src/exporters/node/serialisers.js'), 'utf8');
 
 function loadSerialisers() {
   const moduleObj = { exports: {} };

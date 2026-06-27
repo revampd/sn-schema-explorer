@@ -5,8 +5,8 @@
  * import the real singletons and exercise the round-trip directly.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { serializeState, restoreState } from '../../src/core/state.js';
-import { uiState } from '../../src/core/state.js';
+import { serializeState, restoreState } from '../../../src/core/state.js';
+import { uiState } from '../../../src/core/state.js';
 
 beforeEach(() => {
   // Reset the fields the serialiser touches to known defaults.

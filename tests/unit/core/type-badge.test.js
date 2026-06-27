@@ -4,8 +4,8 @@
  * reading graphState.graphData._typeCatalog.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { typeBadgeColor, typeLabel } from '../../src/core/type-badge.js';
-import { graphState } from '../../src/core/state.js';
+import { typeBadgeColor, typeLabel } from '../../../src/core/type-badge.js';
+import { graphState } from '../../../src/core/state.js';
 
 beforeEach(() => {
   graphState.graphData = null;

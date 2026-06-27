@@ -8,11 +8,11 @@ import { describe, it, expect, vi } from 'vitest';
 
 // update-check imports Settings (DOM-heavy) at module load; mock it so the import
 // resolves in a node context.
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: () => true },
 }));
 
-import { isNewerVersion } from '../../src/core/update-check.js';
+import { isNewerVersion } from '../../../src/core/update-check.js';
 
 describe('isNewerVersion', () => {
   it('detects a newer patch / minor / major', () => {

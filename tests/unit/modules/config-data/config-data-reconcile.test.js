@@ -8,7 +8,7 @@ import {
   reconcileToCsv,
   SECTION_CONFIG,
   STATUS_LABELS,
-} from '../../src/modules/config-data/reconcile.js';
+} from '../../../../src/modules/config-data/reconcile.js';
 
 // Build a registry-like instance entry carrying one metadata section.
 function inst(id, label, section, rows) {

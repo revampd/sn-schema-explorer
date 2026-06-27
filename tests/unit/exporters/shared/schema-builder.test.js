@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { join, dirname } from 'path';
-import { BUILDER_INPUT } from '../fixtures/builder-input.js';
+import { BUILDER_INPUT } from '../../../fixtures/builder-input.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,7 +16,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 let build, buildStreaming, _internal;
 
 beforeAll(() => {
-  const src = readFileSync(join(__dirname, '../../src/exporters/shared/schema-builder.js'), 'utf8');
+  const src = readFileSync(
+    join(__dirname, '../../../../src/exporters/shared/schema-builder.js'),
+    'utf8'
+  );
   const mod = { exports: {} };
   new Function('module', 'exports', src)(mod, mod.exports);
   ({ build, buildStreaming, _internal } = mod.exports);

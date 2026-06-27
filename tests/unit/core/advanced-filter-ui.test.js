@@ -6,15 +6,15 @@
  * enforcement, operator cycling, and the active-filter badge.
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { buildFilterPanel } from '../../src/core/advanced-filter.js';
-import { graphState, uiState } from '../../src/core/state.js';
+import { buildFilterPanel } from '../../../src/core/advanced-filter.js';
+import { graphState, uiState } from '../../../src/core/state.js';
 
-vi.mock('../../src/core/state.js', () => ({
+vi.mock('../../../src/core/state.js', () => ({
   graphState: { graphData: null, scopeColorMap: {} },
   uiState: { filterConditions: [], selectedScopes: new Set() },
 }));
 
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../src/modules/settings/index.js', () => ({
   Settings: {
     isCustomName: id => id.startsWith('u_') || id.startsWith('x_'),
     isEnabled: () => false,

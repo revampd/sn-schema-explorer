@@ -10,10 +10,10 @@ import {
   countActiveFilters,
   clearAllFilters,
   syncSelectedScopes,
-} from '../../src/core/advanced-filter.js';
-import { graphState, uiState } from '../../src/core/state.js';
+} from '../../../src/core/advanced-filter.js';
+import { graphState, uiState } from '../../../src/core/state.js';
 
-vi.mock('../../src/core/state.js', () => {
+vi.mock('../../../src/core/state.js', () => {
   const graphState = {
     graphData: null,
     scopeColorMap: {},
@@ -25,7 +25,7 @@ vi.mock('../../src/core/state.js', () => {
   return { graphState, uiState };
 });
 
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../src/modules/settings/index.js', () => ({
   Settings: {
     isCustomName: vi.fn(id => id.startsWith('u_') || id.startsWith('x_')),
   },

@@ -4,7 +4,7 @@
  * computeDiff is a pure function — no DOM or state dependencies.
  */
 import { describe, it, expect } from 'vitest';
-import { computeDiff } from '../../src/modules/schema-diff/compute-diff.js';
+import { computeDiff } from '../../../../src/modules/schema-diff/compute-diff.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function makeSchema(nodes = [], edges = []) {

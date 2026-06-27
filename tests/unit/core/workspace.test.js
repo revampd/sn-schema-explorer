@@ -14,8 +14,8 @@ import {
   getWorkspace,
   onWorkspaceChange,
   initWorkspaces,
-} from '../../src/core/workspace.js';
-import { uiState } from '../../src/core/state.js';
+} from '../../../src/core/workspace.js';
+import { uiState } from '../../../src/core/state.js';
 
 function setupDom() {
   document.body.innerHTML = `

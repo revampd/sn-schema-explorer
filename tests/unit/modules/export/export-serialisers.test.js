@@ -8,12 +8,12 @@
  * them (markdown's typeLabel is the one exception, mocked to identity here).
  */
 import { vi, describe, it, expect, beforeAll } from 'vitest';
-import { buildIndexes } from '../../src/core/graph-state.js';
+import { buildIndexes } from '../../../../src/core/graph-state.js';
 
-vi.mock('../../src/core/dom.js', () => ({ Dom: {} }));
-vi.mock('../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
-vi.mock('../../src/core/render.js', () => ({ typeLabel: t => t || '' }));
-vi.mock('../../src/modules/settings/index.js', () => ({
+vi.mock('../../../../src/core/dom.js', () => ({ Dom: {} }));
+vi.mock('../../../../src/core/canvas.js', () => ({ svg: {}, root: {}, zoom: {} }));
+vi.mock('../../../../src/core/render.js', () => ({ typeLabel: t => t || '' }));
+vi.mock('../../../../src/modules/settings/index.js', () => ({
   Settings: { initMaxPngScale() {}, getMaxPngScale: () => 20 },
 }));
 
@@ -26,7 +26,7 @@ import {
   _hsvToRgb,
   _rgbToHsv,
   _rgbToHex,
-} from '../../src/modules/export/index.js';
+} from '../../../../src/modules/export/index.js';
 
 // ── Fixture: incident extends task; task.assigned_to → sys_user ───────────────
 let data, nodeById;

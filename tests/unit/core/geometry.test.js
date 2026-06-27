@@ -5,7 +5,7 @@
  * All functions are pure math — no DOM or state dependencies.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { makeEdgeGeom } from '../../src/core/geometry.js';
+import { makeEdgeGeom } from '../../../src/core/geometry.js';
 
 // Use small, round numbers for easy manual verification.
 // halfW=10, halfH=10 → square box; minDist=50 → curves start at 50+ centre distance.

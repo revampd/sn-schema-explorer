@@ -6,8 +6,8 @@
  * store-app update indicator, active/inactive dots, dates toggle, and filtering.
  */
 import { describe, it, expect } from 'vitest';
-import { renderComparisonTable } from '../../src/modules/config-data/table-view.js';
-import { reconcile } from '../../src/modules/config-data/reconcile.js';
+import { renderComparisonTable } from '../../../../src/modules/config-data/table-view.js';
+import { reconcile } from '../../../../src/modules/config-data/reconcile.js';
 
 const inst = (id, label, section, rows) => ({
   id,

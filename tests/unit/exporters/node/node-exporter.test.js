@@ -15,7 +15,7 @@ import { join, dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC = readFileSync(
-  join(__dirname, '../../src/exporters/node/sn-schema-export.node.js'),
+  join(__dirname, '../../../../src/exporters/node/sn-schema-export.node.js'),
   'utf8'
 ).replace(/^#!.*\n/, ''); // strip shebang — invalid inside a Function body
 
