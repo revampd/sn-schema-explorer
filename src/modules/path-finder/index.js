@@ -1,4 +1,4 @@
-import { graphState, uiState } from '../../core/state.js';
+import { graphState, uiState, focusState } from '../../core/state.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
 import { h } from '../../core/template.js';
@@ -101,7 +101,22 @@ onViewModeChange((mode, prevMode) => {
 export function pfSyncSidebar() {
   if (!document.getElementById('pf-sidebar')) return;
   syncSidebarForMode();
-  if (uiState.viewMode === 'path') pfValidate();
+  if (uiState.viewMode === 'path') {
+    pfHydrateSourceFromFocus();
+    pfValidate();
+  }
+}
+
+// Hydrate the Path Finder source from the shared focus (#131): when entering the
+// lens with a table focused, pre-fill the (empty) source so the user's place
+// carries across. Never clobbers a source they've already typed, and only fills
+// with a table that exists in the loaded graph.
+function pfHydrateSourceFromFocus() {
+  const srcEl = document.getElementById('pf-source');
+  if (!srcEl || srcEl.value) return;
+  const table = focusState.table;
+  if (!table || !graphState.graphData) return;
+  if (graphState.graphData.nodes.some(n => n.id === table)) srcEl.value = table;
 }
 
 // ── Canvas overlay sync ───────────────────────────────────────────────────────

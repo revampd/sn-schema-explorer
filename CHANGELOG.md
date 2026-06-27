@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared focus across lenses** (`core/focus-state.js`,
+  [#131](https://github.com/revampd/sn-schema-explorer/issues/131); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). A thin facade — `focusState` (`instanceId` / `compareId` /
+  `table`) plus an `onFocusChange` event — giving the tools one shared notion of
+  "what the user is looking at", over the existing instance/diff/selection state
+  (no new storage). The first visible payoff: the table you have selected in
+  Schema Map now **carries into Path Finder's source** when you switch lenses,
+  instead of starting empty. Substrate for the upcoming entity spine, cross-lens
+  overlays, and linked panes.
+
 - **Header tool switcher + instance dropdown**
   ([#127](https://github.com/revampd/sn-schema-explorer/issues/127)). The header
   is reorganised around an always-visible **tool switcher** that replaces the old

@@ -8,6 +8,7 @@ export {
 } from './graph-state.js';
 export { uiState } from './ui-state.js';
 export { diffState } from './diff-state.js';
+export { focusState, onFocusChange, focusSnapshot, notifyFocusChange } from './focus-state.js';
 export {
   instancesState,
   METADATA_SECTIONS,

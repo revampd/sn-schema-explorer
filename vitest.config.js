@@ -20,10 +20,10 @@ export default defineConfig({
       // such lines, so this floor was re-ratcheted down to match — despite the
       // test count increasing. Real exporter logic is covered by the unit tests.
       thresholds: {
-        statements: 24.4,
+        statements: 24.5,
         branches: 21.2,
-        functions: 27.0,
-        lines: 24.6,
+        functions: 27.4,
+        lines: 24.7,
       },
     },
   },

@@ -12,6 +12,7 @@ import { highlightListItem } from './table-list.js';
 import { updateDensityInfo, updateHopDepthSlider } from './density-controls.js';
 import { filterOk } from './advanced-filter.js';
 import { pushHistory } from '../modules/history/index.js';
+import { notifyFocusChange } from './focus-state.js';
 
 // _fillInspectorHook: optional override injected by path-finder
 let _fillInspectorHook = null;
@@ -30,6 +31,7 @@ export function initInspectorDeps(deps) {
 export function selectNode(d, nodeSel, edgePath) {
   if (!graphState.graphData) return;
   uiState.selectedNode = d.id;
+  notifyFocusChange();
   Dom.statFocus.textContent = d.id;
 
   if (Settings.isEnabled('clearSearchOnSelect')) {
@@ -55,6 +57,7 @@ export function clearSel(nodeSel, edgePath) {
 export function clearSelection() {
   if (!uiState.selectedNode) return;
   uiState.selectedNode = null;
+  notifyFocusChange();
   uiState.connectedNodes = new Set();
   uiState._lastInheritedSeeds = new Set();
   uiState.hiddenNodes.clear();
