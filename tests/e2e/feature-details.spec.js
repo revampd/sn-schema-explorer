@@ -215,7 +215,8 @@ test.describe('Schema Diff interactions', () => {
     await page.locator('#header-swap').click();
 
     // The header pickers swap: Base becomes test-instance-b, Compare becomes the
-    // previous base (test-instance) — not cleared.
+    // previous base (test-instance) — not cleared. The Compare button summarises
+    // the single selection as "vs <label>" (#150 multi-select dropdown).
     await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
     await expect(page.locator('#header-compare .sn-dd-label')).toHaveText('vs test-instance');
 

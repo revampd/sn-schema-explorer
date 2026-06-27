@@ -31,6 +31,19 @@ function makeCompare() {
   return c;
 }
 
+// A second, distinct compare for the multi-select tests (#150): adds a different
+// table and changes a different one, so its per-table statuses differ from
+// makeCompare()'s. Named so it isn't a substring of 'compare-inst'.
+function makeRival() {
+  const c = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
+  c._instance = { ...(c._instance || {}), instance_name: 'rival-inst' };
+  c.nodes.push({ id: 'change_request', label: 'Change', scope: 'Global', fields: [] });
+  const task = c.nodes.find(n => n.id === 'task');
+  if (task)
+    task.fields = [...(task.fields || []), { name: 'rival_field', label: 'R', type: 'string' }];
+  return c;
+}
+
 async function boot(page) {
   await page.addInitScript(() =>
     localStorage.setItem(
@@ -159,4 +172,50 @@ test('round-trip map→compare→path→map→clear leaves no diff residue', asy
   await expect(page.locator('g.node-group.diff-changed')).toHaveCount(0);
   await expect(page.locator('g.node-group.diff-added')).toHaveCount(0);
   await expect(page.locator('#table-list-viewport .table-item[data-id="problem"]')).toHaveCount(0);
+});
+
+test('multi-compare (#150): N columns in the header chips, sidebar + inspector', async ({
+  page,
+}) => {
+  await boot(page);
+  await register(page, SCHEMA_OUTPUT, 'base.json');
+  await register(page, makeCompare(), 'compare.json'); // compare-inst
+  await register(page, makeRival(), 'rival.json'); // rival-inst
+  await page
+    .locator('.inst-card:not(.add-card)')
+    .first()
+    .locator('[data-tool="schemaExplorer"]')
+    .click();
+  await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+
+  // The Compare control is a single dropdown whose rows are toggles (#150): a ✓
+  // marks instances already in the comparison. Toggle two on.
+  const toggleCompare = async label => {
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: label }).click();
+  };
+  await toggleCompare('vs compare-inst');
+  await toggleCompare('vs rival-inst');
+
+  // The button summarises the multi-selection (no chips).
+  await expect(page.locator('#header-compare .sn-dd-label')).toHaveText('Compare: 2 instances');
+
+  // Sidebar switches to the N-column roll-up: one row per differing table, each
+  // with a per-instance status strip (a chip per compare).
+  await expect(page.locator('#diff-list .diff-group-header')).toContainText(
+    'Differs across instances'
+  );
+  await expect(page.locator('#diff-list .diff-item').first().locator('.dic-chip')).toHaveCount(2);
+
+  // Inspector for a differing table shows one column per instance (Base + 2).
+  await page.locator('#diff-list .diff-item', { hasText: 'Incident' }).click();
+  await expect(page.locator('#inspector-content .diff-sbs-col-header')).toHaveCount(3);
+
+  // Toggling a compare back off (its row now carries ✓) drops to the single-
+  // compare classic grouped list.
+  await toggleCompare('✓ vs compare-inst');
+  await expect(page.locator('#header-compare .sn-dd-label')).toHaveText('vs rival-inst');
+  await expect(page.locator('#diff-list .diff-group-header').first()).not.toContainText(
+    'Differs across instances'
+  );
 });
