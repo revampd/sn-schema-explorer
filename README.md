@@ -110,9 +110,11 @@ Other environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_OUTPUT`, `
 `_metadata` key, with capability flags under `_capabilities.metadata.<section>`.
 These describe the instance beyond its table schema — installed **plugins**,
 **store apps**, **custom apps**, and **system properties** — and power
-cross-instance comparison in the viewer. Sections are emitted only when
-requested, and each fetch degrades gracefully on instances missing the source
-table.
+cross-instance comparison in the viewer. Each entry carries its version and
+active state; store apps also include `latestVersion` / `updateAvailable` (the
+"update available" signal) and install/update dates, plugins an install date,
+and custom apps install/update dates. Sections are emitted only when requested,
+and each fetch degrades gracefully on instances missing the source table.
 
 `sys_properties` values can hold secrets, so **values are off by default**
 (names + metadata only). `--include-property-values` opts in, and even then a

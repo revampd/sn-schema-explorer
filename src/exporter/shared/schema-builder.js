@@ -118,6 +118,7 @@
           name: cellVal(p.name),
           active: cellBoolVal(p.active),
           version: cellVal(p.version),
+          installDate: cellVal(p.install_date),
         });
       }
       return out;
@@ -134,6 +135,10 @@
           version: cellVal(a.version),
           vendor: cellVal(a.vendor),
           active: cellBoolVal(a.active),
+          latestVersion: cellVal(a.latest_version),
+          updateAvailable: cellBoolVal(a.update_available),
+          installDate: cellVal(a.install_date),
+          updateDate: cellVal(a.update_date),
         });
       }
       return out;
@@ -149,6 +154,8 @@
           name: cellVal(a.name),
           version: cellVal(a.version),
           active: cellBoolVal(a.active),
+          installDate: cellVal(a.install_date),
+          updateDate: cellVal(a.update_date),
         });
       }
       return out;

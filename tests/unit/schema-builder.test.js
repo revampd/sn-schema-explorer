@@ -318,7 +318,17 @@ const PLUGINS_RAW = [
   { id: 'com.snc.change', name: 'Change', active: 'false', version: '2.1' },
 ];
 const STORE_APPS_RAW = [
-  { scope: 'x_acme_app', name: 'Acme App', version: '1.2.3', vendor: 'Acme', active: 'true' },
+  {
+    scope: 'x_acme_app',
+    name: 'Acme App',
+    version: '1.2.3',
+    vendor: 'Acme',
+    active: 'true',
+    latest_version: '1.3.0',
+    update_available: 'true',
+    install_date: '2026-01-01',
+    update_date: '2026-02-01',
+  },
 ];
 const PROPS_RAW = [
   { name: 'glide.ui.theme', value: 'dark', type: 'string', description: 'UI theme' },
@@ -335,8 +345,45 @@ describe('metadata — normalizers (_internal)', () => {
       name: 'Incident',
       active: true,
       version: '1.0.0',
+      installDate: '',
     });
     expect(out[1].active).toBe(false);
+  });
+
+  it('normalizeStoreApps carries update fields + dates', () => {
+    const out = _internal.normalizeStoreApps(STORE_APPS_RAW);
+    expect(out[0]).toEqual({
+      scope: 'x_acme_app',
+      name: 'Acme App',
+      version: '1.2.3',
+      vendor: 'Acme',
+      active: true,
+      latestVersion: '1.3.0',
+      updateAvailable: true,
+      installDate: '2026-01-01',
+      updateDate: '2026-02-01',
+    });
+  });
+
+  it('normalizeCustomApps carries install/update dates', () => {
+    const out = _internal.normalizeCustomApps([
+      {
+        scope: 'x_co',
+        name: 'Tool',
+        version: '1',
+        active: 'true',
+        install_date: 'i',
+        update_date: 'u',
+      },
+    ]);
+    expect(out[0]).toEqual({
+      scope: 'x_co',
+      name: 'Tool',
+      version: '1',
+      active: true,
+      installDate: 'i',
+      updateDate: 'u',
+    });
   });
 
   it('normalizePlugins falls back to source when id is absent', () => {
