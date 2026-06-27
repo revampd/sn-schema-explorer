@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Richer metadata fields in the export.** The exporter metadata sections now
+  carry more of their source-table columns for cross-instance comparison:
+  store apps gain `latestVersion`, `updateAvailable`, `installDate`, and
+  `updateDate` (the "update available" signal); plugins gain `installDate`; and
+  custom apps gain install/update dates (from `sys_created_on` / `sys_updated_on`).
+  Both the Node and background exporters emit them, and the Instance Comparison
+  CSV includes them. Dates are display-only context — they never count as
+  "drift" (they always differ across instances).
+
 - **Instance Comparison reconcile logic** (internal foundation,
   [#103](https://github.com/revampd/sn-schema-explorer/issues/103)). New
   `modules/instance-compare/reconcile.js` does N-way reconciliation of a metadata

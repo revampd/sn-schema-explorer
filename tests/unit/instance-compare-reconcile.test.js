@@ -137,8 +137,11 @@ describe('reconcileToCsv', () => {
     ]);
     const csv = reconcileToCsv(r);
     const [header, row] = csv.split('\n');
-    expect(header).toBe('name,key,Dev_version,Dev_active,Test_version,Test_active,status');
-    expect(row).toBe('X Plugin,com.x,1.0,active,2.0,inactive,Drift');
+    // plugins columns: version, active, installDate (per instance)
+    expect(header).toBe(
+      'name,key,Dev_version,Dev_active,Dev_installDate,Test_version,Test_active,Test_installDate,status'
+    );
+    expect(row).toBe('X Plugin,com.x,1.0,active,,2.0,inactive,,Drift');
   });
 
   it('leaves blank cells for missing entries', () => {
@@ -147,7 +150,8 @@ describe('reconcileToCsv', () => {
       inst('b', 'Test', 'plugins', []),
     ]);
     const row = reconcileToCsv(r).split('\n')[1];
-    expect(row).toBe('X,com.x,1.0,active,,,' + STATUS_LABELS.missing);
+    // Dev: 1.0,active,(installDate) · Test: blank,blank,blank
+    expect(row).toBe('X,com.x,1.0,active,,,,,' + STATUS_LABELS.missing);
   });
 
   it('quotes fields containing commas or quotes', () => {
@@ -157,5 +161,45 @@ describe('reconcileToCsv', () => {
     const row = reconcileToCsv(r).split('\n')[1];
     expect(row).toContain('"A, Inc ""app"""');
     void SECTION_CONFIG;
+  });
+
+  it('carries store-app update fields + dates in the CSV', () => {
+    const r = reconcile('storeApps', [
+      inst('a', 'Dev', 'storeApps', [
+        {
+          scope: 'x_app',
+          name: 'App',
+          version: '1.0',
+          vendor: 'Acme',
+          active: true,
+          latestVersion: '1.2',
+          updateAvailable: true,
+          installDate: '2026-01-01',
+          updateDate: '2026-02-01',
+        },
+      ]),
+    ]);
+    const [header, row] = reconcileToCsv(r).split('\n');
+    expect(header).toBe(
+      'name,key,Dev_version,Dev_active,Dev_vendor,Dev_latestVersion,Dev_updateAvailable,Dev_installDate,Dev_updateDate,status'
+    );
+    expect(row).toBe('App,x_app,1.0,active,Acme,1.2,true,2026-01-01,2026-02-01,In sync');
+  });
+});
+
+describe('reconcile — dates are display-only (never drift)', () => {
+  it('same version/active but different install dates stays in sync', () => {
+    const base = (date, ver) => ({
+      scope: 'x_app',
+      name: 'App',
+      version: ver || '1.0',
+      active: true,
+      installDate: date,
+    });
+    const r = reconcile('storeApps', [
+      inst('a', 'Dev', 'storeApps', [base('2026-01-01')]),
+      inst('b', 'Test', 'storeApps', [base('2025-06-15')]),
+    ]);
+    expect(r.rows[0].status).toBe('sync');
   });
 });

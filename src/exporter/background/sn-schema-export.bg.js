@@ -510,6 +510,7 @@ function fetchPlugins() {
         name: gr.getValue('name'),
         active: parseBool(gr.getValue('active')),
         version: gr.getValue('version'),
+        install_date: gr.getValue('install_date'),
       });
     }
   } catch (e) {
@@ -530,6 +531,10 @@ function fetchStoreApps() {
         version: gr.getValue('version'),
         vendor: gr.getValue('vendor'),
         active: parseBool(gr.getValue('active')),
+        latest_version: gr.getValue('latest_version'),
+        update_available: parseBool(gr.getValue('update_available')),
+        install_date: gr.getValue('install_date'),
+        update_date: gr.getValue('update_date'),
       });
     }
   } catch (e) {
@@ -549,6 +554,9 @@ function fetchCustomApps() {
         name: gr.getValue('name'),
         version: gr.getValue('version'),
         active: parseBool(gr.getValue('active')),
+        // sys_app has no store-style dates; use the record's create/update stamps.
+        install_date: gr.getValue('sys_created_on'),
+        update_date: gr.getValue('sys_updated_on'),
       });
     }
   } catch (e) {

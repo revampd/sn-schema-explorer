@@ -848,7 +848,13 @@ async function fetchAllViaTableApi() {
   const want = section => config.metadata.includes(section);
   const [pluginsRaw, storeAppsRaw, customAppsRaw, propertiesRaw] = await Promise.all([
     want('plugins')
-      ? fetchTableAll('sys_plugins', null, ['id', 'name', 'active', 'version']).catch(() => [])
+      ? fetchTableAll('sys_plugins', null, [
+          'id',
+          'name',
+          'active',
+          'version',
+          'install_date',
+        ]).catch(() => [])
       : Promise.resolve(null),
     want('storeApps')
       ? fetchTableAll('sys_store_app', null, [
@@ -857,10 +863,21 @@ async function fetchAllViaTableApi() {
           'version',
           'vendor',
           'active',
+          'latest_version',
+          'update_available',
+          'install_date',
+          'update_date',
         ]).catch(() => [])
       : Promise.resolve(null),
     want('customApps')
-      ? fetchTableAll('sys_app', null, ['scope', 'name', 'version', 'active']).catch(() => [])
+      ? fetchTableAll('sys_app', null, [
+          'scope',
+          'name',
+          'version',
+          'active',
+          'sys_created_on',
+          'sys_updated_on',
+        ]).catch(() => [])
       : Promise.resolve(null),
     want('properties')
       ? fetchTableAll('sys_properties', config.propertyQuery || null, [
@@ -879,6 +896,7 @@ async function fetchAllViaTableApi() {
         name: cell(r, 'name'),
         active: cellBool(r, 'active'),
         version: cell(r, 'version'),
+        install_date: cell(r, 'install_date'),
       }))
     : null;
   const storeApps = storeAppsRaw
@@ -888,6 +906,10 @@ async function fetchAllViaTableApi() {
         version: cell(r, 'version'),
         vendor: cell(r, 'vendor'),
         active: cellBool(r, 'active'),
+        latest_version: cell(r, 'latest_version'),
+        update_available: cellBool(r, 'update_available'),
+        install_date: cell(r, 'install_date'),
+        update_date: cell(r, 'update_date'),
       }))
     : null;
   const customApps = customAppsRaw
@@ -896,6 +918,9 @@ async function fetchAllViaTableApi() {
         name: cell(r, 'name'),
         version: cell(r, 'version'),
         active: cellBool(r, 'active'),
+        // sys_app has no store-style dates; use the record's create/update stamps.
+        install_date: cell(r, 'sys_created_on'),
+        update_date: cell(r, 'sys_updated_on'),
       }))
     : null;
   const properties = propertiesRaw

@@ -353,7 +353,15 @@ describe('metadata sections — CLI config', () => {
 
 describe('metadata sections — fetch gating + normalization', () => {
   const ROWS = {
-    sys_plugins: [{ id: 'com.snc.x', name: 'X Plugin', active: 'true', version: '1.0' }],
+    sys_plugins: [
+      {
+        id: 'com.snc.x',
+        name: 'X Plugin',
+        active: 'true',
+        version: '1.0',
+        install_date: '2026-01-01',
+      },
+    ],
     sys_properties: [{ name: 'glide.foo', value: 'bar', type: 'string', description: 'd' }],
   };
 
@@ -372,7 +380,13 @@ describe('metadata sections — fetch gating + normalization', () => {
     const mod = loadForFetch('plugins,properties');
     const input = await mod.fetchAllViaTableApi();
     expect(input.plugins).toEqual([
-      { id: 'com.snc.x', name: 'X Plugin', active: true, version: '1.0' },
+      {
+        id: 'com.snc.x',
+        name: 'X Plugin',
+        active: true,
+        version: '1.0',
+        install_date: '2026-01-01',
+      },
     ]);
     expect(input.properties).toEqual([
       { name: 'glide.foo', value: 'bar', type: 'string', description: 'd' },
