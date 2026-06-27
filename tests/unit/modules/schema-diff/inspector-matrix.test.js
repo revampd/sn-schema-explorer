@@ -127,6 +127,23 @@ describe('diffFillInspector — N≥3 columns', () => {
     const keys = [...inspectorContent.querySelectorAll('.diff-props-key')].map(e => e.textContent);
     expect(keys).toEqual(['scope', 'core', 'children', 'records']);
   });
+
+  it('shows record counts but never flags them as a diff', () => {
+    // task has differing record counts across the three instances.
+    base.nodes.find(n => n.id === 'task').recordCount = 100;
+    prod.nodes.find(n => n.id === 'task').recordCount = 5000;
+    uat.nodes.find(n => n.id === 'task').recordCount = 250;
+    diffFillInspector({ id: 'task', scope: 'global' });
+
+    const rows = [...inspectorContent.querySelectorAll('.diff-props-row')];
+    const recordsRow = rows.find(
+      r => r.querySelector('.diff-props-key')?.textContent === 'records'
+    );
+    // The differing counts are displayed…
+    expect(recordsRow.textContent).toContain('5,000');
+    // …but no cell is highlighted as changed (record counts aren't a diff).
+    expect(recordsRow.querySelector('.diff-props-cell.dfr-changed')).toBeNull();
+  });
 });
 
 describe('diffFillInspector — N=2 parity + fall-through', () => {
