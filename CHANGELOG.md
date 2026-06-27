@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Multi-select Compare (compare against several instances at once)**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The header
+  **Compare** control is now multi-select: it's a single dropdown whose rows are
+  toggles — a ✓ marks the instances currently in the comparison, and the button
+  summarises the selection ("vs prod", "Compare: 3 instances"). Selecting more
+  than one lights up the N-column inspector and the N-column sidebar roll-up —
+  comparing the loaded schema against many instances at once on the Schema Map.
+  "Compare: none" clears all; the **swap (⇄)** flips Base with the primary
+  compare (the first selected) and any additional compares ride along. The
+  canvas keeps its pairwise colouring against the primary compare.
 - **N-column change-report sidebar**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150),
   [#149](https://github.com/revampd/sn-schema-explorer/issues/149)). When more

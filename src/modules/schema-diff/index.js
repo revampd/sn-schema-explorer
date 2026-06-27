@@ -5,6 +5,7 @@ import {
   getInstance,
   instancesState,
   setCompareId,
+  setCompareIds,
   isComparing,
   isStructureLayerOn,
   onFocusChange,
@@ -155,15 +156,20 @@ function loadDiffSchema(compareData) {
 // ── Registry-driven diff ──────────────────────────────────────────────────────
 
 /**
- * Run a diff between two registered instances. Base is loaded into the graph
- * (if not already the selected instance); Compare is diffed against it. An empty
- * compareId clears the comparison (base stays loaded).
+ * Run a diff between registered instances. Base is loaded into the graph (if not
+ * already the selected instance); each compare is diffed against it. An empty
+ * compare list clears the comparison (base stays loaded). `compareIds` may be a
+ * single id (back-compat) or an array (#150 multi-compare).
  *
- * The compare data is CLONED before use — injectCiRelEdges + the graft mutate it
- * in place, and it must never corrupt the stored export. (The base is the
- * loaded instance's data, mutated in place exactly as the Schema Explorer does.)
+ * The primary compare's data is CLONED before use — injectCiRelEdges + the graft
+ * mutate it in place, and it must never corrupt the stored export. (loadDiffSchema
+ * clones the remaining compares itself.) The base is the loaded instance's data,
+ * mutated in place exactly as the Schema Explorer does.
  */
-function loadDiffFromInstances(baseId, compareId) {
+function loadDiffFromInstances(baseId, compareIds) {
+  const ids = (Array.isArray(compareIds) ? compareIds : compareIds ? [compareIds] : []).filter(
+    Boolean
+  );
   if (baseId && baseId !== instancesState.selectedId) {
     // The base graph aliases the instance's in-memory data and the graft mutates
     // it in place. Ungraft the OUTGOING base before switching, or its stored data
@@ -172,20 +178,22 @@ function loadDiffFromInstances(baseId, compareId) {
     diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
   }
-  if (!compareId) {
+  const compares = ids;
+  if (!compares.length) {
     clearDiff();
     return;
   }
-  const compareEntry = getInstance(compareId);
-  if (!compareEntry || !compareEntry.data) return;
-  const compareClone =
+  const primaryEntry = getInstance(compares[0]);
+  if (!primaryEntry || !primaryEntry.data) return;
+  const primaryClone =
     typeof structuredClone === 'function'
-      ? structuredClone(compareEntry.data)
-      : JSON.parse(JSON.stringify(compareEntry.data));
-  // Set the compare id BEFORE loading the schema: loadDiffSchema builds the
-  // sidebar config block, which resolves the compare instance from diffState.
-  setCompareId(compareId);
-  loadDiffSchema(compareClone);
+      ? structuredClone(primaryEntry.data)
+      : JSON.parse(JSON.stringify(primaryEntry.data));
+  // Set the compare list BEFORE loading the schema: loadDiffSchema reads
+  // diffState._compareIds to build the matrix (and the sidebar config block
+  // resolves the primary compare from diffState).
+  setCompareIds(compares);
+  loadDiffSchema(primaryClone);
 }
 
 /** Clear the active comparison (ungraft + reset diff state), keeping the base. */
@@ -537,8 +545,8 @@ const schemaInstanceCount = () =>
   instancesState.instances.filter(e => e.capabilities && e.capabilities.schema).length;
 
 // The header instance dropdown switches the BASE; if a comparison is active,
-// re-run it against the same compare so the diff follows the new base.
-setDiffBaseHandler(baseId => loadDiffFromInstances(baseId, diffState._compareId));
+// re-run it against the same compares so the diff follows the new base.
+setDiffBaseHandler(baseId => loadDiffFromInstances(baseId, diffState._compareIds));
 
 // Rebuild the diff list when the header search / advanced filter changes while a
 // comparison is active.
@@ -549,9 +557,13 @@ onFilterChange(() => {
   if (isComparing()) diffBuildList();
 });
 
-// ── Header "Compare" dropdown — the entry point for the diff layer (#141) ──────
-// Lives beside the instance (Base) dropdown. Picking a compare instance loads the
-// comparison as a layer on the Schema Map; "No comparison" clears it.
+// ── Header "Compare" control — the entry point for the diff layer (#141, #150) ──
+// Lives beside the instance (Base) dropdown. MULTI-SELECT (#150) as a single
+// dropdown whose rows are TOGGLES: a selected compare is marked with ✓ in the
+// list (no chips — they overflowed the header). Clicking a row toggles that
+// instance in/out of the comparison; "Compare: none" clears all. Each change
+// reloads the comparison as a layer on the Schema Map, so the inspector + sidebar
+// scale to one column per selected compare.
 let _cmpDd = null;
 const NO_COMPARE = '__none__';
 
@@ -566,29 +578,52 @@ export function refreshHeaderCompare() {
     !!graphState.graphData;
   host.style.display = eligible ? '' : 'none';
   if (!eligible) return;
+
   if (!_cmpDd) {
     _cmpDd = createDropdown({
       ariaLabel: 'Compare against',
-      title: 'Compare the loaded instance against another (diff layer)',
+      title: 'Compare the loaded instance against one or more others (diff layer)',
       onChange: id => {
         const base = instancesState.selectedId;
-        loadDiffFromInstances(base, id === NO_COMPARE ? null : id);
+        const sel = diffState._compareIds;
+        if (id === NO_COMPARE) {
+          loadDiffFromInstances(base, []);
+        } else if (id) {
+          // Toggle: a row already in the comparison comes out; otherwise it goes in.
+          const next = sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id];
+          loadDiffFromInstances(base, next);
+        }
         refreshHeaderCompare();
       },
     });
   }
   if (_cmpDd.el.parentElement !== host) host.appendChild(_cmpDd.el);
+
+  // Rows: every schema instance except the base, each toggleable; a ✓ marks the
+  // ones currently in the comparison. The closed-button label (a value-'' row)
+  // summarises the selection so the header stays compact.
+  const selected = new Set(diffState._compareIds);
+  const n = selected.size;
+  const summary =
+    n === 0
+      ? 'Compare…'
+      : n === 1
+        ? 'vs ' + (getInstance([...selected][0])?.label || [...selected][0])
+        : 'Compare: ' + n + ' instances';
+  const instOpts = instancesState.instances
+    .filter(e => e.capabilities && e.capabilities.schema && e.id !== instancesState.selectedId)
+    .map(e => ({ value: e.id, label: (selected.has(e.id) ? '✓ ' : '') + 'vs ' + e.label }));
   const opts = [
-    { value: NO_COMPARE, label: 'Compare: none' },
-    ...instancesState.instances
-      .filter(e => e.capabilities && e.capabilities.schema && e.id !== instancesState.selectedId)
-      .map(e => ({ value: e.id, label: 'vs ' + e.label })),
+    { value: '', label: summary },
+    ...(n ? [{ value: NO_COMPARE, label: 'Compare: none' }] : []),
+    ...instOpts,
   ];
-  _cmpDd.setOptions(opts, diffState._compareId || NO_COMPARE);
+  _cmpDd.setOptions(opts, '');
   refreshHeaderSwap(eligible);
 }
 
-// Header swap button — flips Base and Compare (replaces the old sidebar swap).
+// Header swap button — flips Base and the PRIMARY compare (the first selected);
+// any additional compares ride along unchanged. Replaces the old sidebar swap.
 let _swapWired = false;
 function refreshHeaderSwap(eligible) {
   const btn = document.getElementById('header-swap');
@@ -596,9 +631,10 @@ function refreshHeaderSwap(eligible) {
   if (!_swapWired) {
     btn.addEventListener('click', () => {
       const base = instancesState.selectedId;
-      const cmp = diffState._compareId;
-      if (!cmp) return; // nothing to swap into the base slot
-      loadDiffFromInstances(cmp, base);
+      const compares = diffState._compareIds;
+      if (!compares.length) return; // nothing to swap into the base slot
+      const primary = compares[0];
+      loadDiffFromInstances(primary, [base, ...compares.slice(1)]);
       refreshHeaderCompare();
     });
     _swapWired = true;
