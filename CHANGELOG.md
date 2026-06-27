@@ -214,8 +214,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Removed the
   inline "Filter tables…" search from the diff sidebar — the header search bar
   (Tbl mode) already filters the diff list — and hid the Application Scopes panel
-  while in Diff view, where it isn't relevant. Both reduce duplication in the
-  diff sidebar.
+  and the main table-list **sort bar** while in Diff view, where they aren't
+  relevant (Diff has its own grouped Added/Removed/Changed list). All three were
+  also inconsistently re-appearing after a base switch (a `loadGraph` re-show);
+  they now stay hidden in Diff.
 
 ### Fixed
 

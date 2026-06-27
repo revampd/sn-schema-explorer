@@ -221,5 +221,10 @@ test.describe('Schema Diff interactions', () => {
     // in-memory data, collapsing both counts to 0 after a swap.)
     await expect(page.locator('#diff-n-added')).toHaveText('0');
     await expect(page.locator('#diff-n-removed')).toHaveText('1');
+
+    // The base switch runs loadGraph, which used to re-show the main sort bar
+    // and Application Scopes panel in diff view — both stay hidden.
+    await expect(page.locator('#sort-bar')).toBeHidden();
+    await expect(page.locator('#scope-info-group')).toBeHidden();
   });
 });

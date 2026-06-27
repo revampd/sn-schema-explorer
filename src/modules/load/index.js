@@ -240,7 +240,10 @@ export function loadGraph(data) {
   Dom.edgeLegend.style.display = 'block';
   syncLegendRows();
   Dom.densityGroup.style.display = 'block';
-  Dom.sortBar.style.display = 'flex';
+  // The sort bar sorts the main table list, which Diff view replaces with its
+  // own grouped list — keep it hidden in diff (loadGraph also runs on a diff
+  // base switch, so guard here too, mirroring the scope panel above).
+  Dom.sortBar.style.display = uiState.viewMode === 'diff' ? 'none' : 'flex';
 
   const preselect =
     data._nodeById.get('task') ||
