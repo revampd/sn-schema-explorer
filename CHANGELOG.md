@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared entity spine** (`core/entity-spine.js`,
+  [#132](https://github.com/revampd/sn-schema-explorer/issues/132); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). A pure addressing layer that joins the Structure lens (schema
+  nodes) to the Config lens (store / custom apps) by application **scope**, so a
+  lens can resolve "what does Config know about this table?" as a lookup
+  (`buildSpine(graph, instances).resolveTable(id)` → the owning app record per
+  instance). Because today's exports spell scope two ways — nodes carry the
+  scope's _display name_, apps carry the _technical_ scope plus the display name
+  — the spine indexes each app under **both** and resolves a node by either, so
+  it works with current exports and gets more robust if nodes later also carry
+  the technical scope (an optional exporter hardening, tracked for later). The
+  bridge covers store + custom apps only; plugins (name-keyed) and properties
+  (global) don't link to a table. Substrate only — nothing consumes it yet; the
+  config-drift overlay (#133) is the first consumer.
+
 - **Shared focus across lenses** (`core/focus-state.js`,
   [#131](https://github.com/revampd/sn-schema-explorer/issues/131); part of the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
