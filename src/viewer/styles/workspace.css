@@ -12,7 +12,7 @@
 }
 
 /* ── Clean shell for non–Schema-Explorer workspaces ─────────────────────────
- * On the landing page (and the future Instance Comparison workspace) the graph
+ * On the landing page (and the future Configuration Data workspace) the graph
  * chrome adds no value, so we hide it and let the active workspace region own
  * the whole content area. The header keeps only the brand + global utilities
  * (Guide, Settings, and Home where relevant). The minimap / zoom / sim controls

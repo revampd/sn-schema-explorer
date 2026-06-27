@@ -1,5 +1,5 @@
 /* ============================================================================
- * instance-compare/index.js — N-way comparison workspace (v1.0.3)
+ * config-data/index.js — N-way comparison workspace (v1.0.3)
  * ============================================================================
  *
  * The cross-instance comparison tool. Registers a workspace (engine/workspace)
@@ -18,23 +18,24 @@ import { renderComparisonTable } from './table-view.js';
 
 // ── Settings feature ──────────────────────────────────────────────────────
 Settings.registerFeature({
-  key: 'instanceCompare',
-  label: 'Instance Comparison',
+  key: 'configData',
+  label: 'Configuration Data',
   description:
     'Adds a cross-instance comparison tool that reconciles plugins, store apps, custom apps, and system properties across the instances you register, highlighting version drift, missing entries, and active-state mismatches.',
   default: false,
   category: 'features',
 });
 
-registerWorkspace({ key: 'instance-comparison', root: '#instance-compare' });
+registerWorkspace({ key: 'config-data', root: '#config-data' });
 
 // ── View state ────────────────────────────────────────────────────────────
 const view = { section: null, search: '', filter: 'all', showDates: false };
 
-// Sections that ≥2 registered instances carry — the ones worth comparing.
+// Sections that ≥1 registered instance carries. A single instance shows one
+// column; two or more light up drift / missing / state-mismatch.
 function comparableSections() {
   const agg = aggregateCapabilities();
-  return METADATA_SECTIONS.filter(s => agg[s] && agg[s].count >= 2);
+  return METADATA_SECTIONS.filter(s => agg[s] && agg[s].count >= 1);
 }
 
 function hasComparable() {
@@ -44,24 +45,24 @@ function hasComparable() {
 // ── Rendering ───────────────────────────────────────────────────────────────
 
 function renderTabs() {
-  const host = document.getElementById('ic-tabs');
+  const host = document.getElementById('cd-tabs');
   if (!host) return;
   host.textContent = '';
   const agg = aggregateCapabilities();
   METADATA_SECTIONS.forEach(section => {
     const carriers = (agg[section] && agg[section].count) || 0;
-    const enabled = carriers >= 2;
+    const enabled = carriers >= 1;
     const btn = document.createElement('button');
-    btn.className = 'ic-tab' + (section === view.section ? ' active' : '');
+    btn.className = 'cd-tab' + (section === view.section ? ' active' : '');
     btn.disabled = !enabled;
     btn.dataset.section = section;
     btn.title = enabled
-      ? `${SECTION_LABELS[section]} — ${carriers} instances`
-      : `${SECTION_LABELS[section]} — needs 2 instances with this data`;
+      ? `${SECTION_LABELS[section]} — ${carriers} instance${carriers === 1 ? '' : 's'}`
+      : `${SECTION_LABELS[section]} — needs an instance with this data`;
     btn.textContent = SECTION_LABELS[section];
     if (carriers) {
       const cnt = document.createElement('span');
-      cnt.className = 'ic-tab-cnt';
+      cnt.className = 'cd-tab-cnt';
       cnt.textContent = carriers;
       btn.appendChild(cnt);
     }
@@ -76,23 +77,23 @@ function renderTabs() {
 }
 
 function renderStats(result) {
-  const host = document.getElementById('ic-stats');
+  const host = document.getElementById('cd-stats');
   if (!host) return;
   host.textContent = '';
   const total = result.rows.length;
   const c = result.counts;
   const tiles = [
     { v: total, k: 'Entries' },
-    { v: c.sync, k: 'In sync', cls: 'ic-stat-sync' },
-    { v: c.drift, k: 'Version drift', cls: 'ic-stat-drift' },
-    { v: c.missing, k: 'Missing', cls: 'ic-stat-missing' },
-    { v: c.active + c.inactive, k: 'State issues', cls: 'ic-stat-state' },
+    { v: c.sync, k: 'In sync', cls: 'cd-stat-sync' },
+    { v: c.drift, k: 'Version drift', cls: 'cd-stat-drift' },
+    { v: c.missing, k: 'Missing', cls: 'cd-stat-missing' },
+    { v: c.active + c.inactive, k: 'State issues', cls: 'cd-stat-state' },
   ];
   tiles.forEach(t => {
     const el = document.createElement('div');
-    el.className = 'ic-stat' + (t.cls ? ' ' + t.cls : '');
+    el.className = 'cd-stat' + (t.cls ? ' ' + t.cls : '');
     el.innerHTML =
-      '<div class="ic-stat-v">' + t.v + '</div><div class="ic-stat-k">' + t.k + '</div>';
+      '<div class="cd-stat-v">' + t.v + '</div><div class="cd-stat-k">' + t.k + '</div>';
     host.appendChild(el);
   });
 }
@@ -111,16 +112,16 @@ function renderCompare() {
   }
   renderTabs();
 
-  const empty = document.getElementById('ic-empty');
-  const tableWrap = document.getElementById('ic-table-wrap');
-  const exportBtn = document.getElementById('ic-export');
+  const empty = document.getElementById('cd-empty');
+  const tableWrap = document.getElementById('cd-table-wrap');
+  const exportBtn = document.getElementById('cd-export');
 
   if (!sections.length) {
     if (tableWrap) tableWrap.style.display = 'none';
     if (empty) {
       empty.style.display = 'block';
       empty.textContent =
-        'Register at least two instances that share a metadata section (plugins, store apps, custom apps, or properties) to compare them. Re-export with the metadata sections enabled if a section is empty.';
+        'Register at least one instance carrying a metadata section (plugins, store apps, custom apps, or properties) to view it here. Add more instances to compare them. Re-export with the metadata sections enabled if a section is empty.';
     }
     renderStats({ rows: [], counts: { sync: 0, drift: 0, missing: 0, active: 0, inactive: 0 } });
     if (exportBtn) exportBtn.disabled = true;
@@ -130,7 +131,7 @@ function renderCompare() {
   const result = currentResult();
   renderStats(result);
 
-  const table = document.getElementById('ic-table');
+  const table = document.getElementById('cd-table');
   const rendered = renderComparisonTable(result, {
     search: view.search,
     filter: view.filter,
@@ -148,37 +149,37 @@ function renderCompare() {
 }
 
 // ── Public entry ──────────────────────────────────────────────────────────
-export function openComparison() {
-  setWorkspace('instance-comparison');
+export function openConfigData() {
+  setWorkspace('config-data');
   // renderCompare runs via the onWorkspaceChange hook below; call directly too
   // so a re-open while already active still refreshes.
   renderCompare();
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────
-export function initInstanceCompare() {
-  const search = document.getElementById('ic-search');
+export function initConfigData() {
+  const search = document.getElementById('cd-search');
   if (search) {
     search.addEventListener('input', () => {
       view.search = search.value;
       renderCompare();
     });
   }
-  const filter = document.getElementById('ic-filter');
+  const filter = document.getElementById('cd-filter');
   if (filter) {
     filter.addEventListener('change', () => {
       view.filter = filter.value;
       renderCompare();
     });
   }
-  const showDates = document.getElementById('ic-showdates');
+  const showDates = document.getElementById('cd-showdates');
   if (showDates) {
     showDates.addEventListener('change', () => {
       view.showDates = showDates.checked;
       renderCompare();
     });
   }
-  const exportBtn = document.getElementById('ic-export');
+  const exportBtn = document.getElementById('cd-export');
   if (exportBtn) {
     exportBtn.addEventListener('click', () => {
       const result = currentResult();
@@ -187,7 +188,7 @@ export function initInstanceCompare() {
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = view.section + '_comparison.csv';
+      a.download = view.section + '_configuration.csv';
       a.click();
       URL.revokeObjectURL(a.href);
     });
@@ -195,27 +196,29 @@ export function initInstanceCompare() {
 
   // Re-render whenever this workspace becomes active.
   onWorkspaceChange(ws => {
-    if (ws === 'instance-comparison') renderCompare();
+    if (ws === 'config-data') renderCompare();
   });
 
-  // Landing card icon — launches the (global) comparison workspace. Enabled only
-  // when the feature is on AND ≥2 instances share a metadata section.
+  // Landing card icon — launches the (global) Configuration Data workspace.
+  // Enabled when the feature is on AND ≥1 instance carries a metadata section
+  // (one instance = a single column; more light up drift / missing / mismatch).
   registerTool({
-    key: 'instanceCompare',
-    label: 'Compare instances',
+    key: 'configData',
+    label: 'Configuration Data',
     icon: '▦',
     requires: [],
-    minInstances: 2,
-    enabled: () => Settings.isEnabled('instanceCompare') && hasComparable(),
-    disabledHint: 'Enable Instance Comparison in Settings; needs 2 instances sharing a section',
-    enter: () => openComparison(),
+    minInstances: 1,
+    enabled: () => Settings.isEnabled('configData') && hasComparable(),
+    disabledHint:
+      'Enable Configuration Data in Settings; needs an instance carrying a metadata section',
+    enter: () => openConfigData(),
   });
 
   // Reflect the icon's enabled state on the landing page when the feature toggles.
-  Settings.onChange('instanceCompare', () => refreshLanding());
+  Settings.onChange('configData', () => refreshLanding());
 }
 
 // Self-initialise at module load (mirrors schema-diff). full.js imports this
 // module after lite.js has run initLanding(), so the landing host + DOM region
 // exist and registerTool re-renders the cards with the comparison icon.
-initInstanceCompare();
+initConfigData();

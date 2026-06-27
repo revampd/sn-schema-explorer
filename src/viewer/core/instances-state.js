@@ -3,7 +3,7 @@
  * ============================================================================
  *
  * The registry holds every schema export the user has registered on the landing
- * page. Future tools (Schema Explorer, Schema Diff, Instance Comparison) read
+ * page. Future tools (Schema Explorer, Schema Diff, Configuration Data) read
  * from it instead of owning their own file upload.
  *
  * Design constraints (see the v1.0.3 plan / #99):

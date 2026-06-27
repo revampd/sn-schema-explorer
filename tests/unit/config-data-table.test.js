@@ -1,13 +1,13 @@
 /**
  * @vitest-environment jsdom
  *
- * Unit tests for src/viewer/modules/instance-compare/table-view.js (#104).
+ * Unit tests for src/viewer/modules/config-data/table-view.js (#104).
  * Pure DOM rendering of a reconcile() result: columns, status chips, the
  * store-app update indicator, active/inactive dots, dates toggle, and filtering.
  */
 import { describe, it, expect } from 'vitest';
-import { renderComparisonTable } from '../../src/viewer/modules/instance-compare/table-view.js';
-import { reconcile } from '../../src/viewer/modules/instance-compare/reconcile.js';
+import { renderComparisonTable } from '../../src/viewer/modules/config-data/table-view.js';
+import { reconcile } from '../../src/viewer/modules/config-data/reconcile.js';
 
 const inst = (id, label, section, rows) => ({
   id,
@@ -46,8 +46,8 @@ describe('renderComparisonTable', () => {
     const row = renderComparisonTable(r).querySelector('tbody tr');
     const cells = row.querySelectorAll('td');
     // cells: name, key, Dev, Test, status
-    expect(cells[2].querySelector('.ic-dot-on')).toBeTruthy(); // Dev active
-    expect(cells[3].classList.contains('ic-miss')).toBe(true); // Test missing
+    expect(cells[2].querySelector('.cd-dot-on')).toBeTruthy(); // Dev active
+    expect(cells[3].classList.contains('cd-miss')).toBe(true); // Test missing
     expect(cells[3].textContent).toBe('—');
   });
 
@@ -75,7 +75,7 @@ describe('renderComparisonTable', () => {
       ]),
     ]);
     const table = renderComparisonTable(r);
-    const upd = table.querySelector('.ic-update');
+    const upd = table.querySelector('.cd-update');
     expect(upd).toBeTruthy();
     expect(upd.textContent).toContain('1.2');
   });
@@ -88,9 +88,9 @@ describe('renderComparisonTable', () => {
       inst('a', 'Dev', 'storeApps', rows),
       inst('b', 'Test', 'storeApps', rows),
     ]);
-    expect(renderComparisonTable(r, { showDates: false }).querySelector('.ic-dates')).toBeNull();
+    expect(renderComparisonTable(r, { showDates: false }).querySelector('.cd-dates')).toBeNull();
     const withDates = renderComparisonTable(r, { showDates: true });
-    expect(withDates.querySelector('.ic-dates').textContent).toContain('2026-01-01');
+    expect(withDates.querySelector('.cd-dates').textContent).toContain('2026-01-01');
   });
 
   it('filters rows by search and status', () => {
@@ -119,7 +119,7 @@ describe('renderComparisonTable', () => {
     ]);
     const table = renderComparisonTable(r);
     const devCell = table.querySelectorAll('tbody td')[2];
-    expect(devCell.querySelector('.ic-val').textContent).toBe('on');
-    expect(devCell.querySelector('.ic-dot')).toBeNull();
+    expect(devCell.querySelector('.cd-val').textContent).toBe('on');
+    expect(devCell.querySelector('.cd-dot')).toBeNull();
   });
 });

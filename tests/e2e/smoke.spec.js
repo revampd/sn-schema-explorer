@@ -67,7 +67,7 @@ test('app boots into the landing workspace with the graph chrome hidden (#101)',
   // Schema Explorer chrome and the comparison region are hidden on the front door.
   await expect(page.locator('#sidebar')).toBeHidden();
   await expect(page.locator('#inspector')).toBeHidden();
-  await expect(page.locator('#instance-compare')).toBeHidden();
+  await expect(page.locator('#config-data')).toBeHidden();
 });
 
 test('landing page front door is visible before a schema is loaded', async ({ page }) => {

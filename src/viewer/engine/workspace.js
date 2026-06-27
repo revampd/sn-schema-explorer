@@ -6,9 +6,9 @@
  * view-mode, NOT a fourth view-mode: `setViewMode` (engine/view-mode.js) keeps
  * hard-validating `force|path|diff` and is left 100% intact. The Schema
  * Explorer workspace owns those graph sub-modes; other workspaces (the landing
- * page, Instance Comparison) are separate regions.
+ * page, Configuration Data) are separate regions.
  *
- *   workspaces: 'landing' | 'schema-explorer' | 'instance-comparison'
+ *   workspaces: 'landing' | 'schema-explorer' | 'config-data'
  *
  * Mechanism: each non-baseline workspace registers a root element. Switching
  * sets `uiState.workspace`, stamps `body[data-workspace]`, and toggles the
@@ -21,7 +21,7 @@
 
 import { uiState } from '../core/state.js';
 
-export const WORKSPACES = ['landing', 'schema-explorer', 'instance-comparison'];
+export const WORKSPACES = ['landing', 'schema-explorer', 'config-data'];
 
 const _workspaces = new Map(); // key -> { key, root: Element|null }
 const _listeners = []; // (workspace, prevWorkspace) => void
@@ -69,7 +69,7 @@ export function setWorkspace(key) {
 
 /**
  * Wire the built-in workspace regions and apply the default. Called once at
- * startup from entries/*. Registers the landing + instance-comparison regions
+ * startup from entries/*. Registers the landing + config-data regions
  * (their modules populate the contents in later PRs) and the schema-explorer
  * baseline (no root — it's the default chrome), then activates the current
  * uiState.workspace so `body[data-workspace]` is stamped from the first paint.
@@ -77,6 +77,6 @@ export function setWorkspace(key) {
 export function initWorkspaces() {
   registerWorkspace({ key: 'schema-explorer' });
   registerWorkspace({ key: 'landing', root: '#landing-root' });
-  registerWorkspace({ key: 'instance-comparison', root: '#instance-compare' });
+  registerWorkspace({ key: 'config-data', root: '#config-data' });
   setWorkspace(uiState.workspace);
 }

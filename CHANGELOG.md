@@ -9,28 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Instance Comparison tool**
+- **Configuration Data tool**
   ([#104](https://github.com/revampd/sn-schema-explorer/issues/104)). A new
-  workspace that reconciles a metadata section — **plugins, store apps, custom
-  apps, or system properties** — across the instances you've registered. Launch
-  it from an instance card's **▦** icon (enable Instance Comparison in Settings
-  first); pick a section tab (disabled until two instances carry it) and get an
-  N-column table with a column per instance, status chips (in sync / drift /
-  missing / state mismatch / inactive), the store-app "↑ update" signal, an
-  optional dates column, search + status filters, and **Export CSV**.
+  workspace that views and reconciles a metadata section — **plugins, store apps,
+  custom apps, or system properties** — across the instances you've registered.
+  Launch it from an instance card's **▦** icon (enable Configuration Data in
+  Settings first); it's available from a **single** registered instance (one
+  column) and lights up version drift, missing entries, and active-state
+  mismatches as you add more. Pick a section tab and get a table with a column
+  per instance, status chips (in sync / drift / missing / state mismatch /
+  inactive), the store-app "↑ update" signal, an optional dates column, search +
+  status filters, and **Export CSV**.
 
 - **Richer metadata fields in the export.** The exporter metadata sections now
   carry more of their source-table columns for cross-instance comparison:
   store apps gain `latestVersion`, `updateAvailable`, `installDate`, and
   `updateDate` (the "update available" signal); plugins gain `installDate`; and
   custom apps gain install/update dates (from `sys_created_on` / `sys_updated_on`).
-  Both the Node and background exporters emit them, and the Instance Comparison
+  Both the Node and background exporters emit them, and the Configuration Data
   CSV includes them. Dates are display-only context — they never count as
   "drift" (they always differ across instances).
 
-- **Instance Comparison reconcile logic** (internal foundation,
+- **Configuration Data reconcile logic** (internal foundation,
   [#103](https://github.com/revampd/sn-schema-explorer/issues/103)). New
-  `modules/instance-compare/reconcile.js` does N-way reconciliation of a metadata
+  `modules/config-data/reconcile.js` does N-way reconciliation of a metadata
   section (plugins / store apps / custom apps / properties) across registered
   instances — union of entries, per-instance cells, and a status
   (`sync` / `drift` / `missing` / `active` / `inactive`) — plus a CSV export
@@ -72,8 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workspace controller** (internal structural seam,
   [#100](https://github.com/revampd/sn-schema-explorer/issues/100)). New
   `engine/workspace.js` adds a workspace layer (`landing` / `schema-explorer` /
-  `instance-comparison`) that is a sibling of the graph view-mode, plus empty
-  landing + comparison regions.
+  `config-data`) that is a sibling of the graph view-mode, plus empty
+  landing + Configuration Data regions.
 - **Landing page front door**
   ([#101](https://github.com/revampd/sn-schema-explorer/issues/101)). The app now
   opens on a landing page where you **register one or more instance exports** as a

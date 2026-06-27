@@ -1,22 +1,22 @@
-/* ── Instance Comparison workspace (v1.0.3) ─────────────────────────────────
+/* ── Configuration Data workspace (v1.0.3) ─────────────────────────────────
  * Occupies the content rows like the landing page; the graph chrome is hidden
  * by styles/workspace.css while this workspace is active. */
-.ic-workspace {
+.cd-workspace {
   grid-column: 1 / -1;
   grid-row: 2 / 5;
   overflow: auto;
   background: var(--bg);
   z-index: 5;
 }
-.ic-inner {
+.cd-inner {
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 24px 64px;
 }
-.ic-head {
+.cd-head {
   margin-bottom: 20px;
 }
-.ic-eyebrow {
+.cd-eyebrow {
   font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   font-size: 11px;
   font-weight: 500;
@@ -24,27 +24,27 @@
   letter-spacing: 0.08em;
   color: var(--muted);
 }
-.ic-title {
+.cd-title {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
   margin-top: 6px;
 }
-.ic-sub {
+.cd-sub {
   margin-top: 6px;
   font-size: 13px;
   color: var(--muted);
 }
 
 /* Section tabs */
-.ic-tabs {
+.cd-tabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
-.ic-tab {
+.cd-tab {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   color: var(--muted);
@@ -58,21 +58,21 @@
     color 0.15s,
     background 0.15s;
 }
-.ic-tab:hover:not(:disabled) {
+.cd-tab:hover:not(:disabled) {
   border-color: var(--sn-wasabi);
   color: var(--text);
 }
-.ic-tab.active {
+.cd-tab.active {
   background: var(--sn-wasabi);
   border-color: var(--sn-wasabi);
   color: var(--sn-infinite);
   font-weight: 700;
 }
-.ic-tab:disabled {
+.cd-tab:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.ic-tab-cnt {
+.cd-tab-cnt {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   opacity: 0.8;
@@ -80,15 +80,15 @@
 }
 
 /* Controls row */
-.ic-controls {
+.cd-controls {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
   align-items: center;
   margin-bottom: 14px;
 }
-.ic-controls input[type='text'],
-.ic-controls select {
+.cd-controls input[type='text'],
+.cd-controls select {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   color: var(--text);
@@ -96,13 +96,13 @@
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
-.ic-controls input[type='text'] {
+.cd-controls input[type='text'] {
   min-width: 220px;
 }
-.ic-controls select option {
+.cd-controls select option {
   background: var(--sn-infinite);
 }
-.ic-toggle {
+.cd-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -110,34 +110,34 @@
   color: var(--muted);
   cursor: pointer;
 }
-#ic-export {
+#cd-export {
   margin-left: auto;
 }
 
 /* Stat tiles */
-.ic-stats {
+.cd-stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 16px;
 }
 @media (max-width: 760px) {
-  .ic-stats {
+  .cd-stats {
     grid-template-columns: 1fr 1fr;
   }
 }
-.ic-stat {
+.cd-stat {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
-.ic-stat-v {
+.cd-stat-v {
   font-size: 22px;
   font-weight: 700;
   line-height: 1;
 }
-.ic-stat-k {
+.cd-stat-k {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   text-transform: uppercase;
@@ -145,30 +145,30 @@
   color: var(--muted);
   margin-top: 6px;
 }
-.ic-stat-sync .ic-stat-v {
+.cd-stat-sync .cd-stat-v {
   color: var(--sn-wasabi);
 }
-.ic-stat-drift .ic-stat-v {
+.cd-stat-drift .cd-stat-v {
   color: var(--edge-warn);
 }
-.ic-stat-missing .ic-stat-v {
+.cd-stat-missing .cd-stat-v {
   color: var(--diff-removed);
 }
-.ic-stat-state .ic-stat-v {
+.cd-stat-state .cd-stat-v {
   color: #52b8ff;
 }
 
 /* Table */
-.ic-table-wrap {
+.cd-table-wrap {
   padding: 6px;
   overflow-x: auto;
 }
-.ic-table {
+.cd-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
-.ic-table thead th {
+.cd-table thead th {
   text-align: left;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
@@ -180,31 +180,31 @@
   border-bottom: 1px solid var(--glass-border);
   white-space: nowrap;
 }
-.ic-table tbody td {
+.cd-table tbody td {
   padding: 8px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   vertical-align: top;
 }
-.ic-table tbody tr:hover {
+.cd-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.03);
 }
-.ic-name {
+.cd-name {
   font-weight: 600;
 }
-.ic-key {
+.cd-key {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   color: var(--muted);
 }
-.ic-miss {
+.cd-miss {
   color: var(--muted);
 }
-.ic-ver,
-.ic-val {
+.cd-ver,
+.cd-val {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12px;
 }
-.ic-dot {
+.cd-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -212,30 +212,30 @@
   margin-right: 6px;
   vertical-align: middle;
 }
-.ic-dot-on {
+.cd-dot-on {
   background: var(--sn-wasabi);
 }
-.ic-dot-off {
+.cd-dot-off {
   background: transparent;
   border: 1.5px solid var(--diff-removed);
 }
-.ic-dot-unk {
+.cd-dot-unk {
   background: var(--muted);
 }
-.ic-update {
+.cd-update {
   display: inline-block;
   margin-left: 7px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   color: var(--edge-warn);
 }
-.ic-dates {
+.cd-dates {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
   color: var(--muted);
   margin-top: 3px;
 }
-.ic-empty {
+.cd-empty {
   text-align: center;
   color: var(--muted);
   padding: 40px 16px;

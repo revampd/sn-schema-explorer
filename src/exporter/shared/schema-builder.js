@@ -86,7 +86,7 @@
     // Opt-in sections describing the instance beyond its table schema: plugins,
     // store apps, custom apps, system properties. Emitted under the top-level
     // `_metadata` key (only for sections actually present in the input) so the
-    // viewer's Instance Comparison tool can reconcile them across instances.
+    // viewer's Configuration Data tool can reconcile them across instances.
     //
     // The shape is defined HERE (the shared UMD builder) so the Node and
     // background exporters emit identical output.

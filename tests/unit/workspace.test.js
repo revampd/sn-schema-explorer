@@ -21,7 +21,7 @@ function setupDom() {
   document.body.innerHTML = `
     <div id="canvas"></div>
     <div id="landing-root" class="workspace-region"></div>
-    <div id="instance-compare" class="workspace-region"></div>
+    <div id="config-data" class="workspace-region"></div>
   `;
   delete document.body.dataset.workspace;
 }
@@ -33,7 +33,7 @@ beforeEach(() => {
 
 describe('constants', () => {
   it('exposes the three workspaces', () => {
-    expect(WORKSPACES).toEqual(['landing', 'schema-explorer', 'instance-comparison']);
+    expect(WORKSPACES).toEqual(['landing', 'schema-explorer', 'config-data']);
   });
 });
 
@@ -48,15 +48,15 @@ describe('setWorkspace', () => {
 
   it('toggles workspace-active only on the active region', () => {
     registerWorkspace({ key: 'landing', root: '#landing-root' });
-    registerWorkspace({ key: 'instance-comparison', root: '#instance-compare' });
+    registerWorkspace({ key: 'config-data', root: '#config-data' });
     const landing = document.getElementById('landing-root');
-    const compare = document.getElementById('instance-compare');
+    const compare = document.getElementById('config-data');
 
     setWorkspace('landing');
     expect(landing.classList.contains('workspace-active')).toBe(true);
     expect(compare.classList.contains('workspace-active')).toBe(false);
 
-    setWorkspace('instance-comparison');
+    setWorkspace('config-data');
     expect(landing.classList.contains('workspace-active')).toBe(false);
     expect(compare.classList.contains('workspace-active')).toBe(true);
   });
@@ -101,7 +101,7 @@ describe('initWorkspaces', () => {
     expect(document.getElementById('landing-root').classList.contains('workspace-active')).toBe(
       false
     );
-    expect(document.getElementById('instance-compare').classList.contains('workspace-active')).toBe(
+    expect(document.getElementById('config-data').classList.contains('workspace-active')).toBe(
       false
     );
   });

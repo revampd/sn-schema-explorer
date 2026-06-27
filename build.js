@@ -57,7 +57,7 @@ const BASE_CSS = [
   'src/viewer/modules/settings/index.css',
   'src/viewer/styles/workspace.css',
   'src/viewer/modules/landing/index.css',
-  'src/viewer/modules/instance-compare/index.css',
+  'src/viewer/modules/config-data/index.css',
 ];
 
 const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
@@ -72,7 +72,7 @@ const VIEWER_TARGETS = {
       'src/viewer/modules/path-finder/index.css',
       'src/viewer/modules/schema-diff/index.css',
     ],
-    features: ['path-finder', 'schema-diff', 'setup', 'instanceCompare'],
+    features: ['path-finder', 'schema-diff', 'setup', 'configData'],
     title: 'Schema Explorer',
     output: rel('dist/sn_schema_explorer.html'),
   },
@@ -105,7 +105,7 @@ const GUIDE_MODULES = [
   { file: 'src/viewer/modules/schema-map/guide-tips.html' },
   { file: 'src/viewer/modules/path-finder/guide.html', feature: 'path-finder' },
   { file: 'src/viewer/modules/schema-diff/guide.html', feature: 'schema-diff' },
-  { file: 'src/viewer/modules/instance-compare/guide.html', feature: 'instanceCompare' },
+  { file: 'src/viewer/modules/config-data/guide.html', feature: 'configData' },
 ];
 
 function assembleGuide(features) {
@@ -149,8 +149,8 @@ const BASE_PARTIALS = [
   // Landing page front door (v1.0.3) — contains the <!--INJECT:setup-instructions-->
   // sub-marker, so it must precede the feature-partial pass.
   ['landing-root', 'src/viewer/modules/landing/landing.html'],
-  // Instance Comparison region — still an empty stub until its module lands.
-  ['instance-compare', 'src/viewer/modules/instance-compare/region.html'],
+  // Configuration Data region — still an empty stub until its module lands.
+  ['config-data', 'src/viewer/modules/config-data/region.html'],
   ['context-menu', 'src/viewer/modules/schema-map/context-menu.html'],
   ['reference-modal', 'src/viewer/modules/reference/modal.html'],
   ['settings-modal', 'src/viewer/modules/settings/modal.html'],

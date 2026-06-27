@@ -1,5 +1,5 @@
 /* ============================================================================
- * instance-compare/reconcile.js — N-way metadata reconciliation (v1.0.3)
+ * config-data/reconcile.js — N-way metadata reconciliation (v1.0.3)
  * ============================================================================
  *
  * Pure logic (no DOM) adapted from the standalone cross-instance reconciler

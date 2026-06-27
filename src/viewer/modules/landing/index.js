@@ -10,7 +10,7 @@
  * Layout: a grid of instance CARDS plus an "Add instance" card. Each card shows
  * the sections present in that instance's single JSON export (read-only status)
  * and a row of per-instance TOOL ICONS. A tool launches with that instance as
- * its primary; multi-instance tools (e.g. Instance Comparison) let the user add
+ * its primary; multi-instance tools (e.g. Configuration Data) let the user add
  * more instances from inside the tool — the same base/compare flow as Schema
  * Diff. Tools self-register via registerTool(...) — the same plug-in spirit as
  * Settings.registerFeature / registerWorkspace.

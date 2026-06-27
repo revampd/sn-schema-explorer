@@ -1,5 +1,5 @@
 /* ============================================================================
- * instance-compare/table-view.js — N-column comparison table (pure DOM)
+ * config-data/table-view.js — N-column comparison table (pure DOM)
  * ============================================================================
  * Builds the comparison table from a reconcile() result. No D3; uses core
  * template h(). One column per loaded instance, plus Name / Key / Status.
@@ -24,21 +24,21 @@ function dateShort(s) {
 
 // Build one instance's cell for a row, shaped by the section's fields.
 function instanceCell(rec, cfg, showDates) {
-  if (!rec) return h('td', { class: 'ic-miss' }, '—');
+  if (!rec) return h('td', { class: 'cd-miss' }, '—');
 
   const children = [];
 
   if (cfg.fields.includes('active')) {
     const state = rec.active === true ? 'on' : rec.active === false ? 'off' : 'unk';
-    children.push(h('span', { class: 'ic-dot ic-dot-' + state }));
+    children.push(h('span', { class: 'cd-dot cd-dot-' + state }));
   }
 
   if (cfg.fields.includes('version')) {
-    children.push(h('span', { class: 'ic-ver' }, rec.version || '—'));
+    children.push(h('span', { class: 'cd-ver' }, rec.version || '—'));
   } else if (cfg.fields.includes('value')) {
     // properties: show the value (or a redacted/none marker)
     const v = rec.value == null ? '«no value»' : String(rec.value);
-    children.push(h('span', { class: 'ic-val' }, v));
+    children.push(h('span', { class: 'cd-val' }, v));
   }
 
   // Store-app "update available" signal.
@@ -48,12 +48,12 @@ function instanceCell(rec, cfg, showDates) {
         rec.latestVersion && rec.latestVersion !== rec.version
           ? '↑ ' + rec.latestVersion
           : '↑ update';
-      children.push(h('span', { class: 'ic-update', title: 'update_available' }, txt));
+      children.push(h('span', { class: 'cd-update', title: 'update_available' }, txt));
     } else if (rec.latestVersion && rec.latestVersion !== rec.version) {
       children.push(
         h(
           'span',
-          { class: 'ic-update', title: 'latest_version ahead of installed' },
+          { class: 'cd-update', title: 'latest_version ahead of installed' },
           '↑ ' + rec.latestVersion
         )
       );
@@ -64,7 +64,7 @@ function instanceCell(rec, cfg, showDates) {
     const parts = [];
     if (rec.installDate) parts.push('inst ' + dateShort(rec.installDate));
     if (rec.updateDate) parts.push('upd ' + dateShort(rec.updateDate));
-    children.push(h('div', { class: 'ic-dates' }, parts.join(' · ')));
+    children.push(h('div', { class: 'cd-dates' }, parts.join(' · ')));
   }
 
   return h('td', {}, ...children);
@@ -102,8 +102,8 @@ export function renderComparisonTable(
     h(
       'tr',
       {},
-      h('td', { class: 'ic-name' }, r.name),
-      h('td', { class: 'ic-key' }, r.key),
+      h('td', { class: 'cd-name' }, r.name),
+      h('td', { class: 'cd-key' }, r.key),
       ...loaded.map(i => instanceCell(r.cells[i.id], cfg, showDates)),
       h(
         'td',
@@ -119,7 +119,7 @@ export function renderComparisonTable(
 
   return h(
     'table',
-    { id: 'ic-table', class: 'ic-table' },
+    { id: 'cd-table', class: 'cd-table' },
     h('thead', {}, h('tr', {}, ...headCells)),
     h('tbody', {}, ...bodyRows)
   );
