@@ -75,22 +75,42 @@ SN_APIKEY='<sn_api_key>' node sn-schema-export.node.standalone.js \
 
 Key flags:
 
-| Flag                      | Default              | Description                                                         |
-| ------------------------- | -------------------- | ------------------------------------------------------------------- |
-| `--instance`              | —                    | Instance URL (required)                                             |
-| `--user`                  | —                    | Basic Auth username (password via `SN_PASSWORD`)                    |
-| `--output`                | _(format-dependent)_ | Output file path                                                    |
-| `--format`                | `json`               | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi`   |
-| `--edge-types`            | all six              | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel` |
-| `--include-record-counts` | off                  | Add per-table record counts (adds 5–15 min)                         |
-| `--page-size`             | `1000`               | Rows per API request                                                |
+| Flag                        | Default              | Description                                                            |
+| --------------------------- | -------------------- | ---------------------------------------------------------------------- |
+| `--instance`                | —                    | Instance URL (required)                                                |
+| `--user`                    | —                    | Basic Auth username (password via `SN_PASSWORD`)                       |
+| `--output`                  | _(format-dependent)_ | Output file path                                                       |
+| `--format`                  | `json`               | Output format: `json` · `markdown` · `jsonld` · `owl` · `openapi`      |
+| `--edge-types`              | all six              | Comma-separated subset of `reference,extends,m2m,rel,view,cmdb_rel`    |
+| `--include-record-counts`   | off                  | Add per-table record counts (adds 5–15 min)                            |
+| `--metadata`                | _(none)_             | Opt-in sections: `plugins,storeApps,customApps,properties` (JSON only) |
+| `--include-property-values` | off                  | Include `sys_properties` values (denylist-redacted); off by default    |
+| `--property-query`          | _(none)_             | Encoded query narrowing which `sys_properties` rows export             |
+| `--page-size`               | `1000`               | Rows per API request                                                   |
 
 Credentials are supplied through environment variables only: `SN_PASSWORD`
 (Basic auth) or `SN_APIKEY` (API key auth).
 
 When `--output` is omitted the filename is derived from the format: `sn_schema_export.json`, `.md`, `.jsonld`, `.ttl`, or `.yaml`.
 
-Other environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_OUTPUT`, `SN_FORMAT`, `SN_EDGE_TYPES`, `SN_PAGE_SIZE`.
+Other environment variable equivalents: `SN_INSTANCE`, `SN_USER`, `SN_OUTPUT`, `SN_FORMAT`, `SN_EDGE_TYPES`, `SN_PAGE_SIZE`, `SN_METADATA`, `SN_PROPERTY_QUERY`.
+
+### Cross-instance metadata sections
+
+`--metadata` adds opt-in sections to the JSON export under a top-level
+`_metadata` key, with capability flags under `_capabilities.metadata.<section>`.
+These describe the instance beyond its table schema — installed **plugins**,
+**store apps**, **custom apps**, and **system properties** — and power
+cross-instance comparison in the viewer. Sections are emitted only when
+requested, and each fetch degrades gracefully on instances missing the source
+table.
+
+`sys_properties` values can hold secrets, so **values are off by default**
+(names + metadata only). `--include-property-values` opts in, and even then a
+central denylist (`password|secret|key|token|cred|private|passwd`) redacts
+matching property values; `_capabilities.metadata.properties` reports
+`valuesIncluded` and `redactedCount`. Metadata is **JSON-only** — the markdown,
+JSON-LD, OWL, and OpenAPI formats ignore it.
 
 Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_explorer.html`, or find it in `dist/exporter/` after a build.
 

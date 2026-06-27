@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cross-instance metadata sections in the export** (foundation for the v1.0.3
+  multi-instance toolbox, [#97](https://github.com/revampd/sn-schema-explorer/issues/97)).
+  The Node extractor gains `--metadata=plugins,storeApps,customApps,properties`
+  (env `SN_METADATA`) to emit an opt-in top-level `_metadata` block plus
+  `_capabilities.metadata.<section>` flags (`enabled`, `count`, and for
+  properties `valuesIncluded`/`redactedCount`). The shape is defined once in the
+  shared builder so all exporters stay aligned. `sys_properties` **values are off
+  by default**; `--include-property-values` opts in, gated by a central denylist
+  (`password|secret|key|token|cred|private|passwd`) that redacts matching values.
+  `--property-query` (env `SN_PROPERTY_QUERY`) narrows which properties export.
+  Metadata is JSON-only. (Background-script support follows in a later PR.)
+
+### Changed
+
+- Node extractor now reads the active-plugin count from `sys_plugins`
+  (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
+  from the exporter.
+
 ## [1.0.2] - 2026-06-26
 
 Hardening, testing, and quality pass addressing a full repository audit

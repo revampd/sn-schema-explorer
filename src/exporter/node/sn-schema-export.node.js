@@ -16,12 +16,15 @@
  *     [--format=json|markdown|jsonld|owl|openapi]  (default: json)
  *     [--edge-types=reference,extends,m2m,rel,view,cmdb_rel]  (default: all six)
  *     [--include-record-counts] \
+ *     [--metadata=plugins,storeApps,customApps,properties]  (opt-in; JSON only)
+ *     [--include-property-values]  (sys_properties values — OFF by default, denylist-redacted)
+ *     [--property-query=<encoded query>]  (narrow which sys_properties rows export)
  *     [--page-size=N] \
  *     [--pretty] [--verbose]
  *
  * Environment variable alternatives:
  *   SN_INSTANCE, SN_USER, SN_PASSWORD, SN_APIKEY, SN_OUTPUT, SN_PAGE_SIZE,
- *   SN_FORMAT, SN_EDGE_TYPES
+ *   SN_FORMAT, SN_EDGE_TYPES, SN_METADATA, SN_PROPERTY_QUERY
  *
  * Performance
  * -----------
@@ -80,6 +83,9 @@ function classifyCountError(errMsgRaw, status) {
 
 const ALL_EDGE_TYPES = ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'];
 const VALID_FORMATS = ['json', 'markdown', 'jsonld', 'owl', 'openapi'];
+// Opt-in cross-instance metadata sections (see schema-builder.js). Each maps to
+// one ServiceNow table fetched only when requested via --metadata / SN_METADATA.
+const VALID_METADATA_SECTIONS = ['plugins', 'storeApps', 'customApps', 'properties'];
 
 const config = {
   instance: args.instance || process.env.SN_INSTANCE,
@@ -99,6 +105,16 @@ const config = {
     .map(s => s.trim())
     .filter(Boolean),
   includeRecordCounts: !!args['include-record-counts'],
+  // Opt-in metadata sections (comma-separated). Validated in validateCliConfig.
+  metadata: (args.metadata || process.env.SN_METADATA || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean),
+  // sys_properties values can hold secrets — OFF by default. When on, the shared
+  // builder still redacts values whose property name matches its denylist.
+  includePropertyValues: !!args['include-property-values'],
+  // Optional encoded query to narrow which sys_properties rows are exported.
+  propertyQuery: args['property-query'] || process.env.SN_PROPERTY_QUERY || '',
   pretty: !!args.pretty,
   verbose: !!args.verbose,
 };
@@ -132,6 +148,16 @@ function validateCliConfig() {
   }
   if (!VALID_FORMATS.includes(config.format)) {
     die('Unknown --format "' + config.format + '". Valid options: ' + VALID_FORMATS.join(', '));
+  }
+  // Validate requested metadata sections against the known set.
+  const badSections = config.metadata.filter(s => !VALID_METADATA_SECTIONS.includes(s));
+  if (badSections.length) {
+    die(
+      'Unknown --metadata section(s): ' +
+        badSections.join(', ') +
+        '. Valid options: ' +
+        VALID_METADATA_SECTIONS.join(', ')
+    );
   }
   // Default output path depends on format
   if (!config.output) {
@@ -391,7 +417,7 @@ async function fetchInstanceInfo() {
   }
   const [nodeCount, activePlugins, activePackages, activeLanguages] = await Promise.all([
     statsCount('sys_cluster_state', null),
-    statsCount('v_plugin', 'active=active'),
+    statsCount('sys_plugins', 'active=true'),
     statsCount('sys_package', 'active=true'),
     statsCount('sys_language', 'active=true'),
   ]);
@@ -814,6 +840,84 @@ async function fetchAllViaTableApi() {
         : '')
   );
 
+  // ── Optional metadata sections ────────────────────────────────────────────
+  // Fetched only when requested via --metadata. Each fetch is best-effort:
+  // older instances may lack a table, so we .catch(() => []) and let the section
+  // degrade to empty rather than aborting the whole export. The shared builder
+  // decides the emitted shape; we hand it normalised flat rows.
+  const want = section => config.metadata.includes(section);
+  const [pluginsRaw, storeAppsRaw, customAppsRaw, propertiesRaw] = await Promise.all([
+    want('plugins')
+      ? fetchTableAll('sys_plugins', null, ['id', 'name', 'active', 'version']).catch(() => [])
+      : Promise.resolve(null),
+    want('storeApps')
+      ? fetchTableAll('sys_store_app', null, [
+          'scope',
+          'name',
+          'version',
+          'vendor',
+          'active',
+        ]).catch(() => [])
+      : Promise.resolve(null),
+    want('customApps')
+      ? fetchTableAll('sys_app', null, ['scope', 'name', 'version', 'active']).catch(() => [])
+      : Promise.resolve(null),
+    want('properties')
+      ? fetchTableAll('sys_properties', config.propertyQuery || null, [
+          'name',
+          'value',
+          'type',
+          'description',
+        ]).catch(() => [])
+      : Promise.resolve(null),
+  ]);
+  // Normalise to flat rows so the builder input is consistent across exporters.
+  // null means "section not requested" → builder omits it entirely.
+  const plugins = pluginsRaw
+    ? pluginsRaw.map(r => ({
+        id: cell(r, 'id'),
+        name: cell(r, 'name'),
+        active: cellBool(r, 'active'),
+        version: cell(r, 'version'),
+      }))
+    : null;
+  const storeApps = storeAppsRaw
+    ? storeAppsRaw.map(r => ({
+        scope: cell(r, 'scope'),
+        name: cell(r, 'name'),
+        version: cell(r, 'version'),
+        vendor: cell(r, 'vendor'),
+        active: cellBool(r, 'active'),
+      }))
+    : null;
+  const customApps = customAppsRaw
+    ? customAppsRaw.map(r => ({
+        scope: cell(r, 'scope'),
+        name: cell(r, 'name'),
+        version: cell(r, 'version'),
+        active: cellBool(r, 'active'),
+      }))
+    : null;
+  const properties = propertiesRaw
+    ? propertiesRaw.map(r => ({
+        name: cell(r, 'name'),
+        value: cell(r, 'value'),
+        type: cell(r, 'type'),
+        description: cell(r, 'description'),
+      }))
+    : null;
+  if (config.metadata.length) {
+    log(
+      '  metadata sections: ' +
+        config.metadata
+          .map(s => {
+            const n = { plugins, storeApps, customApps, properties }[s];
+            return s + '=' + (n ? n.length : 0);
+          })
+          .join(', ')
+    );
+  }
+
   // Per-table record counts via Stats API — opt-in. Failure classification
   // mirrors the BG script: ACL denials, unsupported
   // aggregates, and underlying-script errors are recorded with category
@@ -872,6 +976,11 @@ async function fetchAllViaTableApi() {
     recordCounts,
     recordCountFailures,
     instance: instanceInfo,
+    // Optional metadata sections — null when not requested (builder omits them).
+    plugins,
+    storeApps,
+    customApps,
+    properties,
   };
 }
 
@@ -891,8 +1000,10 @@ async function main() {
     // JSON streaming mode avoids materialising the full string (V8 ~512 MB cap).
     const needFullBuild = config.format !== 'json' || config.pretty;
 
+    const buildOptions = { includePropertyValues: config.includePropertyValues };
+
     if (needFullBuild) {
-      const schema = SchemaBuilder.build(input);
+      const schema = SchemaBuilder.build(input, buildOptions);
       // Attach adjacency map for serialisers that traverse edges
       schema._adj = Serialisers.buildAdj(schema);
       let content;
@@ -926,10 +1037,14 @@ async function main() {
     log('Streaming JSON to ' + config.output + '…');
     const out = fs.createWriteStream(config.output, { encoding: 'utf8' });
     let bytes = 0;
-    const summary = SchemaBuilder.buildStreaming(input, chunk => {
-      out.write(chunk);
-      bytes += Buffer.byteLength(chunk, 'utf8');
-    });
+    const summary = SchemaBuilder.buildStreaming(
+      input,
+      chunk => {
+        out.write(chunk);
+        bytes += Buffer.byteLength(chunk, 'utf8');
+      },
+      buildOptions
+    );
     await new Promise((resolve, reject) => {
       out.end(err => (err ? reject(err) : resolve()));
     });
@@ -1006,6 +1121,7 @@ if (typeof module !== 'undefined' && module.exports) {
     validateCliConfig,
     httpGet,
     fetchTableAll,
+    fetchAllViaTableApi,
     config,
     MAX_RESPONSE_BYTES,
   };
