@@ -189,6 +189,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Configuration Data: trailing instance columns scrolled off-screen**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). On the
+  Properties tab (and any section), a long unbreakable property name or value
+  forced the comparison table wider than its container, pushing the second (and
+  later) instance columns and the Status column out of view — making a two-way
+  comparison look like a single column. Names/keys now wrap and long values are
+  ellipsis-truncated (full value on hover), so every instance column stays
+  visible.
 - **Re-importing the same schema file did nothing**
   ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The landing
   file input never reset its value, so re-selecting the same filename (e.g. after

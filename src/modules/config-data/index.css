@@ -211,11 +211,15 @@
 }
 .cd-name {
   font-weight: 600;
+  /* Property/plugin identifiers have no spaces; allow them to wrap so a single
+     long name can't blow the column wide and push later columns off-screen. */
+  overflow-wrap: anywhere;
 }
 .cd-key {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 11px;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .cd-miss {
   color: var(--muted);
@@ -224,6 +228,18 @@
 .cd-val {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 12px;
+}
+/* Long property values (sysparm lists, JSON, base64) would otherwise force the
+   table wider than the wrap and scroll the trailing instance columns + Status
+   out of view. Cap the width and ellipsis-truncate; the full value is on the
+   cell's title attribute (set in table-view.js). */
+.cd-val {
+  display: inline-block;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .cd-dot {
   display: inline-block;
