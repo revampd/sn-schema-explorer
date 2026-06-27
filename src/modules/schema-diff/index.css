@@ -560,22 +560,56 @@ path.diff-edge-removed {
   color: var(--muted);
   margin: 6px 0 3px;
 }
-/* Added/Removed subheader inside the relationship-changes section. */
-.diff-rel-subhead {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--fg);
-  opacity: 0.85;
-  margin: 5px 0 2px;
-}
-/* Inline friendly relationship-type label on each change row (e.g. "Reference to"). */
+/* Inline friendly relationship-type label (e.g. "Reference to"). */
 .diff-rel-kind {
   font-size: 8px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   opacity: 0.7;
   white-space: nowrap;
-  flex-shrink: 0;
+  margin-right: 5px;
+}
+/* N-column relationship presence matrix (#150): row-label column + a ✓/— cell
+   per instance, mirroring the fields matrix. */
+.diff-rel-matrix-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.diff-rel-matrix-row[data-id] {
+  cursor: pointer;
+}
+.diff-rel-matrix-row[data-id]:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+.diff-rel-rowhead {
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 4px;
+}
+.diff-rel-cell {
+  text-align: center;
+  font-size: 10px;
+  padding: 3px 4px;
+  border-radius: 3px;
+}
+.diff-rel-cell.dfr-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.diff-rel-cell.dfr-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.diff-rel-cell.dfr-same {
+  color: var(--muted);
+}
+.diff-rel-cell.dfr-base {
+  color: var(--fg);
 }
 /* "inherited" tag on a field that comes from a parent table (matches the single
    inspector's inheritance treatment). */

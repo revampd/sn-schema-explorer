@@ -191,8 +191,8 @@ export function diffFillInspector(d) {
   // ── Fields matrix (inheritance-aware) ────────────────────────────────────────
   renderFieldsMatrix(ic, cols, colFields);
 
-  // ── Relationship changes (grouped, friendly labels) ──────────────────────────
-  renderRelChanges(ic, cols, tableId);
+  // ── Relationships matrix (inheritance-aware, N-column presence) ──────────────
+  renderRelMatrix(ic, cols, tableId);
 
   // ── Configuration (per compare) ─────────────────────────────────────────────
   renderConfig(ic, cols, cfgByCompare);
@@ -313,77 +313,132 @@ function renderFieldsMatrix(ic, cols, colFields) {
   }
 }
 
-function renderRelChanges(ic, cols, tableId) {
-  const compareCols = cols.filter(c => c.kind === 'compare');
-  const groups = [];
-  for (const c of compareCols) {
-    const ch = c.diff.changed.get(tableId);
-    const added = (ch && ch.addedEdges) || [];
-    const removed = (ch && ch.removedEdges) || [];
-    if (added.length || removed.length) groups.push({ col: c, added, removed });
+// The EFFECTIVE relationships of a table in one subject: its own edges PLUS those
+// inherited up the extends chain (the ancestor's own inheritance edges are
+// excluded — that's the chain itself, not a relationship). Mirrors effectiveFields.
+//   → Map<key, { kind, otherId, field, inherited, source }>
+// key = `${kind}|${otherId}|${field}` so the same relationship lines up across
+// instances for the presence matrix.
+function effectiveRelations(data, tableId) {
+  const out = new Map();
+  if (!data) return out;
+  const parents = buildParentMap(data);
+  const depthOf = new Map();
+  {
+    const seen = new Set();
+    let cur = tableId;
+    for (let d = 0; cur && !seen.has(cur) && d < 25; d++) {
+      seen.add(cur);
+      depthOf.set(cur, d);
+      cur = parents.get(cur);
+    }
   }
-  if (!groups.length) return;
+  for (const e of data.edges || []) {
+    const s = typeof e.source === 'object' ? e.source.id : e.source;
+    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    // Owner = the chain member this edge attaches to (closest to the table).
+    let owner = null;
+    if (depthOf.has(s)) owner = s;
+    if (depthOf.has(t) && (owner === null || depthOf.get(t) < depthOf.get(owner))) owner = t;
+    if (owner === null) continue;
+    const inherited = owner !== tableId;
+    if (e.type === 'extends' && inherited) continue; // ancestor's own chain — not a relationship
+    const kind = edgeKind(e, owner);
+    const otherId = s === owner ? t : s;
+    const field = e.type === 'reference' ? e.field || '' : '';
+    const key = `${kind}|${otherId}|${field}`;
+    if (!out.has(key)) out.set(key, { kind, otherId, field, inherited, source: owner });
+  }
+  return out;
+}
+
+function renderRelMatrix(ic, cols, tableId) {
+  const colRels = cols.map(c => effectiveRelations(c.data, tableId));
+  const baseRels = colRels[0];
+
+  const keys = new Set();
+  colRels.forEach(m => m.forEach((_v, k) => keys.add(k)));
+  if (!keys.size) return;
 
   // Human-readable table labels, from every subject's node maps.
   const labelById = new Map();
-  for (const c of compareCols) {
+  for (const c of cols) {
+    if (c.kind !== 'compare') continue;
     for (const [id, n] of c.diff.baseMap)
       if (n.label && !labelById.has(id)) labelById.set(id, n.label);
     for (const [id, n] of c.diff.compareMap)
       if (n.label && !labelById.has(id)) labelById.set(id, n.label);
   }
-  const otherOf = e => {
-    const s = typeof e.source === 'object' ? e.source.id : e.source;
-    const t = typeof e.target === 'object' ? e.target.id : e.target;
-    return s === tableId ? t : s;
-  };
+  const labelOf = id => labelById.get(id) || id;
 
-  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Relationship changes'));
-  const single = compareCols.length === 1;
-  const friendly = e => EDGE_LABEL[edgeKind(e, tableId)] || e.type;
+  // Only rows where a compare's presence differs from base.
+  const rows = [];
+  for (const k of keys) {
+    const inBase = baseRels.has(k);
+    const differs = cols.some((c, i) => i > 0 && colRels[i].has(k) !== inBase);
+    if (!differs) continue;
+    const meta = baseRels.get(k) || colRels.map(m => m.get(k)).find(Boolean);
+    rows.push({ key: k, meta, inBase });
+  }
+  if (!rows.length) return;
+  rows.sort(
+    (a, b) =>
+      EDGE_ORDER.indexOf(a.meta.kind) - EDGE_ORDER.indexOf(b.meta.kind) ||
+      labelOf(a.meta.otherId).localeCompare(labelOf(b.meta.otherId))
+  );
 
-  // One row per changed edge: sign + friendly relationship type + related table.
-  // The type label rides inline so a row is self-explanatory without a per-type
-  // header (e.g. "+ Reference to · sys_user (caller)").
-  const renderRow = (e, sign) => {
-    const otherId = otherOf(e);
-    const row = el('div', 'diff-field-row ' + (sign === '+' ? 'dfr-added' : 'dfr-removed'));
-    row.dataset.id = otherId;
-    row.title = otherId;
-    row.appendChild(
-      setText(el('span', 'diff-edge-sign ' + (sign === '+' ? 'des-added' : 'des-removed')), sign)
-    );
-    row.appendChild(setText(el('span', 'diff-rel-kind'), friendly(e)));
-    const name = setText(el('span', 'diff-field-name'), labelById.get(otherId) || otherId);
-    // For references, append the dot-walk field (the single inspector's "via field").
-    if (e.type === 'reference' && e.field) name.textContent += ' · ' + e.field;
-    row.appendChild(name);
+  ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Relationships — by instance'));
+
+  const gcols = `minmax(96px, 1.5fr) repeat(${cols.length}, minmax(0, 1fr))`;
+  const header = el('div', 'diff-rel-matrix-row');
+  header.style.gridTemplateColumns = gcols;
+  header.appendChild(el('div')); // spacer over the row-label column
+  cols.forEach(c =>
+    header.appendChild(
+      setText(
+        el('div', 'diff-sbs-col-header ' + (COL_STATUS_CLASS[c.status] || 'cstat-same')),
+        c.label
+      )
+    )
+  );
+  ic.appendChild(header);
+
+  for (const { key, meta, inBase } of rows) {
+    const row = el('div', 'diff-rel-matrix-row');
+    row.style.gridTemplateColumns = gcols;
+    row.dataset.id = meta.otherId;
+    row.title = meta.otherId;
+
+    const lab = el('div', 'diff-rel-rowhead');
+    lab.appendChild(setText(el('span', 'diff-rel-kind'), EDGE_LABEL[meta.kind] || meta.kind));
+    const nm = setText(el('span', 'diff-field-name'), labelOf(meta.otherId));
+    if (meta.field) nm.textContent += ' · ' + meta.field;
+    lab.appendChild(nm);
+    if (meta.inherited) {
+      const inh = setText(el('span', 'diff-field-inh'), 'inherited');
+      inh.title = 'Inherited from ' + meta.source;
+      lab.appendChild(inh);
+    }
+    row.appendChild(lab);
+
+    cols.forEach((c, i) => {
+      const present = colRels[i].has(key);
+      let cls;
+      if (c.kind === 'base') cls = present ? 'dfr-base' : '';
+      else if (present && !inBase) cls = 'dfr-added';
+      else if (!present && inBase) cls = 'dfr-removed';
+      else cls = present ? 'dfr-same' : '';
+      const cell = el('div', 'diff-rel-cell' + (cls ? ' ' + cls : ''));
+      cell.textContent = present ? '✓' : '—';
+      row.appendChild(cell);
+    });
     ic.appendChild(row);
-  };
-
-  // Group by the diff-primary axis — Added vs Removed — which is what a change
-  // report is about; the relationship TYPE is shown inline on each row. (Ordered
-  // within a sign by the legend's type order for a stable, scannable list.)
-  const byTypeOrder = (a, b) =>
-    EDGE_ORDER.indexOf(edgeKind(a, tableId)) - EDGE_ORDER.indexOf(edgeKind(b, tableId));
-  for (const g of groups) {
-    // With more than one compare, head each group with the instance label so the
-    // change is attributable; a single compare keeps the flat Added/Removed list.
-    if (!single) ic.appendChild(setText(el('div', 'diff-rel-group-head'), 'vs ' + g.col.label));
-    if (g.added.length) {
-      ic.appendChild(setText(el('div', 'diff-rel-subhead'), `Added (${g.added.length})`));
-      [...g.added].sort(byTypeOrder).forEach(e => renderRow(e, '+'));
-    }
-    if (g.removed.length) {
-      ic.appendChild(setText(el('div', 'diff-rel-subhead'), `Removed (${g.removed.length})`));
-      [...g.removed].sort(byTypeOrder).forEach(e => renderRow(e, '−'));
-    }
   }
 
   // Delegate row clicks → navigate to the related table (idempotent listener).
   if (!ic._relClickWired) {
     ic.addEventListener('click', e => {
-      const row = e.target.closest('.diff-field-row[data-id]');
+      const row = e.target.closest('[data-id].diff-rel-matrix-row, .diff-field-row[data-id]');
       if (!row) return;
       const id = row.dataset.id;
       if (id) (id === uiState.selectedNode ? clearSelection : () => focusTable(id, false))();

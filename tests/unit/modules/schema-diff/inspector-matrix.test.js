@@ -142,7 +142,7 @@ describe('diffFillInspector — N=2 parity + fall-through', () => {
   });
 });
 
-describe('diffFillInspector — friendly relationship grouping (#150)', () => {
+describe('diffFillInspector — relationship matrix (#150)', () => {
   // base: incident → sys_user (reference) and incident ⇄ grp (m2m)
   const relBase = {
     nodes: [node('incident', [f('a')]), node('sys_user'), node('grp')],
@@ -151,7 +151,7 @@ describe('diffFillInspector — friendly relationship grouping (#150)', () => {
       { source: 'incident', target: 'grp', type: 'm2m' },
     ],
   };
-  // relPersonless: reference removed, a named relationship added.
+  // compare: the reference is removed, a named relationship is added; m2m unchanged.
   const relCmp = {
     nodes: [node('incident', [f('a')]), node('sys_user'), node('grp'), node('plan')],
     edges: [
@@ -160,7 +160,7 @@ describe('diffFillInspector — friendly relationship grouping (#150)', () => {
     ],
   };
 
-  it('groups changes under legend labels, never raw edge types', () => {
+  it('renders one row per changed relationship under legend labels, never raw types', () => {
     instancesState.instances.push({
       id: 'i_rel',
       label: 'relc',
@@ -170,7 +170,6 @@ describe('diffFillInspector — friendly relationship grouping (#150)', () => {
     instancesState.instances[0].data = relBase; // base = relBase
     instancesState._byId.clear();
     instancesState.instances.forEach((e, i) => instancesState._byId.set(e.id, i));
-    // Rebuild the matrix with relBase as base.
     const diff = computeDiff(relBase, relCmp);
     diff._compareId = 'i_rel';
     diff._compareLabel = 'relc';
@@ -178,18 +177,59 @@ describe('diffFillInspector — friendly relationship grouping (#150)', () => {
     diffState._diffData = diff;
 
     expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
-    // Grouped by the diff axis (Added / Removed); the friendly relationship type
-    // rides inline on each row.
-    const subheads = [...inspectorContent.querySelectorAll('.diff-rel-subhead')].map(
-      e => e.textContent
-    );
-    expect(subheads).toContain('Added (1)'); // plan (rel) added
-    expect(subheads).toContain('Removed (1)'); // caller (reference) removed
+
+    // One matrix row per CHANGED relationship (m2m to grp is unchanged → not shown).
+    const rows = [...inspectorContent.querySelectorAll('.diff-rel-matrix-row[data-id]')];
+    const ids = rows.map(r => r.dataset.id).sort();
+    expect(ids).toEqual(['plan', 'sys_user']);
+
+    // Friendly legend labels, not raw edge types.
     const kinds = [...inspectorContent.querySelectorAll('.diff-rel-kind')].map(e => e.textContent);
-    expect(kinds).toContain('Reference to');
-    expect(kinds).toContain('Named relationship');
-    // Raw edge-type words must not leak into the section.
+    expect(kinds).toContain('Reference to'); // sys_user (removed)
+    expect(kinds).toContain('Named relationship'); // plan (added)
     expect(inspectorContent.textContent).not.toMatch(/\breference\b/);
+
+    // Presence cells: sys_user removed in compare (red), plan added (green).
+    const sysUserRow = rows.find(r => r.dataset.id === 'sys_user');
+    expect(sysUserRow.querySelector('.diff-rel-cell.dfr-removed')).toBeTruthy();
+    const planRow = rows.find(r => r.dataset.id === 'plan');
+    expect(planRow.querySelector('.diff-rel-cell.dfr-added')).toBeTruthy();
+  });
+
+  it('surfaces an inherited relationship from a parent table, tagged inherited', () => {
+    // parent `task` references sys_user; child `incident` extends task and owns a
+    // changed field so it's flagged. The compare drops the parent's reference →
+    // the inherited relationship differs and must show on the child.
+    const base2 = {
+      nodes: [node('task'), node('incident', [f('a')]), node('sys_user')],
+      edges: [
+        { source: 'incident', target: 'task', type: 'extends' },
+        { source: 'task', target: 'sys_user', type: 'reference', field: 'owner' },
+      ],
+    };
+    const cmp2 = {
+      nodes: [node('task'), node('incident', [f('a', 'integer')]), node('sys_user')],
+      edges: [{ source: 'incident', target: 'task', type: 'extends' }], // parent ref dropped
+    };
+    instancesState.instances = [
+      { id: 'i_base', label: 'base', data: base2, capabilities: { schema: true } },
+      { id: 'i_cmp', label: 'cmp', data: cmp2, capabilities: { schema: true } },
+    ];
+    instancesState.selectedId = 'i_base';
+    instancesState._byId.clear();
+    instancesState.instances.forEach((e, i) => instancesState._byId.set(e.id, i));
+    const diff = computeDiff(base2, cmp2);
+    diff._compareId = 'i_cmp';
+    diff._compareLabel = 'cmp';
+    diffState._diffMatrix = [diff];
+    diffState._diffData = diff;
+
+    expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
+    const ownerRow = [...inspectorContent.querySelectorAll('.diff-rel-matrix-row[data-id]')].find(
+      r => r.dataset.id === 'sys_user'
+    );
+    expect(ownerRow).toBeTruthy();
+    expect(ownerRow.querySelector('.diff-field-inh')).toBeTruthy(); // inherited tag
   });
 });
 
