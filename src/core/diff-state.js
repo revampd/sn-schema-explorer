@@ -26,33 +26,24 @@ export const diffState = {
   // aggregate this array; the canvas keeps using `_diffData` alone. Null when no
   // comparison is active. (#150)
   _diffMatrix: null,
-  // #141 — Diff collapsed from a view-mode into a LAYER on the Schema Map. A
-  // comparison is "active" whenever a compare is loaded (`_diffData` set); the
-  // structure-diff layer (added/removed/changed colouring + graft) can be toggled
-  // off without dropping the comparison.
-  _structureLayer: true,
-  // #150 — the canvas comparison overlay is ONE "Differences" layer with two
-  // channels (sub-mutes): `_structureLayer` (node stroke colours + edge pills) and
-  // `_configLayer` (config-drift corner badges). `_diffLayerOn` is the master
-  // switch; turning it off mutes both channels without dropping the comparison.
+  // #150 — the canvas comparison overlay is ONE "Differences" layer: a single
+  // toggle that paints the structural difference (added/removed/changed node
+  // colours + edge pills) for the compared instances. There is no structure/config
+  // split — "diff is diff"; config drift is surfaced in the INSPECTOR for the
+  // selected table (and in the sidebar report), not as a separate canvas channel.
+  // Turning it off mutes the overlay without dropping the comparison.
   _diffLayerOn: true,
-  _configLayer: true,
 };
 
 /**
- * Is a comparison active? Drives the structure/config layers on the Schema Map
- * now that Diff is a layer rather than a separate view-mode (#141).
+ * Is a comparison active? Drives the Differences layer on the Schema Map now that
+ * Diff is a layer rather than a separate view-mode (#141).
  */
 export function isComparing() {
   return !!diffState._diffData;
 }
 
-/** Is the structure channel painting (comparison active + master on + structure sub on)? */
+/** Is the Differences overlay painting (comparison active + the layer toggle on)? */
 export function isStructureLayerOn() {
-  return isComparing() && diffState._diffLayerOn && diffState._structureLayer;
-}
-
-/** Is the config-drift channel painting (comparison active + master on + config sub on)? */
-export function isConfigLayerOn() {
-  return isComparing() && diffState._diffLayerOn && diffState._configLayer;
+  return isComparing() && diffState._diffLayerOn;
 }
