@@ -32,10 +32,18 @@
          segment). Home is text-only; the switcher + instance dropdown are
          rendered by core/tool-switcher.js + core/header-instance.js. -->
     <button class="btn desk-only" id="btn-home" title="Back to the landing page">Home</button>
+    <!-- View switcher first, pinned right after Home so it stays in the SAME spot
+         across views — the instance/compare/swap context controls follow it and may
+         show/hide without moving it. -->
+    <div class="tool-switcher desk-only" id="tool-switcher" role="group" aria-label="Tool" style="display:none"></div>
     <div class="header-instance desk-only" id="header-instance" style="display:none"></div>
     <button class="btn desk-only" id="header-swap" title="Swap Base and Compare" aria-label="Swap Base and Compare" style="display:none" disabled>⇄</button>
     <div class="header-instance desk-only" id="header-compare" style="display:none"></div>
-    <div class="tool-switcher desk-only" id="tool-switcher" role="group" aria-label="Tool" style="display:none"></div>
+    <!-- Spring spacer: everything after it is the GLOBAL action cluster, anchored
+         to the right so the same actions sit in the same place across views AND on
+         the landing page. A dedicated spacer (not a .header-sep) survives the
+         workspace CSS that hides separators off the Schema Explorer. -->
+    <div class="header-spring desk-only"></div>
     <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
     <!-- History back / forward -->
     <button class="btn desk-only btn-nav-disabled" id="btn-hist-back"
