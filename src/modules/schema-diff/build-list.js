@@ -5,6 +5,7 @@ import { h } from '../../core/template.js';
 import { getSearchMode } from '../search/index.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { clearDiffCursor } from './list-cursor.js';
+import { rollupMatrix } from './compute-matrix.js';
 
 // ── diffBuildList ─────────────────────────────────────────────────────────────
 //
@@ -19,6 +20,16 @@ export function diffBuildList() {
   list.classList.toggle('visible', !!diffState._diffData);
   list.innerHTML = '';
   if (!diffState._diffData) return;
+
+  // #150 — with more than one compare, the pairwise Added/Removed/Changed grouping
+  // no longer holds (a table can be added in one instance and changed in another),
+  // so render the N-column roll-up: one row per differing table with a per-instance
+  // status strip. A single compare keeps the classic grouped list below.
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) {
+    buildMatrixList(list, matrix);
+    return;
+  }
 
   const frag = document.createDocumentFragment();
 
@@ -157,6 +168,104 @@ export function diffBuildList() {
         };
       });
     makeGroup('Changed', items, 'changed');
+  }
+
+  list.appendChild(frag);
+}
+
+// ── N-column roll-up list (#150) ────────────────────────────────────────────────
+//
+// One row per table that differs in at least one compare, with a per-instance
+// status strip (a chip per compare, coloured by that table's status there). The
+// row keeps the `.diff-item` shape + `data-id` so the existing click handler and
+// keyboard cursor navigate it exactly like the single-compare list.
+
+const STATUS_CHIP = {
+  added: 'dic-added',
+  removed: 'dic-removed',
+  changed: 'dic-changed',
+  same: 'dic-same',
+  absent: 'dic-absent',
+};
+// Overall pill colour for the row: changed dominates, then added, then removed.
+function overallKind(row) {
+  if (row.anyChanged) return 'changed';
+  if (row.anyAdded) return 'added';
+  if (row.anyRemoved) return 'removed';
+  return 'changed';
+}
+
+function buildMatrixList(list, matrix) {
+  const { tables } = rollupMatrix(matrix);
+  const frag = document.createDocumentFragment();
+
+  // Resolve a display label + a node for filtering (base side, else any compare).
+  const baseMap = matrix[0].baseMap;
+  const nodeFor = id => baseMap.get(id) || matrix.map(m => m.compareMap.get(id)).find(Boolean);
+
+  const filter = diffState._diffFilter;
+  const q =
+    Dom.searchBox && getSearchMode() === 'tables' ? Dom.searchBox.value.toLowerCase().trim() : '';
+  const advanced = uiState.filterConditions?.length;
+
+  let rows = [...tables.entries()].map(([id, info]) => ({ id, ...info, node: nodeFor(id) }));
+  rows.sort((a, b) => a.id.localeCompare(b.id));
+  rows = rows.filter(r => {
+    if (filter === 'added' && !r.anyAdded) return false;
+    if (filter === 'removed' && !r.anyRemoved) return false;
+    if (filter === 'changed' && !r.anyChanged) return false;
+    if (advanced && r.node && !filterOk(r.node)) return false;
+    if (q) {
+      const label = (r.node?.label || '').toLowerCase();
+      if (!r.id.toLowerCase().includes(q) && !label.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const header = document.createElement('div');
+  header.className = 'diff-group-header dgh-changed';
+  header.textContent = 'Differs across instances (' + rows.length + ')';
+  frag.appendChild(header);
+
+  for (const r of rows) {
+    const item = document.createElement('div');
+    item.className = 'diff-item';
+    item.dataset.id = r.id;
+    item.dataset.kind = overallKind(r);
+    if (uiState.selectedNode === r.id) item.classList.add('selected');
+
+    const pill = document.createElement('div');
+    pill.className = 'diff-item-pill dp-' + overallKind(r);
+
+    const names = document.createElement('div');
+    names.className = 'diff-item-names';
+    const lbl = document.createElement('div');
+    lbl.className = 'diff-item-label';
+    lbl.textContent = r.node?.label || r.id;
+    if (Settings.isEnabled('customHighlight') && Settings.isCustomName(r.id)) {
+      const badge = document.createElement('span');
+      badge.className = 'ti-custom-badge';
+      badge.textContent = 'custom';
+      lbl.appendChild(badge);
+    }
+    const tid = document.createElement('div');
+    tid.className = 'diff-item-id';
+    tid.textContent = r.id;
+    names.append(lbl, tid);
+
+    // Per-instance status strip: one chip per compare, in matrix order.
+    const strip = document.createElement('div');
+    strip.className = 'diff-item-cols';
+    for (const diff of matrix) {
+      const st = r.statuses.get(diff._compareId) || 'same';
+      const chip = document.createElement('span');
+      chip.className = 'dic-chip ' + (STATUS_CHIP[st] || 'dic-same');
+      chip.title = (diff._compareLabel || diff._compareId) + ': ' + st;
+      strip.appendChild(chip);
+    }
+
+    item.append(pill, names, strip);
+    frag.appendChild(item);
   }
 
   list.appendChild(frag);

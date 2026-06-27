@@ -277,6 +277,35 @@
   flex-shrink: 0;
 }
 
+/* N-column roll-up (#150): per-instance status strip on a diff list row. */
+.diff-item-cols {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.dic-chip {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.dic-chip.dic-added {
+  background: var(--diff-added);
+}
+.dic-chip.dic-removed {
+  background: var(--diff-removed);
+}
+.dic-chip.dic-changed {
+  background: var(--diff-changed);
+}
+.dic-chip.dic-same {
+  background: rgba(255, 255, 255, 0.12);
+}
+.dic-chip.dic-absent {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 /* Edge sub-group inside a diff sidebar item */
 .diff-edge-subgroup {
   padding: 3px 12px 3px 28px;

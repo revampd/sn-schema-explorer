@@ -33,7 +33,7 @@ import {
 } from '../history/index.js';
 import { injectCiRelEdges, selectInstanceForGraph } from '../load/index.js';
 import { registerTool, refreshLanding } from '../landing/index.js';
-import { computeDiffMatrix } from './compute-matrix.js';
+import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
@@ -246,9 +246,25 @@ function diffUpdateSummary() {
   summary.classList.toggle('visible', hasDiff);
   if (toggleRow) toggleRow.classList.toggle('visible', hasDiff);
   if (!hasDiff) return;
-  if (nAdded) nAdded.textContent = diffState._diffData.added.size;
-  if (nRemoved) nRemoved.textContent = diffState._diffData.removed.size;
-  if (nChanged) nChanged.textContent = diffState._diffData.changed.size;
+  // #150 — with multiple compares the counts are "tables that are added / removed /
+  // changed in AT LEAST one instance" (a single compare reduces to the pairwise
+  // sizes, so the classic numbers are unchanged).
+  const matrix = diffState._diffMatrix;
+  let nA = diffState._diffData.added.size;
+  let nR = diffState._diffData.removed.size;
+  let nC = diffState._diffData.changed.size;
+  if (matrix && matrix.length > 1) {
+    const { tables } = rollupMatrix(matrix);
+    nA = nR = nC = 0;
+    for (const info of tables.values()) {
+      if (info.anyAdded) nA++;
+      if (info.anyRemoved) nR++;
+      if (info.anyChanged) nC++;
+    }
+  }
+  if (nAdded) nAdded.textContent = nA;
+  if (nRemoved) nRemoved.textContent = nR;
+  if (nChanged) nChanged.textContent = nC;
   if (showAllBtn) {
     showAllBtn.classList.toggle('active', diffState._diffShowAll);
     showAllBtn.textContent = diffState._diffShowAll ? 'Changed only' : 'Show all';
