@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **N-column change-report sidebar**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150),
+  [#149](https://github.com/revampd/sn-schema-explorer/issues/149)). When more
+  than one compare is loaded, the diff sidebar list switches from the pairwise
+  Added / Removed / Changed grouping to an **N-column roll-up**: one row per
+  table that differs in at least one instance, each with a per-instance status
+  strip (a chip per compare, coloured by that table's status there). The summary
+  counts become "added / removed / changed in at least one instance". A single
+  compare keeps the classic grouped list and counts unchanged. Rows keep their
+  click + keyboard navigation.
 - **Unified N-column comparison inspector**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). While a
   comparison is active, the inspector is now a **matrix that scales from one
