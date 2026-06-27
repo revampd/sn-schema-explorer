@@ -718,30 +718,7 @@ circle.cfg-node-badge.cfgb-state {
   fill: var(--cfg-state);
 }
 
-/* ── Unified Differences report (#150/#149) — config tiles + app rows ──────── */
-/* Config-drift tiles share the summary strip with the table tiles; they wrap to
-   their own row beneath. */
-.diff-cfg-tiles {
-  display: flex;
-  gap: 4px;
-  flex-basis: 100%;
-}
-.diff-stat.dcs-drift {
-  color: var(--diff-changed);
-  background: var(--diff-changed-dim);
-}
-.diff-stat.dcs-missing {
-  color: var(--diff-removed);
-  background: var(--diff-removed-dim);
-}
-.diff-stat.dcs-state {
-  color: var(--cfg-state);
-  background: rgba(96, 165, 250, 0.13);
-}
-.diff-stat.dcs-sync {
-  color: var(--diff-added);
-  background: var(--diff-added-dim);
-}
+/* ── Unified Differences report (#150/#149) — config app rows ──────────────── */
 /* Group header for the config section of the unified list. */
 .diff-group-header.dgh-config {
   color: var(--muted);

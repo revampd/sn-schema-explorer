@@ -109,6 +109,20 @@ export function appDriftSummary(baseData, compareData) {
 }
 
 /**
+ * Map an app-drift row to the unified change vocabulary (#150) so config findings
+ * fold into the same Added / Removed / Changed axis as structural changes — it's
+ * one schema+config comparison, not two. Returns null for an in-sync app (no
+ * change). An app present on only one side is added/removed by direction; a
+ * version/state difference is a change.
+ */
+export function appChangeCategory(app) {
+  if (app.base && !app.compare) return 'removed';
+  if (!app.base && app.compare) return 'added';
+  if (app.status === 'sync') return null;
+  return 'changed';
+}
+
+/**
  * The table ids owned by an app, by matching the app's technical scope OR display
  * name against node scopes (nodes carry the display name today; the dual match is
  * future-proof). Used to highlight an app's tables when its sidebar row is picked.

@@ -174,21 +174,21 @@ test('Unified Differences report: config tiles + app rows in one list, filter, h
   await loadApp(page);
   await openDiff(page, sbBase, sbCompare);
 
-  // #150/#149 — config drift now lives in the SAME summary strip + list as the
-  // structural changes (no separate #diff-config block). Config tiles share
-  // #diff-summary; app rows are type-tagged .diff-item[data-kind="app"] in #diff-list.
-  const summary = page.locator('#diff-summary');
-  await expect(summary.locator('.dcs-drift .diff-stat-n')).toHaveText('1');
-  await expect(summary.locator('.dcs-missing .diff-stat-n')).toHaveText('1');
+  // #150/#149 — ONE summary row + ONE list. Config findings fold into the same
+  // Added/Removed/Changed counts: Widget App drift → changed (alongside the
+  // x_widget table change), Legacy App gone in compare → removed. App rows are
+  // type-tagged .diff-item[data-kind="app"] in the same #diff-list.
+  await expect(page.locator('#diff-n-changed')).toHaveText('2'); // x_widget table + Widget App drift
+  await expect(page.locator('#diff-n-removed')).toHaveText('1'); // Legacy App missing
 
   const appRows = page.locator('#diff-list .diff-item[data-kind="app"]');
-  await expect(appRows).toHaveCount(2); // Widget App (drift) + Legacy App (missing)
+  await expect(appRows).toHaveCount(2); // Widget App (changed) + Legacy App (removed)
 
-  // Filter to Missing → only Legacy App (table rows hidden too).
-  await summary.locator('.dcs-missing').click();
+  // Filter to Removed → only the Legacy App row (changed table + Widget App hidden).
+  await page.locator('#diff-stat-removed').click();
   await expect(appRows).toHaveCount(1);
   await expect(appRows).toContainText('Legacy App');
-  await summary.locator('.dcs-missing').click(); // clear filter
+  await page.locator('#diff-stat-removed').click(); // clear filter
 
   // Pick the Widget App row → its owned table is brought into view & highlighted,
   // and its config drift shows in the inspector (reachable even though it isn't in
@@ -210,7 +210,6 @@ test('no Configuration section when the compare export omits app metadata (opt-i
   await expect(insp).toContainText('Fields'); // structural diff still renders
   await expect(insp).not.toContainText('Configuration');
   await expect(page.locator('circle.cfg-node-badge')).toHaveCount(0);
-  // Opt-in gate: no config tiles and no app rows when a side lacks app metadata.
-  await expect(page.locator('#diff-cfg-tiles')).toHaveCount(0);
+  // Opt-in gate: no app rows when a side lacks app metadata.
   await expect(page.locator('#diff-list .diff-item[data-kind="app"]')).toHaveCount(0);
 });
