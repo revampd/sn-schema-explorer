@@ -17,15 +17,6 @@
   <div class="logo">
     <span class="logo-tag" style="font-size:15px;font-weight:700;color:var(--text)">Schema Explorer</span>
   </div>
-  <div class="search-wrap">
-    <input id="search-box" type="text" placeholder="search tables…" autocomplete="off" spellcheck="false">
-    <div class="search-mode-toggle" id="search-mode-seg" role="group" aria-label="Search mode" title="Click to switch between table-name and field-name search">
-      <button class="smt-btn active" data-sm="tables" id="sms-tables" title="Search by table name">Tbl</button>
-      <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
-    </div>
-  </div>
-  <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter<span class="filter-badge" id="filter-badge" style="display:none">0</span></button>
-  <div class="header-sep desk-only" style="width:1px;height:22px;align-self:center;background:var(--border);flex-shrink:0;opacity:.6"></div>
 
   <div class="header-btns">
     <!-- Home, instance picker, and the tool switcher (replaces the old view-mode
@@ -44,6 +35,15 @@
          the landing page. A dedicated spacer (not a .header-sep) survives the
          workspace CSS that hides separators off the Schema Explorer. -->
     <div class="header-spring desk-only"></div>
+    <!-- Search + Filter ride with the right-anchored cluster (experiment). -->
+    <div class="search-wrap">
+      <input id="search-box" type="text" placeholder="search tables…" autocomplete="off" spellcheck="false">
+      <div class="search-mode-toggle" id="search-mode-seg" role="group" aria-label="Search mode" title="Click to switch between table-name and field-name search">
+        <button class="smt-btn active" data-sm="tables" id="sms-tables" title="Search by table name">Tbl</button>
+        <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
+      </div>
+    </div>
+    <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter<span class="filter-badge" id="filter-badge" style="display:none">0</span></button>
     <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
     <!-- History back / forward -->
     <button class="btn desk-only btn-nav-disabled" id="btn-hist-back"
