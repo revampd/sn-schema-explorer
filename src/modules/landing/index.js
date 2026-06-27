@@ -59,10 +59,30 @@ const SECTION_DEFS = [
     short: 'Schema',
     count: e => e.data?._stats?.counts?.tables ?? e.data?.nodes?.length,
   },
-  { key: 'plugins', label: 'Plugins', short: 'Plugins', count: e => e.data?._metadata?.plugins?.length },
-  { key: 'storeApps', label: 'Store apps', short: 'Store', count: e => e.data?._metadata?.storeApps?.length },
-  { key: 'customApps', label: 'Custom apps', short: 'Custom', count: e => e.data?._metadata?.customApps?.length },
-  { key: 'properties', label: 'Properties', short: 'Props', count: e => e.data?._metadata?.properties?.length },
+  {
+    key: 'plugins',
+    label: 'Plugins',
+    short: 'Plugins',
+    count: e => e.data?._metadata?.plugins?.length,
+  },
+  {
+    key: 'storeApps',
+    label: 'Store apps',
+    short: 'Store',
+    count: e => e.data?._metadata?.storeApps?.length,
+  },
+  {
+    key: 'customApps',
+    label: 'Custom apps',
+    short: 'Custom',
+    count: e => e.data?._metadata?.customApps?.length,
+  },
+  {
+    key: 'properties',
+    label: 'Properties',
+    short: 'Props',
+    count: e => e.data?._metadata?.properties?.length,
+  },
 ];
 
 function formatExportDate(raw) {
@@ -314,9 +334,7 @@ function instanceCard(entry) {
   const meta = entry.meta || {};
   const titleEl = h('div', { class: 'ic-title', title: entry.label }, entry.label);
 
-  const displayUrl = meta.instance_url
-    ? meta.instance_url.replace(/^https?:\/\//, '')
-    : null;
+  const displayUrl = meta.instance_url ? meta.instance_url.replace(/^https?:\/\//, '') : null;
   const exportDate = formatExportDate(meta.exported_at);
   const cells = sectionCountCells(entry);
 
@@ -355,9 +373,7 @@ function instanceCard(entry) {
       )
     ),
     // URL row
-    displayUrl
-      ? h('div', { class: 'ic-url', title: meta.instance_url }, displayUrl)
-      : null,
+    displayUrl ? h('div', { class: 'ic-url', title: meta.instance_url }, displayUrl) : null,
     // Release badge + export date
     meta.build_name || exportDate
       ? h(
@@ -381,7 +397,11 @@ function instanceCard(entry) {
     // Footer
     restored
       ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore')
-      : h('div', { class: 'ic-tools' }, _tools.map(t => toolIcon(t, entry)))
+      : h(
+          'div',
+          { class: 'ic-tools' },
+          _tools.map(t => toolIcon(t, entry))
+        )
   );
 }
 

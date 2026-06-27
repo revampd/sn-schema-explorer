@@ -81,7 +81,10 @@ describe('instance cards', () => {
     renderInstances();
     const vals = [...document.querySelectorAll('.ic-count-val')];
     const byLabel = Object.fromEntries(
-      vals.map(v => [v.title, { val: v.textContent.trim(), absent: v.classList.contains('absent') }])
+      vals.map(v => [
+        v.title,
+        { val: v.textContent.trim(), absent: v.classList.contains('absent') },
+      ])
     );
     expect(byLabel['Plugins'].val).toBe('2');
     expect(byLabel['Plugins'].absent).toBe(false);

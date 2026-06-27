@@ -66,11 +66,7 @@ function _buildAboutBody() {
         'div',
         { class: 'about-update about-update-new' },
         `Update available: `,
-        h(
-          'a',
-          { href: RELEASES_PAGE, target: '_blank', rel: 'noopener' },
-          _updateTag
-        )
+        h('a', { href: RELEASES_PAGE, target: '_blank', rel: 'noopener' }, _updateTag)
       )
     : h('div', { class: 'about-update' }, 'No updates available');
 
@@ -83,12 +79,7 @@ function _buildAboutBody() {
       h('span', { class: 'about-label' }, 'Version'),
       h('span', { class: 'about-value about-mono' }, `v${ver}`)
     ),
-    h(
-      'div',
-      { class: 'about-row' },
-      h('span', { class: 'about-label' }, 'Updates'),
-      updateRow
-    ),
+    h('div', { class: 'about-row' }, h('span', { class: 'about-label' }, 'Updates'), updateRow),
     h('div', { class: 'about-sep' }),
     h(
       'div',
