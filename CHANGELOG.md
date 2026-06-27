@@ -210,6 +210,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Schema Diff: swapping/switching base corrupted the comparison (Added/Removed
+  read 0)** ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)).
+  The base graph aliases the instance's in-memory data, and the diff grafts the
+  compare's added nodes into it in place. Switching the base (e.g. via the swap
+  button) didn't ungraft the **outgoing** base first, so its data kept the
+  compare's phantom nodes — and reusing that instance as the new compare made
+  "Added" and "Removed" collapse to 0 and inflated "Changed". The outgoing base
+  is now ungrafted before any base switch, so a swap correctly inverts the diff.
 - **Configuration Data: plugins compared as all "missing"**
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The Plugins
   tab keyed each plugin on its `id`, but the exporter falls back to the plugin

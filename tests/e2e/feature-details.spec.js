@@ -201,8 +201,11 @@ test.describe('Schema Diff interactions', () => {
   });
 
   test('swap button flips base and compare, keeping the old base as compare', async ({ page }) => {
-    await openDiff(page); // base = test-instance, compare = test-instance-b
+    await openDiff(page); // base = test-instance, compare = test-instance-b (adds `problem`)
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+    // Direction 1: `problem` exists in compare but not base → 1 added, 0 removed.
+    await expect(page.locator('#diff-n-added')).toHaveText('1');
+    await expect(page.locator('#diff-n-removed')).toHaveText('0');
 
     await page.locator('#diff-swap-btn').click();
 
@@ -210,6 +213,11 @@ test.describe('Schema Diff interactions', () => {
     // previous base (test-instance) — not cleared.
     await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
     await expect(page.locator('#diff-compare-mount .sn-dd-label')).toHaveText('test-instance');
-    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+
+    // Direction 2 must INVERT: `problem` is now in base but not compare → 1
+    // removed, 0 added. (Regression: grafting polluted the outgoing base's
+    // in-memory data, collapsing both counts to 0 after a swap.)
+    await expect(page.locator('#diff-n-added')).toHaveText('0');
+    await expect(page.locator('#diff-n-removed')).toHaveText('1');
   });
 });

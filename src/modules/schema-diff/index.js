@@ -131,6 +131,11 @@ function loadDiffSchema(compareData) {
  */
 function loadDiffFromInstances(baseId, compareId) {
   if (baseId && baseId !== instancesState.selectedId) {
+    // The base graph aliases the instance's in-memory data and the graft mutates
+    // it in place. Ungraft the OUTGOING base before switching, or its stored data
+    // keeps the compare's _diffOnly nodes — which then corrupts any later diff
+    // that uses it (e.g. swapping base↔compare made "removed"/"added" read 0).
+    diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
   }
   if (!compareId) {
@@ -429,6 +434,9 @@ registerTool({
   enabled: () => Settings.isEnabled('schemaDiff'),
   disabledHint: 'Enable Schema Diff in Settings, and register a second instance',
   enter: baseId => {
+    // Clean any grafted _diffOnly nodes off the outgoing base before switching,
+    // so a prior comparison can't leave the previous instance's data polluted.
+    diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
     setWorkspace('schema-explorer');
     setViewMode('diff');
