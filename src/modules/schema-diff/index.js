@@ -33,7 +33,8 @@ import { computeDiff } from './compute-diff.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { makeConfigDrift } from './config-drift.js';
+import { makeConfigDrift, tablesForApp } from './config-drift.js';
+import { diffBuildConfigList } from './config-list.js';
 import { initDiffInstancePicker, refreshDiffPicker } from './instance-picker.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
@@ -90,6 +91,7 @@ function loadDiffSchema(compareData) {
   diffGraftAddedIntoBase();
   diffUpdateSummary();
   diffBuildList();
+  diffBuildConfigList();
   updateInstancePill();
 
   // Export method mismatch disclaimer
@@ -154,8 +156,10 @@ function loadDiffFromInstances(baseId, compareId) {
     typeof structuredClone === 'function'
       ? structuredClone(compareEntry.data)
       : JSON.parse(JSON.stringify(compareEntry.data));
-  loadDiffSchema(compareClone);
+  // Set the compare id BEFORE loading the schema: loadDiffSchema builds the
+  // sidebar config block, which resolves the compare instance from diffState.
   setCompareId(compareId);
+  loadDiffSchema(compareClone);
   refreshDiffPicker();
 }
 
@@ -166,11 +170,14 @@ function clearDiff() {
   setCompareId(null);
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
+  diffState._configFilter = 'all';
+  diffState._activeConfigApp = null;
   uiState._viewPositionCache.diff = null;
   const modeWarn = document.getElementById('diff-mode-warn');
   if (modeWarn) modeWarn.style.display = 'none';
   diffUpdateSummary();
   diffBuildList();
+  diffBuildConfigList();
   updateInstancePill();
   render();
 }
@@ -268,6 +275,19 @@ function diffApplyOverlays() {
         .attr('cx', bb.x + bb.width - 8)
         .attr('cy', bb.y + 8);
     });
+  }
+
+  // Highlight the tables owned by the app picked in the sidebar config list
+  // (#139b) — dim the rest — so a config-only-drifted table is locatable.
+  if (diffState._activeConfigApp && graphState.graphData) {
+    const owned = new Set(tablesForApp(diffState._activeConfigApp, graphState.graphData.nodes));
+    root.selectAll('g.node-group').each(function (d) {
+      d3.select(this)
+        .classed('cfg-app-hi', owned.has(d.id))
+        .classed('cfg-app-dim', !owned.has(d.id));
+    });
+  } else {
+    root.selectAll('g.node-group').classed('cfg-app-hi', false).classed('cfg-app-dim', false);
   }
 
   root.selectAll('g.diff-pill-layer').remove();

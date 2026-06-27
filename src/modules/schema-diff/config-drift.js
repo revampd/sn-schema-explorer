@@ -18,9 +18,13 @@
  * ============================================================================ */
 
 import { buildAppIndex, normKey } from '../../core/state.js';
-import { classifyAppDrift } from '../config-data/reconcile.js';
+import { classifyAppDrift, reconcile } from '../config-data/reconcile.js';
 
 const PAIR = [{ id: 'base' }, { id: 'compare' }];
+
+function zeroCounts() {
+  return { sync: 0, drift: 0, missing: 0, active: 0, inactive: 0 };
+}
 
 /** Does this instance's export carry a non-empty store/custom app section? */
 export function hasAppMetadata(data) {
@@ -63,4 +67,54 @@ export function makeConfigDrift(baseData, compareData) {
       };
     },
   };
+}
+
+/**
+ * App-level drift summary for the Diff sidebar (#139b): every store/custom app in
+ * base ∪ compare, with its per-side record and drift status, plus counts. Built
+ * from `reconcile` (the N-way reconciler restricted to base+compare) so the
+ * sidebar agrees with the inspector, the map, and the Config Data table.
+ *
+ *   { comparable, apps: [{ key, name, section, status, base, compare }], counts }
+ *
+ * `comparable` follows the same opt-in gate as makeConfigDrift: both sides must
+ * carry app metadata, else there is nothing to compare.
+ */
+export function appDriftSummary(baseData, compareData) {
+  if (!hasAppMetadata(baseData) || !hasAppMetadata(compareData)) {
+    return { comparable: false, apps: [], counts: zeroCounts() };
+  }
+  const insts = [
+    { id: 'base', label: 'Base', data: baseData },
+    { id: 'compare', label: 'Compare', data: compareData },
+  ];
+  const apps = [];
+  for (const section of ['storeApps', 'customApps']) {
+    const r = reconcile(section, insts);
+    for (const row of r.rows) {
+      apps.push({
+        key: row.key,
+        name: row.name,
+        section,
+        status: row.status,
+        base: row.cells.base || null,
+        compare: row.cells.compare || null,
+      });
+    }
+  }
+  apps.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+  const counts = zeroCounts();
+  for (const a of apps) if (counts[a.status] !== undefined) counts[a.status]++;
+  return { comparable: true, apps, counts };
+}
+
+/**
+ * The table ids owned by an app, by matching the app's technical scope OR display
+ * name against node scopes (nodes carry the display name today; the dual match is
+ * future-proof). Used to highlight an app's tables when its sidebar row is picked.
+ */
+export function tablesForApp(app, nodes) {
+  if (!app || !Array.isArray(nodes)) return [];
+  const keys = new Set([normKey(app.key), normKey(app.name)].filter(Boolean));
+  return nodes.filter(n => keys.has(normKey(n.scope))).map(n => n.id);
 }

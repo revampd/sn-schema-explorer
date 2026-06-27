@@ -8,6 +8,8 @@ import { describe, it, expect } from 'vitest';
 import {
   makeConfigDrift,
   hasAppMetadata,
+  appDriftSummary,
+  tablesForApp,
 } from '../../../../src/modules/schema-diff/config-drift.js';
 
 const withApps = apps => ({ _metadata: { storeApps: apps } });
@@ -63,5 +65,49 @@ describe('makeConfigDrift — pairwise resolution', () => {
     const m = makeConfigDrift(base, compare);
     expect(m.forScope('Global')).toBeNull();
     expect(m.forScope('nonexistent')).toBeNull();
+  });
+});
+
+describe('appDriftSummary — sidebar app-level drift (#139b)', () => {
+  const base = withApps([app('sn_x', 'Secrets', '2.0'), app('sn_y', 'Widgets', '1.0')]);
+  const compare = withApps([app('sn_x', 'Secrets', '1.0'), app('sn_z', 'Reports', '1.0')]);
+
+  it('not comparable when a side lacks app metadata', () => {
+    expect(appDriftSummary(base, { nodes: [] }).comparable).toBe(false);
+  });
+
+  it('lists every app in base ∪ compare with status + counts', () => {
+    const r = appDriftSummary(base, compare);
+    expect(r.comparable).toBe(true);
+    const byName = Object.fromEntries(r.apps.map(a => [a.name, a.status]));
+    expect(byName.Secrets).toBe('drift'); // 2.0 vs 1.0
+    expect(byName.Widgets).toBe('missing'); // base only
+    expect(byName.Reports).toBe('missing'); // compare only
+    expect(r.counts.drift).toBe(1);
+    expect(r.counts.missing).toBe(2);
+  });
+
+  it('carries per-side records for version display', () => {
+    const r = appDriftSummary(base, compare);
+    const secrets = r.apps.find(a => a.name === 'Secrets');
+    expect(secrets.base.version).toBe('2.0');
+    expect(secrets.compare.version).toBe('1.0');
+  });
+});
+
+describe('tablesForApp', () => {
+  const nodes = [
+    { id: 'incident', scope: 'Global' },
+    { id: 'x_a', scope: 'Secrets' }, // matches app display name
+    { id: 'x_b', scope: 'sn_x' }, // matches app technical scope
+    { id: 'other', scope: 'Widgets' },
+  ];
+  it('matches owned tables by technical scope OR display name', () => {
+    const owned = tablesForApp({ key: 'sn_x', name: 'Secrets' }, nodes);
+    expect(owned.sort()).toEqual(['x_a', 'x_b']);
+  });
+  it('returns [] for a missing app or nodes', () => {
+    expect(tablesForApp(null, nodes)).toEqual([]);
+    expect(tablesForApp({ key: 'sn_x', name: 'Secrets' }, null)).toEqual([]);
   });
 });
