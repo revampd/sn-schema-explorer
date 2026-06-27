@@ -54,9 +54,11 @@ test('the Has Edge condition uses the custom edge-type dropdown', async ({ page 
   await expect(page.locator('#filter-body .fc-row select')).toHaveCount(0);
 
   await dd.locator('.sn-dd-btn').click();
-  await expect(dd.locator('.sn-dd-menu .sn-dd-opt').first()).toBeVisible();
-  const optCount = await dd.locator('.sn-dd-opt').count();
+  // The open menu is portalled to <body> (direct child).
+  const menu = page.locator('body > .sn-dd-menu');
+  await expect(menu.locator('.sn-dd-opt').first()).toBeVisible();
+  const optCount = await menu.locator('.sn-dd-opt').count();
   expect(optCount).toBeGreaterThan(1);
-  await dd.locator('.sn-dd-opt').nth(1).click();
-  await expect(dd.locator('.sn-dd-menu')).toBeHidden(); // selection closes the menu
+  await menu.locator('.sn-dd-opt').nth(1).click();
+  await expect(dd.locator('.sn-dd-btn')).toHaveAttribute('aria-expanded', 'false'); // closed
 });

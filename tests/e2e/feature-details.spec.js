@@ -154,7 +154,9 @@ test.describe('Schema Diff interactions', () => {
   // Pick an option from a custom dropdown (core/dropdown.js) by visible label.
   async function pickDropdown(page, mountId, label) {
     await page.locator(`#${mountId} .sn-dd-btn`).click();
-    await page.locator(`#${mountId} .sn-dd-opt`, { hasText: label }).click();
+    // The open menu is portalled to <body> (direct child), so target it there —
+    // not under the mount, where only the closed menu lives.
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: label }).click();
   }
 
   async function openDiff(page) {
