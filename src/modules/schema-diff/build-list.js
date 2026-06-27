@@ -6,21 +6,18 @@ import { getSearchMode } from '../search/index.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { clearDiffCursor } from './list-cursor.js';
 import { rollupMatrix } from './compute-matrix.js';
-import { appDriftSummary } from './config-drift.js';
+import { appDriftSummary, appChangeCategory } from './config-drift.js';
 import { STATUS_LABELS } from '../config-data/reconcile.js';
 
 // ── diffBuildList ─────────────────────────────────────────────────────────────
 //
 // The single unified "Differences" report (#150 / #149): one list mixing
 // structural table changes and application config-drift, each row type-tagged
-// (table | app). Config-drift apps render first (few, high-value), then the
-// table changes (the classic Added/Removed/Changed grouping for one compare, or
-// the N-column roll-up for several). One filter (`diffState._diffFilter`) spans
-// both axes — table statuses (added/removed/changed) show table rows; config
-// statuses (drift/missing/state/sync) show app rows; 'all' shows the changes.
-
-const TABLE_STATUSES = new Set(['added', 'removed', 'changed']);
-const CONFIG_STATUSES = new Set(['drift', 'missing', 'state', 'sync']);
+// (table | app), under ONE change vocabulary — Added / Removed / Changed. Config
+// findings fold into that axis (drift/state → changed, app gone → removed, app
+// new → added); it's one schema+config comparison, not two. The single filter
+// (`diffState._diffFilter`) is 'all' | 'added' | 'removed' | 'changed' and spans
+// both tables and apps.
 
 function typeTag(kind) {
   const tag = document.createElement('span');
@@ -40,15 +37,12 @@ export function diffBuildList() {
   const frag = document.createDocumentFragment();
   const filter = diffState._diffFilter;
 
-  // Config-drift app rows first (unless a table-only status is active).
-  if (!TABLE_STATUSES.has(filter)) appendAppRows(frag, filter);
-
-  // Table rows — hidden when a config-only status is the active filter.
-  if (!CONFIG_STATUSES.has(filter)) {
-    const matrix = diffState._diffMatrix;
-    if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
-    else appendGroupedRows(frag, filter);
-  }
+  // Config-drift app rows first (few, high-value), then the table changes — both
+  // obey the same Added/Removed/Changed filter.
+  appendAppRows(frag, filter);
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
+  else appendGroupedRows(frag, filter);
 
   list.appendChild(frag);
 }
@@ -61,11 +55,11 @@ function appendAppRows(frag, filter) {
   const summary = appDriftSummary(baseData, compareData);
   if (!summary.comparable) return;
 
-  // 'state' tile maps to the 'active' drift status (parity with the old config block).
-  const want = filter === 'state' ? 'active' : filter;
-  const visible = summary.apps.filter(a =>
-    CONFIG_STATUSES.has(filter) ? a.status === want : a.status !== 'sync' && a.status !== 'inactive'
-  );
+  // Fold each app into the Added/Removed/Changed vocabulary; in-sync apps (null)
+  // are not changes. The active filter ('all' or a category) gates them.
+  const visible = summary.apps
+    .map(a => ({ a, cat: appChangeCategory(a) }))
+    .filter(({ cat }) => cat && (filter === 'all' || filter === cat));
   if (!visible.length) return;
 
   const header = document.createElement('div');
@@ -73,7 +67,7 @@ function appendAppRows(frag, filter) {
   header.textContent = 'Configuration (' + visible.length + ')';
   frag.appendChild(header);
 
-  for (const a of visible) {
+  for (const { a } of visible) {
     const item = document.createElement('div');
     item.className = 'diff-item dci-' + a.status;
     item.dataset.kind = 'app';

@@ -38,7 +38,12 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { makeConfigDrift, tablesForApp, appDriftSummary } from './config-drift.js';
+import {
+  makeConfigDrift,
+  tablesForApp,
+  appDriftSummary,
+  appChangeCategory,
+} from './config-drift.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -271,6 +276,20 @@ function diffUpdateSummary() {
       if (info.anyChanged) nC++;
     }
   }
+  // Fold config-drift findings into the SAME Added/Removed/Changed counts — it's
+  // one schema+config comparison, so they share one summary row (#150/#149).
+  const cfg = appDriftSummary(
+    getInstance(instancesState.selectedId)?.data,
+    getInstance(diffState._compareId)?.data
+  );
+  if (cfg.comparable) {
+    for (const a of cfg.apps) {
+      const cat = appChangeCategory(a);
+      if (cat === 'added') nA++;
+      else if (cat === 'removed') nR++;
+      else if (cat === 'changed') nC++;
+    }
+  }
   if (nAdded) nAdded.textContent = nA;
   if (nRemoved) nRemoved.textContent = nR;
   if (nChanged) nChanged.textContent = nC;
@@ -282,61 +301,6 @@ function diffUpdateSummary() {
     const el = document.getElementById('diff-stat-' + k);
     if (el) el.classList.toggle('active', diffState._diffFilter === k);
   });
-
-  renderConfigTiles();
-}
-
-// Config-drift summary tiles, rendered into the SAME summary strip as the table
-// tiles (#150/#149 — one unified report). Opt-in: shown only when both sides
-// carry app metadata. Clicking a tile filters the unified list to that status.
-const CONFIG_TILES = [
-  ['drift', 'Drift'],
-  ['missing', 'Missing'],
-  ['state', 'State'],
-  ['sync', 'In sync'],
-];
-function renderConfigTiles() {
-  const summary = document.getElementById('diff-summary');
-  if (!summary) return;
-  let host = document.getElementById('diff-cfg-tiles');
-  const baseData = getInstance(instancesState.selectedId)?.data;
-  const compareData = getInstance(diffState._compareId)?.data;
-  const cfg = appDriftSummary(baseData, compareData);
-  if (!cfg.comparable) {
-    if (host) host.remove();
-    return;
-  }
-  if (!host) {
-    host = document.createElement('div');
-    host.id = 'diff-cfg-tiles';
-    host.className = 'diff-cfg-tiles';
-    host.addEventListener('click', e => {
-      const tile = e.target.closest('[data-cfg]');
-      if (!tile) return;
-      const status = tile.dataset.cfg;
-      diffState._diffFilter = diffState._diffFilter === status ? 'all' : status;
-      diffUpdateSummary();
-      diffBuildList();
-      pushHistory();
-    });
-    summary.appendChild(host);
-  }
-  host.innerHTML = '';
-  for (const [status, label] of CONFIG_TILES) {
-    const count = status === 'state' ? cfg.counts.active : cfg.counts[status] || 0;
-    const tile = document.createElement('div');
-    tile.className =
-      'diff-stat dcs-' + status + (diffState._diffFilter === status ? ' active' : '');
-    tile.dataset.cfg = status;
-    const n = document.createElement('span');
-    n.className = 'diff-stat-n';
-    n.textContent = String(count);
-    const l = document.createElement('span');
-    l.className = 'diff-stat-label';
-    l.textContent = label;
-    tile.append(n, l);
-    host.appendChild(tile);
-  }
 }
 
 // ── Canvas overlays ───────────────────────────────────────────────────────────
