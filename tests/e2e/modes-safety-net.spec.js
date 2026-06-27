@@ -70,17 +70,20 @@ test('force (Schema Map): default sidebar regions + inspector fields', async ({ 
   await expect(page.locator('#inspector-content')).toContainText('Fields');
 });
 
-test('diff: canvas colouring, summary counts, sidebar list, inspector detail', async ({ page }) => {
+test('diff layer: canvas colouring, summary counts, sidebar list, inspector detail', async ({
+  page,
+}) => {
   await boot(page);
   await register(page, SCHEMA_OUTPUT, 'base.json');
   await register(page, makeCompare(), 'compare.json');
   await page
     .locator('.inst-card:not(.add-card)')
     .first()
-    .locator('[data-tool="schemaDiff"]')
+    .locator('[data-tool="schemaExplorer"]')
     .click();
-  await page.locator('#diff-compare-mount .sn-dd-btn').click();
-  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+  await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs compare-inst' }).click();
 
   // Sidebar: diff sidebar shown, default regions hidden, summary + list populated.
   await expect(page.locator('#diff-sidebar')).toBeVisible();
@@ -122,27 +125,31 @@ test('path: pf sidebar + default regions hidden + a path renders', async ({ page
   await expect(page.locator('#pf-result')).toContainText('task');
 });
 
-test('round-trip force→diff→path→force leaves no diff residue and restores the sidebar', async ({
-  page,
-}) => {
+test('round-trip map→compare→path→map→clear leaves no diff residue', async ({ page }) => {
   await boot(page);
   await register(page, SCHEMA_OUTPUT, 'base.json');
   await register(page, makeCompare(), 'compare.json');
   await page
     .locator('.inst-card:not(.add-card)')
     .first()
-    .locator('[data-tool="schemaDiff"]')
+    .locator('[data-tool="schemaExplorer"]')
     .click();
-  await page.locator('#diff-compare-mount .sn-dd-btn').click();
-  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+  await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+
+  // Start a comparison (layer on the map), then go to Path Finder and back.
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs compare-inst' }).click();
   await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
 
   await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
   await expect(page.locator('#pf-sidebar')).toBeVisible();
-
   await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
-  // Back on the map: default sidebar restored, diff/path sidebars gone, and no
-  // diff colouring or grafted compare-only table residue.
+  // Comparison is still active after the round-trip — the diff sidebar returns.
+  await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+  // Clearing the comparison restores the default sidebar with no diff residue.
+  await page.locator('#header-compare .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'Compare: none' }).click();
   await expect(page.locator('#table-list')).toBeVisible();
   await expect(page.locator('#diff-sidebar')).toBeHidden();
   await expect(page.locator('#pf-sidebar')).toBeHidden();

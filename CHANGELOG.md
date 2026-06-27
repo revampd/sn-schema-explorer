@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Schema Diff is now a layer on the Schema Map, not a separate view**
+  ([#141](https://github.com/revampd/sn-schema-explorer/issues/141); the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). Comparison is no longer a mode you switch into — you stay on the
+  map and pick a **Compare** instance from the new header dropdown (beside the
+  instance picker). The structural diff (added/removed/changed colouring, edge
+  pills, the rich field/relationship inspector, and the change-report sidebar) and
+  the config-drift layer then activate **on the map**, and a **Structure changes**
+  toggle on the canvas mutes the structural colouring while keeping the
+  comparison. Switching the loaded instance re-runs the comparison against the new
+  base; clearing the Compare dropdown returns to the plain map. The separate
+  "Diff" tab/view-mode is gone (the only views are now the map and Path Finder).
+  The header **Compare** picker is built to take more layers over time.
+
 ### Fixed
 
 - **Schema Diff no longer leaks compare-only tables into the Schema Map.** Diff

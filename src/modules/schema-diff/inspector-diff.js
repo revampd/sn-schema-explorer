@@ -6,7 +6,7 @@
  * compare view for changed tables), and the relationship-change rows. Registered
  * as the fill-inspector hook by index.js; behaviour-preserving.
  */
-import { uiState, diffState, instancesState, getInstance } from '../../core/state.js';
+import { uiState, diffState, instancesState, getInstance, isComparing } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { typeLabel } from '../../core/render.js';
 import { Settings } from '../settings/index.js';
@@ -72,7 +72,7 @@ function appendConfigSection(ic, el, setText, entry) {
 }
 
 export function diffFillInspector(d) {
-  if (!diffState._diffData || uiState.viewMode !== 'diff') return false;
+  if (!isComparing() || uiState.viewMode !== 'force') return false;
   const tableId = d.id || d;
   const isAdded = diffState._diffData.added.has(tableId);
   const isRemoved = diffState._diffData.removed.has(tableId);

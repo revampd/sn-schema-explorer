@@ -71,12 +71,15 @@ async function pickDropdown(page, mountId, label) {
 async function openDiff(page, baseData, compareData) {
   await register(page, baseData, 'base.json'); // label: dev
   await register(page, compareData, 'compare.json'); // label: prod
+  // #141: Diff is a layer on the Schema Map. Open the base on the map, then pick
+  // the compare from the header Compare dropdown.
   await page
     .locator('.inst-card:not(.add-card)')
     .first()
-    .locator('[data-tool="schemaDiff"]')
+    .locator('[data-tool="schemaExplorer"]')
     .click();
-  await pickDropdown(page, 'diff-compare-mount', 'prod');
+  await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+  await pickDropdown(page, 'header-compare', 'vs prod');
   await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
 }
 

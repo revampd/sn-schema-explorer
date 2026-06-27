@@ -1,4 +1,11 @@
-import { graphState, uiState, diffState, edgeSourceId, edgeTargetId } from './state.js';
+import {
+  graphState,
+  uiState,
+  diffState,
+  isStructureLayerOn,
+  edgeSourceId,
+  edgeTargetId,
+} from './state.js';
 import { Settings } from '../modules/settings/index.js';
 import { filterOk } from './advanced-filter.js';
 
@@ -209,7 +216,7 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     uiState.hiddenNodes.forEach(id => visNodeIds.delete(id));
   }
 
-  if (uiState.viewMode === 'diff' && diffState._diffData && !diffState._diffShowAll && !countOnly) {
+  if (isStructureLayerOn() && !diffState._diffShowAll && !countOnly) {
     const diffIds = new Set([
       ...diffState._diffData.added,
       ...diffState._diffData.removed,

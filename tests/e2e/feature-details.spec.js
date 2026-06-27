@@ -161,14 +161,15 @@ test.describe('Schema Diff interactions', () => {
 
   async function openDiff(page) {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
-    // Register the base + compare instances, then launch Schema Diff on the base
-    // card and pick the compare from the diff sidebar.
+    // #141: Diff is a layer on the Schema Map. Open the base on the map, then pick
+    // the compare from the header Compare dropdown; the diff sidebar then appears.
     await registerInstance(page, SCHEMA_OUTPUT, 'base.json'); // test-instance
     await registerInstance(page, SCHEMA_OUTPUT_B, 'compare.json'); // test-instance-b
     const baseCard = page.locator('.inst-card:not(.add-card)').first();
-    await baseCard.locator('[data-tool="schemaDiff"]').click();
+    await baseCard.locator('[data-tool="schemaExplorer"]').click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await pickDropdown(page, 'header-compare', 'vs test-instance-b');
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -195,12 +196,12 @@ test.describe('Schema Diff interactions', () => {
 
   test('clearing the compare returns to the base-only view', async ({ page }) => {
     await openDiff(page);
-    // Selecting the blank Compare option clears the comparison.
-    await pickDropdown(page, 'diff-compare-mount', 'select compare');
-    await expect(page.locator('#diff-list .diff-item')).toHaveCount(0);
+    // Clearing the comparison from the header hides the diff sidebar.
+    await pickDropdown(page, 'header-compare', 'Compare: none');
+    await expect(page.locator('#diff-sidebar')).toBeHidden();
     // Re-selecting the same compare reproduces the diff — proving the stored
     // compare export was not mutated by the first run (clone-before-graft).
-    await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
+    await pickDropdown(page, 'header-compare', 'vs test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   });
 
