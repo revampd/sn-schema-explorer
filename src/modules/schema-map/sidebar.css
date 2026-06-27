@@ -233,6 +233,15 @@ aside {
   font-size: 11px;
   padding: 3px 7px;
 }
+/* The edge-type picker is now a custom dropdown (sn-dd); size its button to
+   match the surrounding compact filter-row controls. */
+.fc-select.sn-dd {
+  padding: 0;
+}
+.fc-select .sn-dd-btn {
+  font-size: 11px;
+  padding: 3px 7px;
+}
 .fc-num {
   width: 60px;
   background: rgba(255, 255, 255, 0.05);

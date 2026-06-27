@@ -26,7 +26,6 @@
   width: 56px;
   flex-shrink: 0;
 }
-.diff-picker-row .sn-select,
 .diff-picker-control {
   flex: 1;
   min-width: 0;

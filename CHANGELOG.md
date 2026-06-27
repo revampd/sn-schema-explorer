@@ -16,12 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   direction of a comparison without re-selecting both. Disabled until a compare
   is chosen.
 
-- **App-themed dropdowns** (`core/dropdown.js`,
-  [#126](https://github.com/revampd/sn-schema-explorer/issues/126)). The Schema
-  Diff Base/Compare pickers now use a custom dropdown whose open option list is
-  styled to match the app, instead of a native `<select>` whose popup is drawn by
-  the OS. Keyboard-accessible (arrows, Home/End, Enter/Space, Escape) and ARIA
-  listbox-labelled.
+- **App-themed dropdowns everywhere** (`core/dropdown.js`,
+  [#126](https://github.com/revampd/sn-schema-explorer/issues/126)). A custom
+  dropdown whose open option list is styled to match the app, replacing native
+  `<select>`s whose popup is drawn by the OS. Keyboard-accessible (arrows,
+  Home/End, Enter/Space, Escape) and ARIA listbox-labelled. Now used for **all**
+  single-selects: the Schema Diff Base/Compare pickers, the Configuration Data
+  status filter, the advanced filter's edge-type picker, and the background-script
+  "Output format" picker. The old native `.sn-select` is retired.
 
 - **Configuration Data: Export JSON**
   ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Alongside

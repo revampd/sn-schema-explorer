@@ -1,6 +1,7 @@
 import { graphState, uiState } from './state.js';
 import { Settings } from '../modules/settings/index.js';
 import { h } from './template.js';
+import { createDropdown } from './dropdown.js';
 import { attachAutocompleteKeys } from './autocomplete-nav.js';
 import {
   EDGE_SETS,
@@ -629,33 +630,29 @@ export function buildFilterPanel(container, { onApply } = {}) {
         valueCell.appendChild(hfRow);
       } else if (c.type === 'hasEdge') {
         opCell.appendChild(h('span', { class: 'fc-op-text' }, 'of type'));
-        const sel = h('select', {
-          class: 'sn-select fc-select',
-          onChange: e => {
-            c.edgeType = e.target.value;
-            _apply();
-          },
-        });
         // Cascading: only offer edge types that exist in at least one candidate node
+        const edgeOpts = [];
         let currentEdgeStillAvailable = false;
         Object.entries(EDGE_TYPE_LABELS).forEach(([val, lbl]) => {
           if (i > 0) {
             const edgeSet = EDGE_SETS[val]?.(gd);
             if (!edgeSet || !candidates.some(n => edgeSet.has(n.id))) return;
           }
-          const opt = h('option', { value: val }, lbl);
-          if (val === c.edgeType) {
-            opt.selected = true;
-            currentEdgeStillAvailable = true;
-          }
-          sel.appendChild(opt);
+          edgeOpts.push({ value: val, label: lbl });
+          if (val === c.edgeType) currentEdgeStillAvailable = true;
         });
         // If the previously-selected edge type was filtered out, reset to first available
-        if (!currentEdgeStillAvailable && sel.options.length > 0) {
-          c.edgeType = sel.options[0].value;
-          sel.options[0].selected = true;
-        }
-        valueCell.appendChild(sel);
+        if (!currentEdgeStillAvailable && edgeOpts.length > 0) c.edgeType = edgeOpts[0].value;
+        const edgeDD = createDropdown({
+          className: 'fc-select',
+          ariaLabel: 'Edge type',
+          onChange: val => {
+            c.edgeType = val;
+            _apply();
+          },
+        });
+        edgeDD.setOptions(edgeOpts, c.edgeType);
+        valueCell.appendChild(edgeDD.el);
       } else if (c.type === 'fieldCount') {
         opCell.appendChild(h('span', { class: 'fc-op-text' }, 'between'));
         let _fcTimer = null;

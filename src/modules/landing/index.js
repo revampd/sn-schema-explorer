@@ -27,6 +27,11 @@ import { DEMO_DATA } from '../../core/constants.js';
 import { h } from '../../core/template.js';
 import { setWorkspace, onWorkspaceChange } from '../../core/workspace.js';
 import { selectInstanceForGraph } from '../load/index.js';
+import { createDropdown } from '../../core/dropdown.js';
+
+// The background-script "Output format" picker (custom dropdown), created lazily
+// in initBgConfig and read by readBgConfigForm.
+let bgFormatDD = null;
 
 // ── Per-instance tool registry ───────────────────────────────────────────────
 // { key, label, icon, requires:[capKey], minInstances, enabled?, enter(instanceId) }
@@ -520,9 +525,8 @@ function readBgConfigForm(root) {
   };
   const groupValues = group =>
     [...root.querySelectorAll(`[data-bg-group="${group}"] input:checked`)].map(i => i.value);
-  const fmtEl = root.querySelector('[data-bg="format"]');
   return {
-    format: fmtEl ? fmtEl.value : 'json',
+    format: bgFormatDD ? bgFormatDD.getValue() : 'json',
     includeRecordCounts: checked('includeRecordCounts'),
     printToScriptOutput: checked('printToScriptOutput'),
     includePropertyValues: checked('includePropertyValues'),
@@ -539,6 +543,21 @@ function initBgConfig() {
   const rerender = () => {
     pre.textContent = applyBgConfig(original, readBgConfigForm(panel));
   };
+  // Output-format picker is a custom dropdown (app-themed); the rest of the
+  // panel (toggles) still rerenders via change-event delegation.
+  const fmtMount = panel.querySelector('[data-bg-mount="format"]');
+  if (fmtMount && !bgFormatDD) {
+    bgFormatDD = createDropdown({ ariaLabel: 'Output format', onChange: rerender });
+    bgFormatDD.setOptions(
+      [
+        { value: 'json', label: 'JSON (viewer-ready)' },
+        { value: 'markdown', label: 'Markdown' },
+        { value: 'jsonld', label: 'JSON-LD' },
+      ],
+      'json'
+    );
+    fmtMount.appendChild(bgFormatDD.el);
+  }
   panel.addEventListener('change', rerender);
 }
 

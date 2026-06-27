@@ -573,6 +573,10 @@
 .bg-cfg-label {
   color: var(--text);
 }
+.bg-cfg-mount {
+  flex: 1;
+  min-width: 0;
+}
 .bg-cfg-set em {
   font-style: normal;
   color: rgba(255, 255, 255, 0.3);

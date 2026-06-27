@@ -16,6 +16,7 @@ import { registerTool, refreshLanding } from '../landing/index.js';
 import { reconcile, reconcileToCsv, reconcileToJson, SECTION_LABELS } from './reconcile.js';
 import { renderComparisonTable } from './table-view.js';
 import { instancesComparisonHtml } from '../../core/instance-info.js';
+import { createDropdown } from '../../core/dropdown.js';
 
 // Sentinel section key for the always-present Instance Data tab. Not a metadata
 // section — it renders the instance identity / runtime / export + a schema-stats
@@ -298,12 +299,28 @@ export function initConfigData() {
       renderCompare();
     });
   }
-  const filter = document.getElementById('cd-filter');
-  if (filter) {
-    filter.addEventListener('change', () => {
-      view.filter = filter.value;
-      renderCompare();
+  const filterMount = document.getElementById('cd-filter');
+  if (filterMount) {
+    const filterDD = createDropdown({
+      title: 'Filter rows by status',
+      ariaLabel: 'Filter rows by status',
+      onChange: val => {
+        view.filter = val;
+        renderCompare();
+      },
     });
+    filterDD.setOptions(
+      [
+        { value: 'all', label: 'All rows' },
+        { value: 'diff', label: 'Differences only' },
+        { value: 'missing', label: 'Missing somewhere' },
+        { value: 'drift', label: 'Version drift' },
+        { value: 'active', label: 'State mismatch' },
+        { value: 'inactive', label: 'Inactive everywhere' },
+      ],
+      view.filter
+    );
+    filterMount.appendChild(filterDD.el);
   }
   const showDates = document.getElementById('cd-showdates');
   if (showDates) {

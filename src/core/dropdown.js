@@ -18,7 +18,12 @@
 
 let _ddSeq = 0;
 
-export function createDropdown({ title = '', ariaLabel = '', onChange = null } = {}) {
+export function createDropdown({
+  title = '',
+  ariaLabel = '',
+  onChange = null,
+  className = '',
+} = {}) {
   const uid = 'sndd-' + ++_ddSeq;
   let options = [];
   let value = null;
@@ -26,7 +31,7 @@ export function createDropdown({ title = '', ariaLabel = '', onChange = null } =
   let activeIdx = -1;
 
   const root = document.createElement('div');
-  root.className = 'sn-dd';
+  root.className = 'sn-dd' + (className ? ' ' + className : '');
 
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -91,6 +96,13 @@ export function createDropdown({ title = '', ariaLabel = '', onChange = null } =
     if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
   }
 
+  // Close when clicking anywhere outside this dropdown. Attached only while open
+  // and removed on close, so dropdowns that are created and discarded en masse
+  // (e.g. the advanced-filter rows, rebuilt on every apply) don't leak listeners.
+  function onOutside(e) {
+    if (!root.contains(e.target)) closeMenu();
+  }
+
   function openMenu() {
     if (open || !options.length) return;
     open = true;
@@ -98,6 +110,7 @@ export function createDropdown({ title = '', ariaLabel = '', onChange = null } =
     menu.style.display = '';
     const sel = options.findIndex(o => o.value === value);
     setActive(sel >= 0 ? sel : 0);
+    document.addEventListener('mousedown', onOutside);
   }
 
   function closeMenu() {
@@ -105,6 +118,7 @@ export function createDropdown({ title = '', ariaLabel = '', onChange = null } =
     open = false;
     btn.setAttribute('aria-expanded', 'false');
     menu.style.display = 'none';
+    document.removeEventListener('mousedown', onOutside);
   }
 
   function commit(i) {
@@ -171,11 +185,6 @@ export function createDropdown({ title = '', ariaLabel = '', onChange = null } =
         closeMenu();
         break;
     }
-  });
-
-  // Close on any click outside this dropdown.
-  document.addEventListener('mousedown', e => {
-    if (open && !root.contains(e.target)) closeMenu();
   });
 
   return {

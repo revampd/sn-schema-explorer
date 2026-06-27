@@ -127,7 +127,10 @@
   font-size: 13px;
   min-width: 220px;
 }
-.cd-controls .sn-select {
+.cd-filter-mount {
+  min-width: 180px;
+}
+.cd-filter-mount .sn-dd-btn {
   font-size: 13px;
   padding: 7px 10px;
 }
