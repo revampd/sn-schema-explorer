@@ -220,31 +220,34 @@ function childCount(data, tableId) {
 
 // Properties matrix — mirrors the single inspector's Properties (scope, core,
 // children, records) but column-aware, so the same facts read across instances.
-// A compare cell that differs from Base is highlighted.
+// A compare cell that differs from Base is highlighted — EXCEPT `records`, which
+// is shown for reference but never flagged: row counts naturally differ between
+// instances (dev vs prod) and aren't a schema/config difference (`diff: false`).
 function renderPropsMatrix(ic, cols, tableId) {
-  const valueFns = [
-    ['scope', c => nodeOf(c.data, tableId)?.scope || '—'],
-    ['core', c => (nodeOf(c.data, tableId)?.core ? '✓ yes' : 'no')],
-    ['children', c => String(childCount(c.data, tableId))],
-    [
-      'records',
-      c => {
+  const rowsDef = [
+    { key: 'scope', fn: c => nodeOf(c.data, tableId)?.scope || '—' },
+    { key: 'core', fn: c => (nodeOf(c.data, tableId)?.core ? '✓ yes' : 'no') },
+    { key: 'children', fn: c => String(childCount(c.data, tableId)) },
+    {
+      key: 'records',
+      diff: false,
+      fn: c => {
         const n = nodeOf(c.data, tableId)?.recordCount;
         return typeof n === 'number' ? n.toLocaleString() : '—';
       },
-    ],
+    },
   ];
 
   ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Properties'));
   const gcols = `minmax(70px, 0.8fr) repeat(${cols.length}, minmax(0, 1fr))`;
-  for (const [key, fn] of valueFns) {
+  for (const { key, fn, diff = true } of rowsDef) {
     const row = el('div', 'diff-props-row');
     row.style.gridTemplateColumns = gcols;
     row.appendChild(setText(el('div', 'diff-props-key'), key));
     const baseVal = fn(cols[0]);
     cols.forEach(c => {
       const v = fn(c);
-      const differs = c.kind === 'compare' && v !== baseVal;
+      const differs = diff && c.kind === 'compare' && v !== baseVal;
       const cell = setText(el('div', 'diff-props-cell' + (differs ? ' dfr-changed' : '')), v);
       row.appendChild(cell);
     });
