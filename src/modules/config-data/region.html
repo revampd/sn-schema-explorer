@@ -2,7 +2,6 @@
 <div id="config-data" class="workspace-region cd-workspace">
   <div class="cd-inner">
     <div class="cd-head">
-      <div class="cd-eyebrow">Cross-instance comparison</div>
       <div class="cd-title">Configuration Data</div>
       <div class="cd-sub">Reconcile plugins, store apps, custom apps &amp; system properties across your registered instances.</div>
     </div>
@@ -15,7 +14,7 @@
 
     <div class="cd-controls">
       <input type="text" id="cd-search" placeholder="Search name or key…" autocomplete="off" spellcheck="false">
-      <select id="cd-filter" title="Filter rows by status">
+      <select id="cd-filter" class="sn-select" title="Filter rows by status">
         <option value="all">All rows</option>
         <option value="diff">Differences only</option>
         <option value="missing">Missing somewhere</option>
@@ -23,7 +22,11 @@
         <option value="active">State mismatch</option>
         <option value="inactive">Inactive everywhere</option>
       </select>
-      <label class="cd-toggle"><input type="checkbox" id="cd-showdates"> Show dates</label>
+      <label class="sn-toggle">
+        <input type="checkbox" id="cd-showdates">
+        <span class="sn-toggle-track"></span>
+        <span class="sn-toggle-label">Show dates</span>
+      </label>
       <button class="btn" id="cd-export">Export CSV</button>
     </div>
 

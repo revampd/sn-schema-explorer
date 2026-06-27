@@ -15,44 +15,36 @@ footer {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-footer .footer-credits {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  line-height: 1;
-}
-
-/* Update-available badge (#45) — appended to the footer when a newer release exists */
-footer .update-badge {
+/* About chip — always-visible version pill in the footer right */
+footer .about-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 10px;
-  padding: 2px 4px 2px 8px;
-  border: 1px solid var(--accent);
+  margin-left: auto;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-footer .update-badge-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 600;
-}
-footer .update-badge-link:hover {
-  text-decoration: underline;
-}
-footer .update-badge-close {
-  border: none;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
   color: var(--muted);
+  font-size: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  padding: 0 2px;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
-footer .update-badge-close:hover {
+footer .about-chip:hover {
+  border-color: var(--sn-wasabi);
+  background: color-mix(in srgb, var(--sn-wasabi) 8%, transparent);
   color: var(--text);
+}
+footer .about-chip.has-update {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-family: inherit;
+  font-weight: 600;
 }
 footer .footer-instance {
   display: none;
@@ -100,25 +92,6 @@ footer .footer-disclaimer {
   white-space: nowrap;
   pointer-events: none;
 }
-footer .footer-gh {
-  color: var(--text);
-  font-weight: 600;
-}
-footer .footer-name {
-  color: var(--text);
-  font-weight: 600;
-}
-footer .footer-sep {
-  opacity: 0.4;
-}
-footer .footer-powered {
-  color: var(--sn-wasabi);
-}
-footer .footer-build {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  opacity: 0.55;
-  vertical-align: middle;
-}
 footer a {
   color: inherit;
   text-decoration: none;
@@ -127,6 +100,57 @@ footer a {
 }
 footer a:hover {
   border-bottom-color: currentColor;
+}
+
+/* About modal body content */
+.about-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+.about-row:last-child {
+  border-bottom: none;
+}
+.about-label {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 70px;
+  flex: none;
+}
+.about-value {
+  color: var(--text);
+}
+.about-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.about-link {
+  color: var(--sn-wasabi);
+  text-decoration: none;
+}
+.about-link:hover {
+  text-decoration: underline;
+}
+.about-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+.about-update {
+  color: var(--muted);
+}
+.about-update.about-update-new {
+  color: var(--accent);
+  font-weight: 600;
+}
+.about-update a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 /* ── SCRIM ── */

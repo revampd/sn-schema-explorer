@@ -30,10 +30,16 @@
 // display-only context (they always differ across instances, so they must NOT
 // trigger drift).
 export const SECTION_CONFIG = {
-  plugins: { key: 'id', name: 'name', fields: ['version', 'active', 'installDate'] },
+  plugins: {
+    key: 'id',
+    name: 'name',
+    showKey: false,
+    fields: ['version', 'active', 'installDate'],
+  },
   storeApps: {
     key: 'scope',
     name: 'name',
+    showKey: false,
     fields: [
       'version',
       'active',
@@ -47,6 +53,7 @@ export const SECTION_CONFIG = {
   customApps: {
     key: 'scope',
     name: 'name',
+    showKey: false,
     fields: ['version', 'active', 'installDate', 'updateDate'],
   },
   properties: { key: 'name', name: 'name', fields: ['value', 'type'] },

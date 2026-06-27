@@ -86,8 +86,8 @@ test('footer shows disclaimer text', async ({ page }) => {
 test('footer shows build version stamp', async ({ page }) => {
   await loadApp(page);
   const footer = page.locator('footer');
-  // Version stamp format: 1.0.0-YYYYMMDD-HHmm
-  await expect(footer).toContainText(/\d+\.\d+\.\d+-\d{8}-\d{4}/);
+  // Version stamp format: v1.0.0 (about-chip)
+  await expect(footer).toContainText(/v\d+\.\d+\.\d+/);
 });
 
 test('schema loads and graph renders nodes', async ({ page }) => {

@@ -39,7 +39,7 @@ const _buildDate = (() => {
   const p = n => String(n).padStart(2, '0');
   return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}-${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
 })();
-const BUILD_VERSION_HTML = `<span class="footer-build">${_pkg.version}-${_buildDate}</span>`;
+const BUILD_VERSION_HTML = `v${_pkg.version}`;
 
 // ── Target definitions ───────────────────────────────────────────────────────
 

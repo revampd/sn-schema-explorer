@@ -101,11 +101,11 @@
         <button class="export-fmt-btn" id="epb-png" data-fmt="png" data-cat="image">↓ PNG</button>
         <button class="export-fmt-btn" id="epb-svg" data-fmt="svg" data-cat="image">↓ SVG</button>
       </div>
-      <label class="export-toggle"
+      <label class="sn-toggle"
              title="Draw the edge-type legend into the exported PNG/SVG (only the edge types currently shown)">
         <input type="checkbox" id="export-include-legend">
-        <span class="export-toggle-track"></span>
-        <span class="export-toggle-label">Edge legend</span>
+        <span class="sn-toggle-track"></span>
+        <span class="sn-toggle-label">Edge legend</span>
       </label>
     </div>
     <!-- Row 2: PNG resolution + background colour -->
@@ -206,14 +206,19 @@
     <span class="footer-instance-build" id="footer-instance-build"></span>
   </span>
   <!--INJECT:footer-disclaimer-->
-  <span class="footer-credits">
-    <a href="https://github.com/revampd/sn-schema-explorer" target="_blank" rel="noopener" class="footer-gh">GitHub</a>
-    <span class="footer-sep">·</span>
-    <span>Made with <span class="footer-powered">Claude</span></span>
-    <span class="footer-sep">·</span>
-    <!--INJECT:build-version-->
-  </span>
+  <button class="about-chip" id="about-chip" title="About Schema Explorer"><!--INJECT:build-version--></button>
 </footer>
+
+<!-- About modal -->
+<div class="insti-overlay" id="about-overlay">
+  <div class="insti-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="insti-head">
+      <h2 id="about-title">About Schema Explorer</h2>
+      <button class="insti-close" id="about-close" aria-label="Close">✕</button>
+    </div>
+    <div class="insti-body" id="about-body"></div>
+  </div>
+</div>
 
 <!-- Instance info modal — shows full _instance + coverage stats when the
      footer pill is clicked. Hidden by default; populated in showInstanceInfo(). -->

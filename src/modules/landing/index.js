@@ -56,13 +56,45 @@ const SECTION_DEFS = [
   {
     key: 'schema',
     label: 'Schema',
+    short: 'Schema',
     count: e => e.data?._stats?.counts?.tables ?? e.data?.nodes?.length,
   },
-  { key: 'plugins', label: 'Plugins', count: e => e.data?._metadata?.plugins?.length },
-  { key: 'storeApps', label: 'Store apps', count: e => e.data?._metadata?.storeApps?.length },
-  { key: 'customApps', label: 'Custom apps', count: e => e.data?._metadata?.customApps?.length },
-  { key: 'properties', label: 'Properties', count: e => e.data?._metadata?.properties?.length },
+  {
+    key: 'plugins',
+    label: 'Plugins',
+    short: 'Plugins',
+    count: e => e.data?._metadata?.plugins?.length,
+  },
+  {
+    key: 'storeApps',
+    label: 'Store apps',
+    short: 'Store',
+    count: e => e.data?._metadata?.storeApps?.length,
+  },
+  {
+    key: 'customApps',
+    label: 'Custom apps',
+    short: 'Custom',
+    count: e => e.data?._metadata?.customApps?.length,
+  },
+  {
+    key: 'properties',
+    label: 'Properties',
+    short: 'Props',
+    count: e => e.data?._metadata?.properties?.length,
+  },
 ];
+
+function formatExportDate(raw) {
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return String(raw);
+  return (
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  );
+}
 
 function instanceEligible(entry, requires) {
   return (requires || []).every(cap => entry.capabilities && entry.capabilities[cap]);
@@ -254,24 +286,13 @@ function toolIcon(tool, entry) {
   );
 }
 
-function sectionStatus(entry, def) {
-  const has = !!(entry.capabilities && entry.capabilities[def.key]);
-  let val = '—';
-  if (has) {
-    const c = entry.data ? def.count(entry) : null;
-    val = c != null ? String(c) : '✓';
-  }
-  return h(
-    'div',
-    { class: 'ic-sec' + (has ? '' : ' absent') },
-    h(
-      'span',
-      { class: 'ic-sec-label' },
-      h('span', { class: 'ic-dot' + (has ? ' on' : '') }),
-      def.label
-    ),
-    h('span', { class: 'ic-sec-val' }, val)
-  );
+function sectionCountCells(entry) {
+  return SECTION_DEFS.map(def => {
+    const has = !!(entry.capabilities && entry.capabilities[def.key]);
+    const c = has && entry.data ? def.count(entry) : null;
+    const val = c != null ? String(c) : has ? '✓' : '—';
+    return { def, has, val };
+  });
 }
 
 // Swap an instance card's title for an inline text input (no popup). Commits on
@@ -310,19 +331,21 @@ function startInlineRename(entry, titleEl) {
 
 function instanceCard(entry) {
   const restored = !entry.data; // persisted placeholder — needs a re-drop
+  const meta = entry.meta || {};
   const titleEl = h('div', { class: 'ic-title', title: entry.label }, entry.label);
+
+  const displayUrl = meta.instance_url ? meta.instance_url.replace(/^https?:\/\//, '') : null;
+  const exportDate = formatExportDate(meta.exported_at);
+  const cells = sectionCountCells(entry);
+
   return h(
     'div',
     { class: 'inst-card' + (restored ? ' restored' : ''), dataInstance: entry.id },
+    // Header: title + rename/delete
     h(
       'div',
       { class: 'ic-head' },
       titleEl,
-      h(
-        'div',
-        { class: 'ic-tools' },
-        _tools.map(t => toolIcon(t, entry))
-      ),
       h(
         'button',
         {
@@ -349,16 +372,36 @@ function instanceCard(entry) {
         '×'
       )
     ),
-    (() => {
-      const sub = instanceSubtitle(entry.meta);
-      return sub ? h('div', { class: 'ic-sub', title: sub }, sub) : null;
-    })(),
+    // URL row
+    displayUrl ? h('div', { class: 'ic-url', title: meta.instance_url }, displayUrl) : null,
+    // Release badge + export date
+    meta.build_name || exportDate
+      ? h(
+          'div',
+          { class: 'ic-release-row' },
+          meta.build_name ? h('span', { class: 'ic-release-badge' }, meta.build_name) : null,
+          exportDate ? h('span', { class: 'ic-export-date' }, exportDate) : null
+        )
+      : null,
+    // Count grid: labels row + values row
     h(
       'div',
-      { class: 'ic-body' },
-      SECTION_DEFS.map(d => sectionStatus(entry, d))
+      { class: 'ic-count-grid' },
+      cells.map(({ def, has }) =>
+        h('span', { class: 'ic-count-label' + (has ? '' : ' absent'), title: def.label }, def.short)
+      ),
+      cells.map(({ def, has, val }) =>
+        h('span', { class: 'ic-count-val' + (has ? '' : ' absent'), title: def.label }, val)
+      )
     ),
-    restored ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore') : null
+    // Footer
+    restored
+      ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore')
+      : h(
+          'div',
+          { class: 'ic-tools' },
+          _tools.map(t => toolIcon(t, entry))
+        )
   );
 }
 

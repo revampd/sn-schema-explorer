@@ -145,12 +145,6 @@ function renderTabs() {
       ? `${SECTION_LABELS[section]} — ${carriers} instance${carriers === 1 ? '' : 's'}`
       : `${SECTION_LABELS[section]} — needs an instance with this data`;
     btn.textContent = SECTION_LABELS[section];
-    if (carriers) {
-      const cnt = document.createElement('span');
-      cnt.className = 'cd-tab-cnt';
-      cnt.textContent = carriers;
-      btn.appendChild(cnt);
-    }
     if (enabled) {
       btn.addEventListener('click', () => {
         view.section = section;

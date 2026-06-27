@@ -23,7 +23,7 @@ import { showCtx, initInteractionsListeners } from '../modules/schema-map/intera
 import { initLanding } from '../modules/landing/index.js';
 import { initModals } from '../core/modals.js';
 import { initReferenceInteractivity } from '../modules/reference/index.js';
-import { initUpdateCheck } from '../core/update-check.js';
+import { initUpdateCheck, initAbout } from '../core/update-check.js';
 import {
   initHistoryListeners,
   setHistoryViewModeHook,
@@ -68,5 +68,6 @@ initCanvasUI();
 initInteractionsListeners();
 initModals();
 initReferenceInteractivity();
+initAbout();
 initUpdateCheck();
 initHistoryListeners();

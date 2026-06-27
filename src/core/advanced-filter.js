@@ -630,7 +630,7 @@ export function buildFilterPanel(container, { onApply } = {}) {
       } else if (c.type === 'hasEdge') {
         opCell.appendChild(h('span', { class: 'fc-op-text' }, 'of type'));
         const sel = h('select', {
-          class: 'fc-select',
+          class: 'sn-select fc-select',
           onChange: e => {
             c.edgeType = e.target.value;
             _apply();

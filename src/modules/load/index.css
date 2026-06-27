@@ -573,22 +573,6 @@
 .bg-cfg-label {
   color: var(--text);
 }
-.bg-config select {
-  background: rgba(0, 0, 0, 0.3);
-  color: var(--text);
-  border: 1px solid var(--sn-border);
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 11px;
-  font-family: inherit;
-}
-.bg-cfg-check {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-}
-.bg-cfg-check em,
 .bg-cfg-set em {
   font-style: normal;
   color: rgba(255, 255, 255, 0.3);
@@ -600,21 +584,12 @@
   margin: 2px 0 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
+  gap: 8px 14px;
 }
 .bg-cfg-set legend {
   color: var(--text);
   padding: 0 4px;
   font-size: 10.5px;
-}
-.bg-cfg-set label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.bg-config input[type='checkbox'] {
-  accent-color: var(--sn-wasabi);
 }
 .setup-step {
   background: rgba(255, 255, 255, 0.03);

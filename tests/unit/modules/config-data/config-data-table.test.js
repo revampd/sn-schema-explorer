@@ -17,14 +17,14 @@ const inst = (id, label, section, rows) => ({
 const P = (id, version, active) => ({ id, name: id, version, active });
 
 describe('renderComparisonTable', () => {
-  it('renders Name/Key + one column per loaded instance + Status', () => {
+  it('renders Name + one column per loaded instance + Status (no Key for plugins)', () => {
     const r = reconcile('plugins', [
       inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)]),
       inst('b', 'Test', 'plugins', [P('com.x', '1.0', true)]),
     ]);
     const table = renderComparisonTable(r);
     const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent);
-    expect(heads).toEqual(['Name', 'Key', 'Dev', 'Test', 'Status']);
+    expect(heads).toEqual(['Name', 'Dev', 'Test', 'Status']);
     expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 
@@ -45,10 +45,10 @@ describe('renderComparisonTable', () => {
     ]);
     const row = renderComparisonTable(r).querySelector('tbody tr');
     const cells = row.querySelectorAll('td');
-    // cells: name, key, Dev, Test, status
-    expect(cells[2].querySelector('.cd-dot-on')).toBeTruthy(); // Dev active
-    expect(cells[3].classList.contains('cd-miss')).toBe(true); // Test missing
-    expect(cells[3].textContent).toBe('—');
+    // cells: name, Dev, Test, status (no Key for plugins)
+    expect(cells[1].querySelector('.cd-dot-on')).toBeTruthy(); // Dev active
+    expect(cells[2].classList.contains('cd-miss')).toBe(true); // Test missing
+    expect(cells[2].textContent).toBe('—');
   });
 
   it('shows the store-app update indicator when update_available', () => {
@@ -127,11 +127,17 @@ describe('renderComparisonTable', () => {
     expect(devCell.querySelector('.cd-dot')).toBeNull();
   });
 
-  it('keeps the Key column for sections where key differs from name (plugins)', () => {
-    const r = reconcile('plugins', [inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)])]);
-    const heads = [...renderComparisonTable(r).querySelectorAll('thead th')].map(
-      th => th.textContent
-    );
-    expect(heads).toContain('Key');
+  it('hides the Key column for plugins/storeApps/customApps (sys_ids differ across instances)', () => {
+    for (const section of ['plugins', 'storeApps', 'customApps']) {
+      const row =
+        section === 'plugins'
+          ? [P('com.x', '1.0', true)]
+          : [{ scope: 'x', name: 'App', version: '1.0', active: true }];
+      const r = reconcile(section, [inst('a', 'Dev', section, row)]);
+      const heads = [...renderComparisonTable(r).querySelectorAll('thead th')].map(
+        th => th.textContent
+      );
+      expect(heads).not.toContain('Key');
+    }
   });
 });

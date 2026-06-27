@@ -76,18 +76,20 @@ describe('instance cards', () => {
     expect(document.querySelector('.add-card')).toBeTruthy();
   });
 
-  it('shows section status with counts present / dash absent', () => {
+  it('shows count grid with counts present / dash absent', () => {
     addInstance({ label: 'dev1', data: PLUGIN_DATA });
     renderInstances();
-    const rows = [...document.querySelectorAll('.ic-sec')].map(r => [
-      r.querySelector('.ic-sec-label').textContent,
-      r.querySelector('.ic-sec-val').textContent,
-      r.classList.contains('absent'),
-    ]);
-    const byLabel = Object.fromEntries(rows.map(([l, v, a]) => [l, { v, a }]));
-    expect(byLabel['Plugins']).toEqual({ v: '2', a: false });
-    expect(byLabel['Custom apps'].a).toBe(true); // absent
-    expect(byLabel['Custom apps'].v).toBe('—');
+    const vals = [...document.querySelectorAll('.ic-count-val')];
+    const byLabel = Object.fromEntries(
+      vals.map(v => [
+        v.title,
+        { val: v.textContent.trim(), absent: v.classList.contains('absent') },
+      ])
+    );
+    expect(byLabel['Plugins'].val).toBe('2');
+    expect(byLabel['Plugins'].absent).toBe(false);
+    expect(byLabel['Custom apps'].absent).toBe(true);
+    expect(byLabel['Custom apps'].val).toBe('—');
   });
 
   it('renders the title from the instance label', () => {
@@ -96,28 +98,28 @@ describe('instance cards', () => {
     expect(document.querySelector('.ic-title').textContent).toBe('Prod');
   });
 
-  it('renders a disambiguating subtitle (build · export date) when metadata is present', () => {
+  it('renders release badge and export date when metadata is present', () => {
     addInstance({
       label: 'dev1',
       data: SCHEMA_DATA,
       meta: {
         instance_name: 'dev1',
+        instance_url: 'https://dev1.service-now.com',
         build_name: 'Washington',
         exported_at: '2026-06-20T10:00:00Z',
       },
     });
     renderInstances();
-    const sub = document.querySelector('.ic-sub');
-    expect(sub).toBeTruthy();
-    expect(sub.textContent).toContain('Washington');
-    // The date portion is locale-formatted; just assert the build joined with it.
-    expect(sub.textContent).toContain('·');
+    expect(document.querySelector('.ic-release-badge').textContent).toBe('Washington');
+    expect(document.querySelector('.ic-url').textContent).toBe('dev1.service-now.com');
+    expect(document.querySelector('.ic-export-date')).toBeTruthy();
   });
 
-  it('omits the subtitle when no useful metadata is present', () => {
+  it('omits release row and url when no metadata is present', () => {
     addInstance({ label: 'dev1', data: { nodes: [{ id: 'task' }], edges: [] }, meta: {} });
     renderInstances();
-    expect(document.querySelector('.ic-sub')).toBeNull();
+    expect(document.querySelector('.ic-release-row')).toBeNull();
+    expect(document.querySelector('.ic-url')).toBeNull();
   });
 });
 
