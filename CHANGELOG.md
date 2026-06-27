@@ -55,6 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Relationships in the comparison inspector are now an N-column matrix**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). Like the
+  field matrix, relationship changes render as one row per related table (with the
+  friendly legend label — Reference to / Referenced by / Child tables / M2M
+  junction / Named relationship / DB view member / CI topology) and a present/absent
+  cell per instance, coloured added / removed vs Base. The inspector is also
+  **inheritance-complete for relationships**: relationships inherited from parent
+  tables are included (tagged `inherited`), matching the single-instance view.
 - **One "Differences" canvas control** instead of two layer toggles
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The separate
   **Structure changes** and **Config drift** buttons on the Schema Map are
