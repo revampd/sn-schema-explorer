@@ -181,7 +181,9 @@ test.describe('Schema Diff interactions', () => {
   test('header search filters the diff list', async ({ page }) => {
     await openDiff(page);
     const before = await page.locator('#diff-list .diff-item').count();
-    await page.locator('#diff-search-input').fill('problem');
+    // The header search bar (Tbl mode) filters the diff list — there is no
+    // separate inline search in the diff sidebar.
+    await page.locator('#search-box').fill('problem');
     await page.waitForTimeout(300);
     const after = await page.locator('#diff-list .diff-item').count();
     expect(after).toBeGreaterThan(0);

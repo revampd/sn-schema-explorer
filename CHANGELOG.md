@@ -208,6 +208,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   built `dist/` is byte-identical (modulo file-path comments in the bundle).
   Unit tests now mirror the `src/` tree under `tests/`.
 
+### Changed
+
+- **Schema Diff sidebar simplified**
+  ([#126](https://github.com/revampd/sn-schema-explorer/issues/126)). Removed the
+  inline "Filter tables…" search from the diff sidebar — the header search bar
+  (Tbl mode) already filters the diff list — and hid the Application Scopes panel
+  while in Diff view, where it isn't relevant. Both reduce duplication in the
+  diff sidebar.
+
 ### Fixed
 
 - **Schema Diff: swapping/switching base corrupted the comparison (Added/Removed
