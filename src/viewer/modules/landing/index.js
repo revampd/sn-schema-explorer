@@ -247,7 +247,12 @@ function sectionStatus(entry, def) {
   return h(
     'div',
     { class: 'ic-sec' + (has ? '' : ' absent') },
-    h('span', { class: 'ic-sec-label' }, def.label),
+    h(
+      'span',
+      { class: 'ic-sec-label' },
+      h('span', { class: 'ic-dot' + (has ? ' on' : '') }),
+      def.label
+    ),
     h('span', { class: 'ic-sec-val' }, val)
   );
 }

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Shared theming tokens + utilities** adapted from the cross-instance
+  reconciler — radius/shadow/glass CSS variables plus reusable `.glass`,
+  `.eyebrow`, and `.pill-badge` classes in `base.css`. Refreshes the landing
+  page (translucent "glass" instance cards, a monospace eyebrow heading, and
+  per-section status dots) and the Schema Diff summary (glass stat tiles),
+  aligning them with the app's existing glass canvas panels. Still
+  fully self-contained — no web fonts or external resources (the system-font
+  stack is unchanged).
+
 - **Cross-instance metadata sections in the export** (foundation for the v1.0.3
   multi-instance toolbox, [#97](https://github.com/revampd/sn-schema-explorer/issues/97)).
   The Node extractor gains `--metadata=plugins,storeApps,customApps,properties`

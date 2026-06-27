@@ -74,6 +74,74 @@
   --diff-added-dim: rgba(74, 222, 128, 0.13);
   --diff-removed-dim: rgba(248, 113, 113, 0.13);
   --diff-changed-dim: rgba(251, 191, 36, 0.13);
+
+  /* Surface / shape tokens (reconciler-style theming) — translucent "glass"
+     cards, soft shadows, and a small radius scale shared across surfaces. */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-full: 9999px;
+  --shadow-md: 0 4px 14px -3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 30px -8px rgba(0, 0, 0, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 10px;
+}
+
+/* ── Shared theming utilities ──────────────────────────────────────────────
+   Reusable component primitives adapted from the cross-instance reconciler.
+   Pure presentation — safe to apply to any surface. */
+
+/* Translucent card surface with a soft border + blur. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* Small uppercase monospace section label (sits above a heading). */
+.eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* Pill badge — monospace, rounded-full. Pair with a `.pill-*` colour modifier. */
+.pill-badge {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.pill-on {
+  background: var(--sn-wasabi-dim);
+  color: var(--sn-wasabi);
+}
+.pill-warn {
+  background: rgba(251, 191, 36, 0.14);
+  color: var(--edge-warn);
+}
+.pill-err {
+  background: rgba(248, 113, 113, 0.14);
+  color: var(--diff-removed);
+}
+.pill-info {
+  background: rgba(82, 184, 255, 0.14);
+  color: #52b8ff;
+}
+.pill-muted {
+  background: rgba(156, 163, 175, 0.16);
+  color: var(--muted);
 }
 
 *,
