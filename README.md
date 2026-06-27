@@ -126,8 +126,8 @@ Copy the extractor script from the **Setup Instructions** tab inside `sn_schema_
 ## Loading and exploring
 
 1. Open `sn_schema_explorer.html` in any modern browser — it opens on the **landing page**
-2. Drag and drop one or more `schema.json` exports onto the drop zone (or click to browse). Each load registers an **instance** in the list with capability badges; click **Load Demo Dataset** to try a sample
-3. Select an instance, then click the **Schema Explorer** tool tile to visualise it — click any table to inspect it
+2. Drag and drop one or more `schema.json` exports onto the **Add instance** card (or click to browse). Each load registers an **instance card** showing the sections it contains (Schema / Plugins / Store apps / Custom apps / Properties); click **or load demo** to try a sample
+3. Click the **Schema Explorer** icon on an instance card to visualise it — click any table to inspect it
 4. Use the **Max Nodes** and **Hop Depth** sliders to control graph density
 5. Use **Filter** in the header to narrow the canvas by scope, type, field, or edge
 6. Enable **Path Finder** or **Schema Diff** via **Settings → Features**

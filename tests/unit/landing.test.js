@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  *
  * Unit tests for src/viewer/modules/landing/index.js — the front-door landing
- * page (#101). Covers the tool-tile registry, capability gating, instance-row
- * rendering with badges, selection, and the built-in Schema Explorer tile.
+ * page (#101). Card-based layout: a grid of instance cards (with read-only
+ * section status + per-instance tool icons) plus an Add-instance card.
  *
  * load/index.js drags in d3/canvas via render.js — stub it so we exercise only
  * the landing wiring. engine/workspace.js is stubbed to observe setWorkspace.
@@ -32,7 +32,6 @@ vi.mock('../../src/viewer/engine/workspace.js', () => ({ setWorkspace, onWorkspa
 import {
   registerTool,
   renderInstances,
-  renderTools,
   refreshLanding,
   initLanding,
   _resetTools,
@@ -41,24 +40,30 @@ import { addInstance, _resetInstances } from '../../src/viewer/core/instances-st
 
 const SCHEMA_DATA = {
   _instance: { instance_name: 'dev1' },
+  _stats: { counts: { tables: 5 } },
   nodes: [{ id: 'task' }],
   edges: [],
 };
 const PLUGIN_DATA = {
   nodes: [{ id: 'task' }],
   edges: [],
-  _metadata: { plugins: [{ id: 'com.x', name: 'X' }] },
+  _metadata: {
+    plugins: [
+      { id: 'com.x', name: 'X' },
+      { id: 'com.y', name: 'Y' },
+    ],
+  },
 };
 
 function setupDom() {
   document.body.innerHTML = `
     <button id="btn-home"></button>
-    <div id="drop-zone"><input type="file" id="file-input"></div>
-    <button id="btn-demo"></button>
+    <input type="file" id="file-input" hidden>
     <div id="landing-instances"></div>
-    <div id="landing-tools"></div>
   `;
 }
+const cardTool = (id, key) =>
+  document.querySelector(`.inst-card[data-instance="${id}"] [data-tool="${key}"]`);
 
 beforeEach(() => {
   _resetInstances();
@@ -69,96 +74,93 @@ beforeEach(() => {
   setupDom();
 });
 
-describe('tool-tile registry', () => {
-  it('registers a tile and renders it; registration is idempotent', () => {
-    registerTool({ key: 't1', label: 'Tool One', description: 'does things' });
-    registerTool({ key: 't1', label: 'dup' }); // ignored
-    renderTools();
-    const tiles = document.querySelectorAll('.landing-tool');
-    expect(tiles).toHaveLength(1);
-    expect(tiles[0].querySelector('.lt-label').textContent).toBe('Tool One');
+describe('instance cards', () => {
+  it('renders a card per instance plus an Add-instance card', () => {
+    addInstance({ label: 'dev1', data: SCHEMA_DATA });
+    renderInstances();
+    expect(document.querySelectorAll('.inst-card:not(.add-card)')).toHaveLength(1);
+    expect(document.querySelector('.add-card')).toBeTruthy();
+  });
+
+  it('shows section status with counts present / dash absent', () => {
+    addInstance({ label: 'dev1', data: PLUGIN_DATA });
+    renderInstances();
+    const rows = [...document.querySelectorAll('.ic-sec')].map(r => [
+      r.querySelector('.ic-sec-label').textContent,
+      r.querySelector('.ic-sec-val').textContent,
+      r.classList.contains('absent'),
+    ]);
+    const byLabel = Object.fromEntries(rows.map(([l, v, a]) => [l, { v, a }]));
+    expect(byLabel['Plugins']).toEqual({ v: '2', a: false });
+    expect(byLabel['Custom apps'].a).toBe(true); // absent
+    expect(byLabel['Custom apps'].v).toBe('—');
+  });
+
+  it('renders the title from the instance label', () => {
+    addInstance({ label: 'Prod', data: SCHEMA_DATA });
+    renderInstances();
+    expect(document.querySelector('.ic-title').textContent).toBe('Prod');
   });
 });
 
-describe('capability gating', () => {
-  it('disables a tile until enough eligible instances are registered', () => {
+describe('per-instance tool icons', () => {
+  it('renders a tool icon on each card; registration is idempotent', () => {
+    registerTool({ key: 't1', label: 'Tool One', icon: '◎' });
+    registerTool({ key: 't1', label: 'dup' }); // ignored
+    addInstance({ label: 'a', data: SCHEMA_DATA });
+    renderInstances();
+    expect(document.querySelectorAll('[data-tool="t1"]')).toHaveLength(1);
+  });
+
+  it('enables the icon only on cards whose instance satisfies requires', () => {
     registerTool({
       key: 'cmp',
-      label: 'Comparison',
+      label: 'Compare',
+      icon: '⇄',
       requires: ['plugins'],
-      minInstances: 2,
       enter: vi.fn(),
     });
-
-    renderTools();
-    expect(document.querySelector('[data-tool="cmp"]').disabled).toBe(true);
-
-    addInstance({ label: 'a', data: PLUGIN_DATA });
+    const schemaOnly = addInstance({ label: 'a', data: SCHEMA_DATA });
+    const withPlugins = addInstance({ label: 'b', data: PLUGIN_DATA });
     refreshLanding();
-    expect(document.querySelector('[data-tool="cmp"]').disabled).toBe(true); // only 1
-
-    addInstance({ label: 'b', data: PLUGIN_DATA });
-    refreshLanding();
-    expect(document.querySelector('[data-tool="cmp"]').disabled).toBe(false); // now 2
+    expect(cardTool(schemaOnly.id, 'cmp').disabled).toBe(true);
+    expect(cardTool(withPlugins.id, 'cmp').disabled).toBe(false);
   });
 
-  it('clicking an enabled tile invokes enter() with the resolved target', () => {
+  it('clicking an enabled icon launches the tool with that instance id', () => {
     const enter = vi.fn();
-    registerTool({ key: 'se', label: 'SE', requires: ['schema'], minInstances: 1, enter });
-    const entry = addInstance({ label: 'a', data: SCHEMA_DATA }); // selected by addInstance? no
+    registerTool({ key: 'se', label: 'SE', icon: '◎', requires: ['schema'], enter });
+    const a = addInstance({ label: 'a', data: SCHEMA_DATA });
+    const b = addInstance({ label: 'b', data: SCHEMA_DATA });
     refreshLanding();
-    document.querySelector('[data-tool="se"]').click();
-    expect(enter).toHaveBeenCalledWith(entry.id);
+    cardTool(b.id, 'se').click();
+    expect(enter).toHaveBeenCalledWith(b.id);
+    expect(a.id).not.toBe(b.id);
   });
 
-  it('clicking a disabled tile does nothing', () => {
+  it('clicking a disabled icon does nothing', () => {
     const enter = vi.fn();
-    registerTool({ key: 'se', label: 'SE', requires: ['schema'], minInstances: 1, enter });
-    renderTools();
-    document.querySelector('[data-tool="se"]').click();
+    registerTool({ key: 'cmp', label: 'Compare', icon: '⇄', requires: ['plugins'], enter });
+    const a = addInstance({ label: 'a', data: SCHEMA_DATA }); // no plugins
+    refreshLanding();
+    cardTool(a.id, 'cmp').click();
     expect(enter).not.toHaveBeenCalled();
   });
 });
 
-describe('instance rows', () => {
-  it('shows an empty state with no instances', () => {
-    renderInstances();
-    expect(document.querySelector('.landing-empty')).toBeTruthy();
-  });
-
-  it('renders a row with capability badges', () => {
-    addInstance({ label: 'dev1', data: PLUGIN_DATA });
-    renderInstances();
-    const row = document.querySelector('.landing-instance');
-    expect(row.querySelector('.li-label').textContent).toBe('dev1');
-    const badges = [...row.querySelectorAll('.li-badge')].map(b => b.textContent);
-    expect(badges).toContain('Schema');
-    expect(badges).toContain('Plugins');
-  });
-
-  it('clicking a row selects the instance and marks it', () => {
-    const a = addInstance({ label: 'a', data: SCHEMA_DATA });
-    const b = addInstance({ label: 'b', data: SCHEMA_DATA });
-    refreshLanding();
-    const rows = document.querySelectorAll('.landing-instance');
-    // click the second row
-    rows[1].click();
-    const selected = document.querySelector('.landing-instance.selected');
-    expect(selected.dataset.instance).toBe(b.id);
-    expect(a.id).not.toBe(b.id);
-  });
-});
-
-describe('initLanding (built-in Schema Explorer tile)', () => {
-  it('registers the schemaExplorer tile and wires the demo button', () => {
+describe('initLanding (built-in Schema Explorer + add card)', () => {
+  it('wires the demo button to register + select an instance', () => {
     initLanding();
-    // Demo registers an instance and selects it.
     document.getElementById('btn-demo').click();
-    expect(document.querySelectorAll('.landing-instance').length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelectorAll('.inst-card:not(.add-card)').length).toBe(1);
+  });
+
+  it('opens the selected instance in Schema Explorer from its card icon', () => {
+    initLanding();
+    document.getElementById('btn-demo').click();
     const tile = document.querySelector('[data-tool="schemaExplorer"]');
     expect(tile).toBeTruthy();
     expect(tile.disabled).toBe(false);
-    // Entering calls into the load module + switches workspace.
     tile.click();
     expect(selectInstanceForGraph).toHaveBeenCalledTimes(1);
     expect(setWorkspace).toHaveBeenCalledWith('schema-explorer');

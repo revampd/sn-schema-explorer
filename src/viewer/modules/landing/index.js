@@ -3,18 +3,17 @@
  * ============================================================================
  *
  * The landing workspace is where the user registers one or more instance
- * exports and picks a tool. It owns the file-drop / demo / manifest-stitching
+ * exports and opens a tool. It owns the file-drop / demo / manifest-stitching
  * UI (relocated from modules/load) and turns each load into a registry entry
- * (core/instances-state). Tools register a tile here and are gated by the
- * aggregate capabilities of the registered instances.
+ * (core/instances-state).
  *
- * Loading a file always REGISTERS and stays on the landing page (the user
- * explicitly enters a tool via its tile), so the multi-instance flow is
- * uniform: drop several exports, then pick a tool that has enough data to run.
- *
- * Tool tiles self-register via registerTool(...) — the same plug-in spirit as
- * Settings.registerFeature / registerWorkspace — so future tools light up here
- * without the landing module knowing about them.
+ * Layout: a grid of instance CARDS plus an "Add instance" card. Each card shows
+ * the sections present in that instance's single JSON export (read-only status)
+ * and a row of per-instance TOOL ICONS. A tool launches with that instance as
+ * its primary; multi-instance tools (e.g. Instance Comparison) let the user add
+ * more instances from inside the tool — the same base/compare flow as Schema
+ * Diff. Tools self-register via registerTool(...) — the same plug-in spirit as
+ * Settings.registerFeature / registerWorkspace.
  * ============================================================================ */
 
 import {
@@ -23,34 +22,25 @@ import {
   removeInstance,
   renameInstance,
   selectInstance,
-  aggregateCapabilities,
-  METADATA_SECTIONS,
 } from '../../core/state.js';
 import { DEMO_DATA } from '../../core/constants.js';
 import { h } from '../../core/template.js';
 import { setWorkspace, onWorkspaceChange } from '../../engine/workspace.js';
 import { selectInstanceForGraph } from '../load/index.js';
 
-// ── Tool-tile registry ───────────────────────────────────────────────────────
-// { key, label, description, requires:[capKey], minInstances, workspace, enter }
-//   requires      — capability keys an instance must carry to count toward this tool
-//   minInstances  — how many registered instances must carry ALL `requires` caps
-//   enter(targetId) — invoked on click; targetId is the resolved eligible
-//                     instance (selected, else first eligible) for single-instance
-//                     tools, or null for tools that read the whole registry.
+// ── Per-instance tool registry ───────────────────────────────────────────────
+// { key, label, icon, requires:[capKey], enter(instanceId) }
+//   requires     — capability keys an instance must carry for the icon to enable
+//                  on that card
+//   enter(id)    — launch the tool with this instance as its primary/base; a
+//                  multi-instance tool then lets the user add others from within
 const _tools = [];
 
 export function registerTool(def) {
   if (!def || !def.key) return;
   if (_tools.some(t => t.key === def.key)) return; // idempotent
-  _tools.push({
-    requires: [],
-    minInstances: 1,
-    description: '',
-    ...def,
-  });
-  // If the landing page is already rendered, reflect the new tile immediately.
-  if (document.getElementById('landing-tools')) renderTools();
+  _tools.push({ requires: [], label: def.key, icon: '•', ...def });
+  if (document.getElementById('landing-instances')) renderInstances();
 }
 
 /** Test helper — clears the tool registry so suites start from a clean slate. */
@@ -58,33 +48,21 @@ export function _resetTools() {
   _tools.length = 0;
 }
 
-// Capability labels for instance-row badges.
-const CAP_LABELS = {
-  schema: 'Schema',
-  plugins: 'Plugins',
-  storeApps: 'Store',
-  customApps: 'Custom',
-  properties: 'Properties',
-};
+// Sections shown on each card, derived from the instance's single JSON export.
+const SECTION_DEFS = [
+  {
+    key: 'schema',
+    label: 'Schema',
+    count: e => e.data?._stats?.counts?.tables ?? e.data?.nodes?.length,
+  },
+  { key: 'plugins', label: 'Plugins', count: e => e.data?._metadata?.plugins?.length },
+  { key: 'storeApps', label: 'Store apps', count: e => e.data?._metadata?.storeApps?.length },
+  { key: 'customApps', label: 'Custom apps', count: e => e.data?._metadata?.customApps?.length },
+  { key: 'properties', label: 'Properties', count: e => e.data?._metadata?.properties?.length },
+];
 
-// Count registered instances carrying ALL the given capability keys.
-function eligibleCount(requires) {
-  if (!requires || !requires.length) return instancesState.instances.length;
-  return instancesState.instances.filter(e =>
-    requires.every(cap => e.capabilities && e.capabilities[cap])
-  ).length;
-}
-
-// Resolve the instance a single-instance tool should act on: the selected one
-// if it qualifies, otherwise the first eligible instance.
-function resolveTarget(requires) {
-  const qualifies = e => requires.every(cap => e.capabilities && e.capabilities[cap]);
-  const sel = instancesState.selectedId
-    ? instancesState.instances.find(e => e.id === instancesState.selectedId)
-    : null;
-  if (sel && qualifies(sel)) return sel.id;
-  const first = instancesState.instances.find(qualifies);
-  return first ? first.id : null;
+function instanceEligible(entry, requires) {
+  return (requires || []).every(cap => entry.capabilities && entry.capabilities[cap]);
 }
 
 // ── Registration from files / demo ─────────────────────────────────────────
@@ -99,8 +77,7 @@ function deriveLabel(parsed, fileName) {
   return (fileName || 'Instance').replace(/\.json$/i, '');
 }
 
-// Register parsed schema data as an instance and select it (so a single-file
-// load is one click from entering a tool). Stays on the landing page.
+// Register parsed schema data as an instance and select it. Stays on landing.
 function registerFromData(parsed, fileName, source) {
   const entry = addInstance({
     label: deriveLabel(parsed, fileName),
@@ -216,43 +193,57 @@ async function loadFileList(files) {
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
-function badgeRow(caps) {
-  const keys = ['schema', ...METADATA_SECTIONS].filter(k => caps && caps[k]);
-  if (!keys.length) return h('span', { class: 'li-badge li-badge-empty' }, 'no data');
-  return keys.map(k => h('span', { class: 'li-badge li-badge-' + k }, CAP_LABELS[k] || k));
+function toolIcon(tool, entry) {
+  const ok = instanceEligible(entry, tool.requires);
+  return h(
+    'button',
+    {
+      class: 'ic-tool' + (ok ? '' : ' disabled'),
+      dataTool: tool.key,
+      disabled: !ok,
+      title: ok ? tool.label : `${tool.label} — needs ${tool.requires.join(', ')}`,
+      onclick: ev => {
+        ev.stopPropagation();
+        if (ok) tool.enter(entry.id);
+      },
+    },
+    tool.icon
+  );
 }
 
-function instanceRow(entry) {
-  const selected = entry.id === instancesState.selectedId;
+function sectionStatus(entry, def) {
+  const has = !!(entry.capabilities && entry.capabilities[def.key]);
+  let val = '—';
+  if (has) {
+    const c = entry.data ? def.count(entry) : null;
+    val = c != null ? String(c) : '✓';
+  }
+  return h(
+    'div',
+    { class: 'ic-sec' + (has ? '' : ' absent') },
+    h('span', { class: 'ic-sec-label' }, def.label),
+    h('span', { class: 'ic-sec-val' }, val)
+  );
+}
+
+function instanceCard(entry) {
   const restored = !entry.data; // persisted placeholder — needs a re-drop
   return h(
     'div',
-    {
-      class: 'landing-instance' + (selected ? ' selected' : '') + (restored ? ' restored' : ''),
-      dataInstance: entry.id,
-      role: 'button',
-      tabindex: '0',
-      title: restored ? 'Re-drop this export to restore it' : 'Select this instance',
-      onclick: () => {
-        if (restored) return;
-        selectInstance(entry.id);
-        refreshLanding();
-      },
-    },
+    { class: 'inst-card' + (restored ? ' restored' : ''), dataInstance: entry.id },
     h(
       'div',
-      { class: 'li-main' },
-      h('div', { class: 'li-label' }, entry.label),
-      h('div', { class: 'li-badges' }, badgeRow(entry.capabilities)),
-      restored ? h('div', { class: 'li-note' }, 'remembered — re-drop file to restore') : null
-    ),
-    h(
-      'div',
-      { class: 'li-actions' },
+      { class: 'ic-head' },
+      h('div', { class: 'ic-title', title: entry.label }, entry.label),
+      h(
+        'div',
+        { class: 'ic-tools' },
+        _tools.map(t => toolIcon(t, entry))
+      ),
       h(
         'button',
         {
-          class: 'li-btn li-rename',
+          class: 'ic-act ic-rename',
           title: 'Rename',
           onclick: ev => {
             ev.stopPropagation();
@@ -268,7 +259,7 @@ function instanceRow(entry) {
       h(
         'button',
         {
-          class: 'li-btn li-remove',
+          class: 'ic-act ic-remove',
           title: 'Remove',
           onclick: ev => {
             ev.stopPropagation();
@@ -278,6 +269,40 @@ function instanceRow(entry) {
         },
         '×'
       )
+    ),
+    h(
+      'div',
+      { class: 'ic-body' },
+      SECTION_DEFS.map(d => sectionStatus(entry, d))
+    ),
+    restored ? h('div', { class: 'ic-note' }, 'remembered — re-drop file to restore') : null
+  );
+}
+
+function addCard() {
+  return h(
+    'div',
+    {
+      class: 'inst-card add-card',
+      id: 'add-instance',
+      role: 'button',
+      tabindex: '0',
+      title: 'Add an instance export',
+      onclick: () => document.getElementById('file-input')?.click(),
+    },
+    h('div', { class: 'add-plus' }, '+'),
+    h('div', { class: 'add-label' }, 'Add instance'),
+    h(
+      'button',
+      {
+        class: 'add-demo',
+        id: 'btn-demo',
+        onclick: ev => {
+          ev.stopPropagation();
+          registerFromData(DEMO_DATA, null, 'demo');
+        },
+      },
+      'or load demo'
     )
   );
 }
@@ -286,54 +311,12 @@ export function renderInstances() {
   const host = document.getElementById('landing-instances');
   if (!host) return;
   host.textContent = '';
-  if (!instancesState.instances.length) {
-    host.appendChild(
-      h(
-        'div',
-        { class: 'landing-empty' },
-        'No instances yet — drop a schema export above to begin.'
-      )
-    );
-    return;
-  }
-  instancesState.instances.forEach(e => host.appendChild(instanceRow(e)));
-}
-
-function toolTile(tool) {
-  const eligible = eligibleCount(tool.requires);
-  const enabled = eligible >= tool.minInstances;
-  const need =
-    tool.minInstances > 1
-      ? `needs ${tool.minInstances} instances with ${tool.requires.join(', ') || 'data'}`
-      : `needs an instance with ${tool.requires.join(', ') || 'data'}`;
-  return h(
-    'button',
-    {
-      class: 'landing-tool' + (enabled ? '' : ' disabled'),
-      dataTool: tool.key,
-      disabled: !enabled,
-      title: enabled ? tool.description : need,
-      onclick: () => {
-        if (!enabled) return;
-        const target = resolveTarget(tool.requires);
-        tool.enter(target);
-      },
-    },
-    h('div', { class: 'lt-label' }, tool.label),
-    h('div', { class: 'lt-desc' }, enabled ? tool.description : need)
-  );
-}
-
-export function renderTools() {
-  const host = document.getElementById('landing-tools');
-  if (!host) return;
-  host.textContent = '';
-  _tools.forEach(t => host.appendChild(toolTile(t)));
+  instancesState.instances.forEach(e => host.appendChild(instanceCard(e)));
+  host.appendChild(addCard());
 }
 
 export function refreshLanding() {
   renderInstances();
-  renderTools();
 }
 
 // ── Setup-instructions UI (relocated from load) ─────────────────────────────
@@ -374,33 +357,28 @@ export function initLanding() {
   // Built-in tool: Schema Explorer — visualise a single instance's schema.
   registerTool({
     key: 'schemaExplorer',
-    label: 'Schema Explorer',
-    description: "Visualise a single instance's table schema, references & CMDB topology.",
+    label: 'Open in Schema Explorer',
+    icon: '◎',
     requires: ['schema'],
-    minInstances: 1,
-    workspace: 'schema-explorer',
-    enter: targetId => {
-      if (!targetId) return;
-      if (selectInstanceForGraph(targetId)) setWorkspace('schema-explorer');
+    enter: id => {
+      if (selectInstanceForGraph(id)) setWorkspace('schema-explorer');
     },
   });
 
   const fileInput = document.getElementById('file-input');
   if (fileInput) fileInput.addEventListener('change', e => loadFileList(e.target.files));
 
-  const btnDemo = document.getElementById('btn-demo');
-  if (btnDemo) btnDemo.addEventListener('click', () => registerFromData(DEMO_DATA, null, 'demo'));
-
-  const dz = document.getElementById('drop-zone');
-  if (dz) {
-    dz.addEventListener('dragover', e => {
+  // Drag & drop anywhere on the instance grid registers an instance.
+  const grid = document.getElementById('landing-instances');
+  if (grid) {
+    grid.addEventListener('dragover', e => {
       e.preventDefault();
-      dz.classList.add('dragover');
+      grid.classList.add('dragover');
     });
-    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-    dz.addEventListener('drop', e => {
+    grid.addEventListener('dragleave', () => grid.classList.remove('dragover'));
+    grid.addEventListener('drop', e => {
       e.preventDefault();
-      dz.classList.remove('dragover');
+      grid.classList.remove('dragover');
       loadFileList(e.dataTransfer.files);
     });
   }
@@ -417,7 +395,6 @@ export function initLanding() {
     .querySelectorAll('.code-copy-btn')
     .forEach(btn => btn.addEventListener('click', e => copyCode(e.currentTarget)));
 
-  // Keep the list/tiles fresh whenever the user returns to the landing page.
   onWorkspaceChange(ws => {
     if (ws === 'landing') refreshLanding();
   });

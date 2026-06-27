@@ -39,16 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   landing + comparison regions.
 - **Landing page front door**
   ([#101](https://github.com/revampd/sn-schema-explorer/issues/101)). The app now
-  opens on a landing page where you **register one or more instance exports** and
-  pick a tool. Each instance shows capability badges (Schema / Plugins / Store /
-  Custom / Properties); tool tiles are gated by what the registered instances
-  carry. The **Schema Explorer** tile visualises a selected instance. A **Home**
-  button in the header returns to the landing page. File-drop, demo load, and
-  multi-part manifest stitching moved from the load overlay into the landing page;
-  loading a file registers an instance (and selects it) rather than entering a
-  tool directly. The landing page (and other non–Schema-Explorer workspaces)
-  present a clean shell — the graph sidebars, canvas, minimap, and graph-only
-  header controls are hidden, leaving the brand plus Guide / Settings.
+  opens on a landing page where you **register one or more instance exports** as a
+  grid of **instance cards** (plus an **Add instance** card). Each card shows the
+  sections present in that export (Schema / Plugins / Store apps / Custom apps /
+  Properties, with counts) and a row of **per-instance tool icons** — open the
+  **Schema Explorer** on that instance directly from its card. Multi-instance
+  tools launch from a card with that instance as the base and let you add others
+  from inside the tool (the Schema Diff base/compare pattern). A **Home** button
+  in the header returns to the landing page. File-drop, demo load, and multi-part
+  manifest stitching moved from the load overlay into the landing page; loading a
+  file registers an instance rather than entering a tool directly. The landing
+  page (and other non–Schema-Explorer workspaces) present a clean shell — the
+  graph sidebars, canvas, minimap, and graph-only header controls are hidden,
+  leaving the brand plus Guide / Settings.
 
 ### Changed
 

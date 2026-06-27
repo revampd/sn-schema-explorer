@@ -1,29 +1,29 @@
 /* ── Landing page (v1.0.3 front door) ───────────────────────────────────────
  * The landing workspace region. Shown when uiState.workspace === 'landing'
- * (the default). Reuses the shared .drop-zone styling from load/index.css. */
+ * (the default). A grid of instance cards + an Add-instance card. The graph
+ * chrome is hidden by styles/workspace.css while this workspace is active. */
 
-/* Occupies the content rows (exportbar → canvas) so the header (Guide /
- * Settings / Home) and footer stay visible and usable. Sits above the graph
- * chrome that shares those grid cells. */
 .landing {
   grid-column: 1 / -1;
-  grid-row: 2 / 5;
+  grid-row: 2 / 5; /* content rows; header + footer stay visible */
   overflow: auto;
   background: var(--bg);
   z-index: 5;
 }
+
 /* The Home button is redundant while already on the landing page. */
 body[data-workspace='landing'] #btn-home {
   display: none;
 }
+
 .landing-inner {
-  max-width: 1040px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 48px 24px 64px;
+  padding: 40px 24px 64px;
 }
 .landing-head {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 .landing-title {
   font-size: 28px;
@@ -35,172 +35,175 @@ body[data-workspace='landing'] #btn-home {
   color: var(--text-dim);
   font-size: 14px;
 }
-.landing-cols {
+
+/* Instance card grid */
+.landing-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  align-items: start;
-}
-@media (max-width: 760px) {
-  .landing-cols {
-    grid-template-columns: 1fr;
-  }
-}
-.landing-panel {
-  border: 1px solid var(--border);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
   border-radius: 10px;
-  padding: 20px;
-  background: var(--panel, var(--bg));
 }
-.landing-h2 {
-  margin: 0 0 14px;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-}
-.landing-demo-btn {
-  margin-top: 12px;
-  width: 100%;
+.landing-grid.dragover {
+  outline: 2px dashed var(--sn-wasabi, #62d84e);
+  outline-offset: 6px;
 }
 
-/* Registered instances list */
-.landing-instances {
-  margin-top: 16px;
+.inst-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--panel, var(--bg));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  min-height: 190px;
 }
-.landing-empty {
-  color: var(--text-dim);
-  font-size: 13px;
-  padding: 8px 2px;
+.inst-card.restored {
+  opacity: 0.6;
 }
-.landing-instance {
+
+/* Card header: title + tool icons + rename/remove */
+.ic-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    background 0.12s;
+  gap: 6px;
+  margin-bottom: 12px;
 }
-.landing-instance:hover {
-  border-color: var(--sn-wasabi, #62d84e);
-}
-.landing-instance.selected {
-  border-color: var(--sn-wasabi, #62d84e);
-  box-shadow: inset 0 0 0 1px var(--sn-wasabi, #62d84e);
-}
-.landing-instance.restored {
-  opacity: 0.6;
-  cursor: default;
-}
-.li-main {
-  min-width: 0;
-}
-.li-label {
-  font-weight: 600;
+.ic-title {
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
-.li-badges {
-  margin-top: 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.li-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-}
-.li-badge-schema {
-  color: var(--sn-wasabi, #62d84e);
-  border-color: var(--sn-wasabi, #62d84e);
-}
-.li-badge-empty {
-  font-size: 10px;
-  color: var(--text-dim);
-  font-style: italic;
-}
-.li-note {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--text-dim);
-  font-style: italic;
-}
-.li-actions {
+.ic-tools {
   display: flex;
   gap: 4px;
-  flex-shrink: 0;
 }
-.li-btn {
+.ic-tool {
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border);
+  border-radius: 8px;
   background: transparent;
+  color: var(--sn-wasabi, #62d84e);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.ic-tool:hover:not(.disabled) {
+  border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 12%, transparent);
+}
+.ic-tool.disabled {
   color: var(--text-dim);
-  border-radius: 6px;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ic-act {
   width: 26px;
   height: 26px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
   cursor: pointer;
   line-height: 1;
 }
-.li-btn:hover {
+.ic-act:hover {
   color: var(--text);
-  border-color: var(--text-dim);
+  border-color: var(--border);
 }
 
-/* Tool tiles */
-.landing-tools {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+/* Section status rows */
+.ic-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.landing-tool {
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
-  background: transparent;
+.ic-sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.ic-sec:nth-child(odd) {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.ic-sec-label {
+  color: var(--text);
+  font-weight: 600;
+}
+.ic-sec-val {
+  color: var(--sn-wasabi, #62d84e);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.ic-sec.absent .ic-sec-label {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.ic-sec.absent .ic-sec-val {
+  color: var(--text-dim);
+}
+.ic-note {
+  margin-top: 10px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* Add-instance card */
+.add-card {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  color: var(--sn-wasabi, #62d84e);
   cursor: pointer;
+  gap: 6px;
   transition:
     border-color 0.12s,
-    transform 0.06s;
+    background 0.12s;
 }
-.landing-tool:hover:not(.disabled) {
+.add-card:hover {
   border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 8%, transparent);
 }
-.landing-tool:active:not(.disabled) {
-  transform: translateY(1px);
+.add-plus {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 300;
 }
-.landing-tool.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.lt-label {
+.add-label {
   font-weight: 700;
-  color: var(--text);
-  font-size: 15px;
+  color: var(--sn-wasabi, #62d84e);
 }
-.lt-desc {
+.add-demo {
   margin-top: 4px;
-  font-size: 12px;
+  border: none;
+  background: transparent;
   color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.add-demo:hover {
+  color: var(--text);
 }
 
 /* Setup-instructions accordion */
 .landing-setup {
-  margin-top: 18px;
+  margin-top: 24px;
   border-top: 1px solid var(--border);
   padding-top: 14px;
 }

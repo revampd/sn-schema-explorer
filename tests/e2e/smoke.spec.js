@@ -72,9 +72,9 @@ test('app boots into the landing workspace with the graph chrome hidden (#101)',
 
 test('landing page front door is visible before a schema is loaded', async ({ page }) => {
   await loadApp(page);
-  // The landing page (front door) and its drop zone are visible on first open.
+  // The landing page (front door) and its Add-instance card are visible on first open.
   await expect(page.locator('#landing-root')).toBeVisible();
-  await expect(page.locator('#drop-zone')).toBeVisible();
+  await expect(page.locator('#add-instance')).toBeVisible();
 });
 
 test('footer shows disclaimer text', async ({ page }) => {

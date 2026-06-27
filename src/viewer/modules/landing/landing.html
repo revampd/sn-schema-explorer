@@ -2,34 +2,17 @@
   <div class="landing-inner">
     <div class="landing-head">
       <div class="landing-title">Schema Explorer</div>
-      <div class="landing-sub">Register one or more ServiceNow instance exports, then pick a tool.</div>
+      <div class="landing-sub">Register your ServiceNow instance exports, then open a tool on any instance.</div>
     </div>
 
-    <div class="landing-cols">
-      <!-- Instances panel: register + manage exports -->
-      <section class="landing-panel landing-instances-panel">
-        <h2 class="landing-h2">Instances</h2>
-        <div class="drop-zone" id="drop-zone">
-          <input type="file" id="file-input" accept=".json" multiple>
-          <div class="drop-zone-icon">⬇</div>
-          <div class="drop-zone-text">Drop schema JSON here</div>
-          <div class="drop-zone-hint">single file <em>or</em> manifest + .part*.json (multi-select / drop together) · or tap to browse</div>
-        </div>
-        <button class="btn cf-btn landing-demo-btn" id="btn-demo">Load Demo Dataset</button>
+    <input type="file" id="file-input" accept=".json" multiple hidden>
 
-        <div class="landing-instances" id="landing-instances"><!-- rendered by landing/index.js --></div>
+    <!-- Grid of instance cards + the Add-instance card (rendered by landing/index.js) -->
+    <div class="landing-grid" id="landing-instances"></div>
 
-        <details class="landing-setup">
-          <summary>How to export a schema from ServiceNow</summary>
-          <!--INJECT:setup-instructions-->
-        </details>
-      </section>
-
-      <!-- Tools panel: capability-gated tiles -->
-      <section class="landing-panel landing-tools-panel">
-        <h2 class="landing-h2">Tools</h2>
-        <div class="landing-tools" id="landing-tools"><!-- rendered by landing/index.js --></div>
-      </section>
-    </div>
+    <details class="landing-setup">
+      <summary>How to export a schema from ServiceNow</summary>
+      <!--INJECT:setup-instructions-->
+    </details>
   </div>
 </div>
