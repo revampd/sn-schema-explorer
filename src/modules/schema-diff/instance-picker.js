@@ -1,4 +1,4 @@
-import { instancesState } from '../../core/state.js';
+import { instancesState, diffState } from '../../core/state.js';
 import { createDropdown } from '../../core/dropdown.js';
 
 // ── Diff instance picker ──────────────────────────────────────────────────────
@@ -27,7 +27,10 @@ export function refreshDiffPicker() {
     e => e.capabilities && e.capabilities.schema
   );
   const baseId = instancesState.selectedId;
-  const prevCmp = cmpDD.getValue() || '';
+  // Drive the compare side from the actual diff state, not the dropdown's own
+  // value — during a base switch (e.g. the swap button) the dropdown value is
+  // transiently cleared, but diffState._compareId reflects the true comparison.
+  const prevCmp = diffState._compareId || '';
 
   baseDD.setOptions(
     schemaInstances.map(e => ({ value: e.id, label: e.label })),

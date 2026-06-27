@@ -145,6 +145,7 @@ function loadDiffFromInstances(baseId, compareId) {
       ? structuredClone(compareEntry.data)
       : JSON.parse(JSON.stringify(compareEntry.data));
   loadDiffSchema(compareClone);
+  diffState._compareId = compareId;
   refreshDiffPicker();
 }
 
@@ -152,6 +153,7 @@ function loadDiffFromInstances(baseId, compareId) {
 function clearDiff() {
   diffUngraftAddedFromBase();
   diffState._diffData = null;
+  diffState._compareId = null;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
   diffState._diffSearch = '';

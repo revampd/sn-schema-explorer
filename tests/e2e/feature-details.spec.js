@@ -199,4 +199,17 @@ test.describe('Schema Diff interactions', () => {
     await pickDropdown(page, 'diff-compare-mount', 'test-instance-b');
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   });
+
+  test('swap button flips base and compare, keeping the old base as compare', async ({ page }) => {
+    await openDiff(page); // base = test-instance, compare = test-instance-b
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+
+    await page.locator('#diff-swap-btn').click();
+
+    // The two pickers swap: base becomes test-instance-b, compare becomes the
+    // previous base (test-instance) — not cleared.
+    await expect(page.locator('#diff-base-mount .sn-dd-label')).toHaveText('test-instance-b');
+    await expect(page.locator('#diff-compare-mount .sn-dd-label')).toHaveText('test-instance');
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+  });
 });

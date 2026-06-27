@@ -19,6 +19,7 @@ import {
   selectInstance,
   _resetInstances,
 } from '../../../../src/core/instances-state.js';
+import { diffState } from '../../../../src/core/state.js';
 
 const SCHEMA_DATA = { nodes: [{ id: 'task' }], edges: [] };
 const NO_SCHEMA = { nodes: [], edges: [] }; // schema cap false (no nodes)
@@ -46,6 +47,7 @@ const pick = (mount, label) => {
 beforeEach(() => {
   _resetInstances();
   localStorage.clear();
+  diffState._compareId = null;
   setupDom();
 });
 
@@ -128,8 +130,14 @@ describe('initDiffInstancePicker', () => {
     void instancesState;
   });
 
-  it('swaps base and compare when the swap button is clicked', () => {
-    const loadDiffFromInstances = vi.fn();
+  it('swaps base and compare when the swap button is clicked, keeping the old base as compare', () => {
+    // The real loader selects the new base and records the active compare in
+    // diffState; mirror both so refreshDiffPicker repopulates each side from the
+    // true diff state (not the dropdown value, which is cleared mid-swap).
+    const loadDiffFromInstances = vi.fn((baseId, compareId) => {
+      if (baseId) selectInstance(baseId);
+      diffState._compareId = compareId || null;
+    });
     const a = addInstance({ label: 'Dev', data: SCHEMA_DATA });
     const b = addInstance({ label: 'Test', data: SCHEMA_DATA });
     selectInstance(a.id);
@@ -138,7 +146,7 @@ describe('initDiffInstancePicker', () => {
     const swap = document.getElementById('diff-swap-btn');
     expect(swap.disabled).toBe(true); // no compare yet → nothing to swap
 
-    pick('diff-compare-mount', 'Test');
+    pick('diff-compare-mount', 'Test'); // base=Dev, compare=Test
     refreshDiffPicker();
     expect(swap.disabled).toBe(false);
 
@@ -146,5 +154,9 @@ describe('initDiffInstancePicker', () => {
     swap.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     // base ⇄ compare: previous compare (b) becomes base, previous base (a) compare.
     expect(loadDiffFromInstances).toHaveBeenCalledWith(b.id, a.id);
+
+    refreshDiffPicker();
+    expect(selectedLabel('diff-base-mount')).toBe('Test'); // new base
+    expect(selectedLabel('diff-compare-mount')).toBe('Dev'); // old base preserved as compare
   });
 });
