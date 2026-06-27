@@ -55,6 +55,7 @@ const BASE_CSS = [
   'src/viewer/modules/reference/index.css',
   'src/viewer/modules/guide/index.css',
   'src/viewer/modules/settings/index.css',
+  'src/viewer/styles/workspace.css',
 ];
 
 const FOOTER_DISCLAIMER = `  <span class="footer-disclaimer">
@@ -143,6 +144,9 @@ const BASE_PARTIALS = [
   ['schema-map-sidebar', 'src/viewer/modules/schema-map/sidebar.html'],
   ['load-overlay', 'src/viewer/modules/load/overlay.html'],
   ['schema-map-overlays', 'src/viewer/modules/schema-map/canvas-overlays.html'],
+  // Empty workspace regions (v1.0.3) — populated by their modules in later PRs.
+  ['landing-root', 'src/viewer/modules/landing/region.html'],
+  ['instance-compare', 'src/viewer/modules/instance-compare/region.html'],
   ['context-menu', 'src/viewer/modules/schema-map/context-menu.html'],
   ['reference-modal', 'src/viewer/modules/reference/modal.html'],
   ['settings-modal', 'src/viewer/modules/settings/modal.html'],

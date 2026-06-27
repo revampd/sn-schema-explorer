@@ -55,6 +55,19 @@ test('core UI structure is present on load', async ({ page }) => {
   await expect(page.locator('footer')).toBeVisible();
 });
 
+test('default workspace is schema-explorer with regions hidden (no visible change)', async ({
+  page,
+}) => {
+  await loadApp(page);
+  // The workspace seam (#100) stamps body[data-workspace] from first paint and
+  // keeps the Schema Explorer chrome as the baseline.
+  await expect(page.locator('body')).toHaveAttribute('data-workspace', 'schema-explorer');
+  await expect(page.locator('#canvas')).toBeVisible();
+  // The empty landing + comparison regions exist but stay hidden.
+  await expect(page.locator('#landing-root')).toBeHidden();
+  await expect(page.locator('#instance-compare')).toBeHidden();
+});
+
 test('load overlay is visible before a schema is loaded', async ({ page }) => {
   await loadApp(page);
   // The load overlay should be visible on first open

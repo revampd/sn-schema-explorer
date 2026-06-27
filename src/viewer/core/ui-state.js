@@ -2,6 +2,12 @@ import { Config } from './constants.js';
 
 export const uiState = {
   selectedNode: null,
+  // Workspace is a SIBLING of viewMode, not a 4th mode: it selects which
+  // top-level tool is showing ('landing' | 'schema-explorer' |
+  // 'instance-comparison'), while viewMode ('force'|'path'|'diff') stays the
+  // graph sub-mode within the Schema Explorer workspace. Default keeps current
+  // behaviour until the landing page becomes the front door (later PR).
+  workspace: 'schema-explorer',
   viewMode: 'force',
   showLabels: false,
   showRefTo: true,

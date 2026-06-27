@@ -1,0 +1,12 @@
+/* ── Workspace regions (v1.0.3) ──────────────────────────────────────────────
+ * Top-level tool regions that are siblings of the Schema Explorer chrome.
+ * Hidden by default; the workspace controller (engine/workspace.js) adds
+ * `.workspace-active` to the region matching uiState.workspace. The Schema
+ * Explorer chrome is the baseline and is not a region, so the default
+ * workspace ('schema-explorer') leaves these hidden and the app unchanged. */
+.workspace-region {
+  display: none;
+}
+.workspace-region.workspace-active {
+  display: block;
+}

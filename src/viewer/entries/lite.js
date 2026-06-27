@@ -19,6 +19,7 @@ import {
   pushHistory,
 } from '../modules/history/index.js';
 import { setViewModeHistoryHook, setViewMode } from '../engine/view-mode.js';
+import { initWorkspaces } from '../engine/workspace.js';
 
 // ── Genuine circular dependencies wired at startup ───────────────────────────
 //
@@ -44,6 +45,7 @@ setViewModeHistoryHook(pushHistory); // view-mode.js calls pushHistory after set
 setHistoryViewModeHook(setViewMode); // history uses setViewMode to sync DOM during restore
 setHistoryClearSelFn(clearSelection); // history calls clearSelection for null-selection restores
 
+initWorkspaces();
 initLoadOverlay();
 initSearchListeners();
 initExportListeners();

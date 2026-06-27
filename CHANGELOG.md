@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   capability detection and list-only persistence (`snse:instances:v1`; heavy
   schema data stays in memory). No user-facing change yet — tools become
   registry consumers in later PRs.
+- **Workspace controller** (internal structural seam,
+  [#100](https://github.com/revampd/sn-schema-explorer/issues/100)). New
+  `engine/workspace.js` adds a workspace layer (`landing` / `schema-explorer` /
+  `instance-comparison`) that is a sibling of the graph view-mode, plus empty
+  landing + comparison regions. The default stays `schema-explorer`, so there is
+  no visible change; the landing page becomes the front door in a later PR.
 
 ### Changed
 
