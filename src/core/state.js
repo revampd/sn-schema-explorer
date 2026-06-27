@@ -7,7 +7,7 @@ export {
   edgeTargetId,
 } from './graph-state.js';
 export { uiState } from './ui-state.js';
-export { diffState, isComparing, isStructureLayerOn } from './diff-state.js';
+export { diffState, isComparing, isStructureLayerOn, isConfigLayerOn } from './diff-state.js';
 export {
   focusState,
   onFocusChange,

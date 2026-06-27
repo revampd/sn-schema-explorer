@@ -55,6 +55,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **One "Differences" canvas control** instead of two layer toggles
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The separate
+  **Structure changes** and **Config drift** buttons on the Schema Map are
+  replaced, while a comparison is active, by a single **Differences** toggle with
+  two sub-mutes — **Structure** (node colours + edge pills) and **Config** (drift
+  badges; shown only when both sides export app metadata). The master mutes both
+  channels without dropping the comparison. The standalone config-drift overlay
+  (used when no comparison is active) stands down during a comparison so there's
+  only ever one config control.
 - **One unified "Differences" report** in the diff sidebar
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150),
   [#149](https://github.com/revampd/sn-schema-explorer/issues/149)). The structural
