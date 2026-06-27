@@ -1,4 +1,11 @@
-import { graphState, uiState, diffState, getInstance, instancesState } from '../../core/state.js';
+import {
+  graphState,
+  uiState,
+  diffState,
+  getInstance,
+  instancesState,
+  setCompareId,
+} from '../../core/state.js';
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -147,7 +154,7 @@ function loadDiffFromInstances(baseId, compareId) {
       ? structuredClone(compareEntry.data)
       : JSON.parse(JSON.stringify(compareEntry.data));
   loadDiffSchema(compareClone);
-  diffState._compareId = compareId;
+  setCompareId(compareId);
   refreshDiffPicker();
 }
 
@@ -155,7 +162,7 @@ function loadDiffFromInstances(baseId, compareId) {
 function clearDiff() {
   diffUngraftAddedFromBase();
   diffState._diffData = null;
-  diffState._compareId = null;
+  setCompareId(null);
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
   uiState._viewPositionCache.diff = null;
