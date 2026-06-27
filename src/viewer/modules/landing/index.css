@@ -25,9 +25,19 @@ body[data-workspace='landing'] #btn-home {
   text-align: center;
   margin-bottom: 28px;
 }
+.landing-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
 .landing-title {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 .landing-sub {
@@ -49,10 +59,13 @@ body[data-workspace='landing'] #btn-home {
 }
 
 .inst-card {
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 16px;
-  background: var(--panel, var(--bg));
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   min-height: 190px;
@@ -142,6 +155,20 @@ body[data-workspace='landing'] #btn-home {
 .ic-sec-label {
   color: var(--text);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.ic-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  border: 1.5px solid var(--muted);
+}
+.ic-dot.on {
+  background: var(--sn-wasabi);
+  border-color: var(--sn-wasabi);
 }
 .ic-sec-val {
   color: var(--sn-wasabi, #62d84e);
