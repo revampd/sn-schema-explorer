@@ -53,30 +53,30 @@
               <div class="bg-config-grid">
                 <label class="bg-cfg-row">
                   <span class="bg-cfg-label">Output format</span>
-                  <select data-bg="format">
+                  <select class="sn-select" data-bg="format">
                     <option value="json">JSON (viewer-ready)</option>
                     <option value="markdown">Markdown</option>
                     <option value="jsonld">JSON-LD</option>
                   </select>
                 </label>
-                <label class="bg-cfg-check"><input type="checkbox" data-bg="includeRecordCounts"> Per-table record counts <em>(adds 5–15 min)</em></label>
-                <label class="bg-cfg-check"><input type="checkbox" data-bg="printToScriptOutput"> Also print JSON to script output</label>
-                <label class="bg-cfg-check"><input type="checkbox" data-bg="includePropertyValues"> Include property values <em>(denylist-redacted)</em></label>
+                <label class="sn-toggle"><input type="checkbox" data-bg="includeRecordCounts"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Per-table record counts <em>(adds 5–15 min)</em></span></label>
+                <label class="sn-toggle"><input type="checkbox" data-bg="printToScriptOutput"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Also print JSON to script output</span></label>
+                <label class="sn-toggle"><input type="checkbox" data-bg="includePropertyValues"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
                 <fieldset class="bg-cfg-set" data-bg-group="metadataSections">
                   <legend>Metadata sections <em>(JSON only)</em></legend>
-                  <label><input type="checkbox" value="plugins"> Plugins</label>
-                  <label><input type="checkbox" value="storeApps"> Store apps</label>
-                  <label><input type="checkbox" value="customApps"> Custom apps</label>
-                  <label><input type="checkbox" value="properties"> Properties</label>
+                  <label class="sn-toggle"><input type="checkbox" value="plugins"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="storeApps"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="customApps"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="properties"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
                 </fieldset>
                 <fieldset class="bg-cfg-set" data-bg-group="edgeTypes">
                   <legend>Edge types <em>(Markdown / JSON-LD)</em></legend>
-                  <label><input type="checkbox" value="reference" checked> reference</label>
-                  <label><input type="checkbox" value="extends" checked> extends</label>
-                  <label><input type="checkbox" value="m2m" checked> m2m</label>
-                  <label><input type="checkbox" value="rel" checked> rel</label>
-                  <label><input type="checkbox" value="view" checked> view</label>
-                  <label><input type="checkbox" value="cmdb_rel" checked> cmdb_rel</label>
+                  <label class="sn-toggle"><input type="checkbox" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="extends" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">extends</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="m2m" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">m2m</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">rel</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="view" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">view</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="cmdb_rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">cmdb_rel</span></label>
                 </fieldset>
               </div>
             </div>

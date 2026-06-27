@@ -118,28 +118,18 @@
   align-items: center;
   margin-bottom: 14px;
 }
-.cd-controls input[type='text'],
-.cd-controls select {
+.cd-controls input[type='text'] {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   color: var(--text);
   padding: 7px 10px;
   border-radius: var(--radius-sm);
   font-size: 13px;
-}
-.cd-controls input[type='text'] {
   min-width: 220px;
 }
-.cd-controls select option {
-  background: var(--sn-infinite);
-}
-.cd-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.cd-controls .sn-select {
   font-size: 13px;
-  color: var(--muted);
-  cursor: pointer;
+  padding: 7px 10px;
 }
 #cd-export {
   margin-left: auto;

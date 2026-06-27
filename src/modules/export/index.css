@@ -7,65 +7,7 @@
   font-size: 10px;
   color: var(--muted);
 }
-/* Include-edge-legend toggle — iOS-style switch wrapping a real checkbox,
-   sits inline in the image-export row next to PNG/SVG. */
-.export-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-/* Visually hide the checkbox but keep it accessible + the change listener live */
-.export-toggle input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-.export-toggle-track {
-  position: relative;
-  flex-shrink: 0;
-  width: 36px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--sn-border);
-  border-radius: 11px;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
-}
-.export-toggle-track::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  background: var(--muted);
-  border-radius: 50%;
-  transition:
-    transform 0.2s,
-    background 0.2s;
-}
-.export-toggle input:checked + .export-toggle-track {
-  background: rgba(99, 223, 78, 0.25);
-  border-color: var(--sn-wasabi);
-}
-.export-toggle input:checked + .export-toggle-track::after {
-  transform: translateX(16px);
-  background: var(--sn-wasabi);
-}
-.export-toggle input:focus-visible + .export-toggle-track {
-  outline: 2px solid var(--sn-wasabi);
-  outline-offset: 1px;
-}
-.export-toggle-label {
-  font-size: 11px;
-  color: var(--text);
-  white-space: nowrap;
-}
+
 /* PNG scale slider */
 .export-scale-slider-wrap {
   display: flex;

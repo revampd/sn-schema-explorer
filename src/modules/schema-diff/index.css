@@ -26,19 +26,9 @@
   width: 56px;
   flex-shrink: 0;
 }
-.diff-select {
+.diff-picker-row .sn-select {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
-  padding: 5px 6px;
-  border: 1px solid var(--sn-border);
-  border-radius: 6px;
-  background: var(--sn-panel, transparent);
-  color: var(--text);
-}
-.diff-select:focus {
-  outline: none;
-  border-color: var(--diff-changed);
 }
 .diff-picker-empty {
   font-size: 10px;

@@ -213,8 +213,7 @@ aside {
   outline: none;
   border-color: var(--sn-wasabi);
 }
-.fc-text-input,
-.fc-select {
+.fc-text-input {
   flex: 1;
   min-width: 60px;
   background: rgba(255, 255, 255, 0.05);
@@ -224,16 +223,15 @@ aside {
   font-size: 11px;
   padding: 3px 7px;
 }
-.fc-text-input:focus,
-.fc-select:focus {
+.fc-text-input:focus {
   outline: none;
   border-color: var(--sn-wasabi);
 }
-/* Native <select> dropdown popup ignores rgba() backgrounds on Windows/Chrome;
-     setting a solid colour on <option> ensures the list is readable in all browsers. */
-.fc-select option {
-  background: var(--sn-infinite, #13161e);
-  color: var(--text);
+.fc-select {
+  flex: 1;
+  min-width: 60px;
+  font-size: 11px;
+  padding: 3px 7px;
 }
 .fc-num {
   width: 60px;
