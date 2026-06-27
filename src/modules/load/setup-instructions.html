@@ -1,9 +1,4 @@
       <div class="setup-guide-wrap">
-        <button class="setup-guide-toggle" id="sg-toggle-file">
-          <span>⚙ Setup Instructions — Generate the schema JSON</span>
-          <span class="sg-arrow">▼</span>
-        </button>
-        <div class="setup-guide-body" id="sg-body-file">
         <div class="setup-guide">
         <div class="setup-notice info">
           <span class="setup-notice-icon">ℹ</span>
@@ -50,6 +45,40 @@
               <span class="setup-notice-icon">💡</span>
               <span><strong>Record counts are off by default</strong> (<code>includeRecordCounts: false</code> in the CONFIG block).
               Leave it off for the first run — enabling it adds <strong>5–15 minutes</strong> to the export time.</span>
+            </div>
+            <div class="bg-config" id="bg-config">
+              <div class="bg-config-title">⚙ Configure the script
+                <span>— edits the CONFIG block below before you copy</span>
+              </div>
+              <div class="bg-config-grid">
+                <label class="bg-cfg-row">
+                  <span class="bg-cfg-label">Output format</span>
+                  <select data-bg="format">
+                    <option value="json">JSON (viewer-ready)</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="jsonld">JSON-LD</option>
+                  </select>
+                </label>
+                <label class="bg-cfg-check"><input type="checkbox" data-bg="includeRecordCounts"> Per-table record counts <em>(adds 5–15 min)</em></label>
+                <label class="bg-cfg-check"><input type="checkbox" data-bg="printToScriptOutput"> Also print JSON to script output</label>
+                <label class="bg-cfg-check"><input type="checkbox" data-bg="includePropertyValues"> Include property values <em>(denylist-redacted)</em></label>
+                <fieldset class="bg-cfg-set" data-bg-group="metadataSections">
+                  <legend>Metadata sections <em>(JSON only)</em></legend>
+                  <label><input type="checkbox" value="plugins"> Plugins</label>
+                  <label><input type="checkbox" value="storeApps"> Store apps</label>
+                  <label><input type="checkbox" value="customApps"> Custom apps</label>
+                  <label><input type="checkbox" value="properties"> Properties</label>
+                </fieldset>
+                <fieldset class="bg-cfg-set" data-bg-group="edgeTypes">
+                  <legend>Edge types <em>(Markdown / JSON-LD)</em></legend>
+                  <label><input type="checkbox" value="reference" checked> reference</label>
+                  <label><input type="checkbox" value="extends" checked> extends</label>
+                  <label><input type="checkbox" value="m2m" checked> m2m</label>
+                  <label><input type="checkbox" value="rel" checked> rel</label>
+                  <label><input type="checkbox" value="view" checked> view</label>
+                  <label><input type="checkbox" value="cmdb_rel" checked> cmdb_rel</label>
+                </fieldset>
+              </div>
             </div>
             <div class="code-block">
               <div class="code-block-header">
@@ -121,5 +150,4 @@
         </div>
 
       </div><!-- /.setup-guide -->
-        </div><!-- /.setup-guide-body -->
       </div><!-- /.setup-guide-wrap -->

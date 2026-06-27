@@ -9,6 +9,49 @@
  */
 import { graphState, diffState } from './state.js';
 
+// ── Shared HTML primitives ──────────────────────────────────────────────────
+export const esc = s =>
+  String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+const unk = '<span class="insti-unknown">—</span>';
+const kv = (k, v) =>
+  `<dt>${esc(k)}</dt><dd>${v == null || v === '' ? unk : '<code>' + esc(v) + '</code>'}</dd>`;
+
+// Schema stat rows — single source of truth shared by the stat-card grid, the
+// 2-way diff table (modal), and the N-way comparison table (Configuration Data).
+// `get(stats)` reads a value out of a `_stats` object ({counts, coverage}).
+const STAT_ROWS = [
+  { label: 'tables', get: s => s.counts.tables },
+  { label: 'fields', get: s => s.counts.fields },
+  { label: 'references', get: s => s.counts.references },
+  { label: 'M2M', get: s => s.counts.m2m_relationships },
+  { label: 'named rels', get: s => s.counts.named_relationships },
+  { label: 'DB views', get: s => s.counts.db_views },
+  { label: 'view members', get: s => s.counts.view_members },
+  { label: 'extends', get: s => s.counts.extends_edges },
+  { label: 'CI topology', get: s => s.counts.ci_relationships },
+  { label: 'scopes', get: s => s.counts.unique_scopes },
+  { label: 'type catalog', get: s => s.counts.type_catalog_entries },
+  { label: 'deepest chain', get: s => s.coverage.deepest_inheritance_chain },
+  {
+    label: 'avg fields/tbl',
+    get: s =>
+      s.coverage.avg_fields_per_table != null
+        ? +Number(s.coverage.avg_fields_per_table).toFixed(1)
+        : null,
+  },
+];
+
+// Safe stat accessor — tolerates missing counts/coverage sub-objects.
+function statVal(stats, row) {
+  if (!stats) return null;
+  const s = { counts: stats.counts || {}, coverage: stats.coverage || {} };
+  const v = row.get(s);
+  return v == null ? null : v;
+}
+
 export function updateInstancePill() {
   const pill = document.getElementById('footer-instance');
   if (!pill) return;
@@ -48,7 +91,7 @@ export function updateInstancePill() {
 
 // opts.noStatCards — suppress the schema stat-card grid (used in diff mode where
 //                    the stats comparison table already covers this information)
-function _instanceSectionsHtml(scope, esc, kv, opts) {
+export function instanceSectionsHtml(scope, opts) {
   opts = opts || {};
   const inst = scope.instance || {};
   const stats = scope.stats || {};
@@ -95,26 +138,9 @@ function _instanceSectionsHtml(scope, esc, kv, opts) {
   html += `</dl></div>`;
 
   if (!opts.noStatCards) {
-    const counts = stats.counts || {};
-    const coverage = stats.coverage || {};
-    const statCards = [
-      { n: counts.tables, label: 'tables' },
-      { n: counts.fields, label: 'fields' },
-      { n: counts.references, label: 'references' },
-      { n: counts.m2m_relationships, label: 'M2M' },
-      { n: counts.named_relationships, label: 'named rels' },
-      { n: counts.db_views, label: 'DB views' },
-      { n: counts.view_members, label: 'view members' },
-      { n: counts.extends_edges, label: 'extends' },
-      { n: counts.ci_relationships, label: 'CI topology' },
-      { n: counts.unique_scopes, label: 'scopes' },
-      { n: counts.type_catalog_entries, label: 'type catalog' },
-      { n: coverage.deepest_inheritance_chain, label: 'deepest chain' },
-      {
-        n: coverage.avg_fields_per_table != null ? +coverage.avg_fields_per_table.toFixed(1) : null,
-        label: 'avg fields/tbl',
-      },
-    ].filter(c => c.n != null);
+    const statCards = STAT_ROWS.map(r => ({ n: statVal(stats, r), label: r.label })).filter(
+      c => c.n != null
+    );
     if (statCards.length) {
       html += `<div class="insti-section"><h3>Schema</h3><div class="insti-stat-grid">`;
       for (const c of statCards) {
@@ -151,33 +177,14 @@ function _instanceSectionsHtml(scope, esc, kv, opts) {
 
 // Side-by-side stats comparison table rendered in diff mode.
 // Columns: stat label | base value | compare value | Δ (delta)
-function _statsDiffHtml(baseStats, cmpStats, esc) {
+function _statsDiffHtml(baseStats, cmpStats) {
   if (!baseStats && !cmpStats) return '';
-  const bc = (baseStats && baseStats.counts) || {};
-  const cc = (cmpStats && cmpStats.counts) || {};
-  const bv = (baseStats && baseStats.coverage) || {};
-  const cv = (cmpStats && cmpStats.coverage) || {};
-  const unk = '<span class="insti-unknown">—</span>';
 
-  const rows = [
-    { label: 'tables', b: bc.tables, c: cc.tables },
-    { label: 'fields', b: bc.fields, c: cc.fields },
-    { label: 'references', b: bc.references, c: cc.references },
-    { label: 'M2M', b: bc.m2m_relationships, c: cc.m2m_relationships },
-    { label: 'named rels', b: bc.named_relationships, c: cc.named_relationships },
-    { label: 'DB views', b: bc.db_views, c: cc.db_views },
-    { label: 'view members', b: bc.view_members, c: cc.view_members },
-    { label: 'extends', b: bc.extends_edges, c: cc.extends_edges },
-    { label: 'CI topology', b: bc.ci_relationships, c: cc.ci_relationships },
-    { label: 'scopes', b: bc.unique_scopes, c: cc.unique_scopes },
-    { label: 'type catalog', b: bc.type_catalog_entries, c: cc.type_catalog_entries },
-    { label: 'deepest chain', b: bv.deepest_inheritance_chain, c: cv.deepest_inheritance_chain },
-    {
-      label: 'avg fields/tbl',
-      b: bv.avg_fields_per_table != null ? +Number(bv.avg_fields_per_table).toFixed(1) : null,
-      c: cv.avg_fields_per_table != null ? +Number(cv.avg_fields_per_table).toFixed(1) : null,
-    },
-  ].filter(r => r.b != null || r.c != null);
+  const rows = STAT_ROWS.map(r => ({
+    label: r.label,
+    b: statVal(baseStats, r),
+    c: statVal(cmpStats, r),
+  })).filter(r => r.b != null || r.c != null);
 
   if (!rows.length) return '';
 
@@ -230,20 +237,138 @@ function _statsDiffHtml(baseStats, cmpStats, esc) {
   return html;
 }
 
+// ── N-way comparison (Configuration Data → Instance Data tab) ────────────────
+
+function scopeLabel(scope, i) {
+  return scope.label || (scope.instance && scope.instance.instance_name) || 'Instance ' + (i + 1);
+}
+
+// Identity / Runtime / Export attribute groups for the comparison table.
+// Each accessor reads from a normalised scope ({ instance, build, version }).
+const INFO_GROUPS = [
+  {
+    title: 'Identity',
+    rows: [
+      ['instance name', s => s.instance.instance_name],
+      ['instance URL', s => s.instance.instance_url],
+      ['build name', s => s.instance.build_name],
+      ['build tag', s => s.instance.build_tag],
+      ['build date', s => s.instance.build_date],
+    ],
+  },
+  {
+    title: 'Runtime',
+    rows: [
+      ['app nodes', s => s.instance.node_count],
+      ['active plugins', s => s.instance.active_plugins],
+      ['active packages', s => s.instance.active_packages],
+      ['active languages', s => s.instance.active_languages],
+    ],
+  },
+  {
+    title: 'Export',
+    rows: [
+      ['exported at', s => s.instance.exported_at],
+      ['exported by', s => s.instance.exported_by],
+      ['schema version', s => s.version],
+      ['builder version', s => s.build && s.build.builderVersion],
+      [
+        'build time',
+        s =>
+          s.build && s.build.elapsedMs != null ? (s.build.elapsedMs / 1000).toFixed(1) + 's' : null,
+      ],
+    ],
+  },
+];
+
+const hasVal = v => v != null && v !== '';
+
+/**
+ * Full instance-comparison panel for an arbitrary number of instances, rendered
+ * as ONE aligned table: attribute rows × instance columns. Column 0 is the muted
+ * reference (base); schema-stat columns are coloured by direction vs base with an
+ * inline delta. Identity/runtime/export rows are plain text. A single table keeps
+ * every row aligned across columns (independent per-instance blocks did not) and
+ * scrolls horizontally past the container width. Pure HTML; `scopes` is an array
+ * of { label, loaded, instance, stats, build, version }. Un-loaded placeholders
+ * still show identity/runtime from their persisted `instance` metadata and are
+ * blank in the stats rows.
+ */
+export function instancesComparisonHtml(scopes) {
+  if (!scopes || !scopes.length) return '';
+  const norm = scopes.map((sc, i) => ({
+    loaded: sc.loaded,
+    stats: sc.stats,
+    build: sc.build,
+    version: sc.version,
+    instance: sc.instance && typeof sc.instance === 'object' ? sc.instance : {},
+    _label: scopeLabel(sc, i),
+  }));
+  const ncol = norm.length + 1;
+
+  let html = '<div class="insti-section"><div class="insti-ntable-wrap">';
+  html += '<table class="insti-ntable insti-compare"><thead><tr><th></th>';
+  norm.forEach((s, i) => {
+    const note = s.loaded ? '' : '<span class="insti-unknown"> · meta only</span>';
+    html += `<th class="${i === 0 ? 'isd-h-base' : 'isd-h-cmp'}">${esc(s._label)}${note}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Identity / Runtime / Export — plain text, only groups/rows with any value.
+  for (const g of INFO_GROUPS) {
+    const rows = g.rows.filter(([, get]) => norm.some(s => hasVal(get(s))));
+    if (!rows.length) continue;
+    html += `<tr class="insti-grp"><td colspan="${ncol}">${esc(g.title)}</td></tr>`;
+    for (const [label, get] of rows) {
+      html += `<tr><td class="isd-lbl">${esc(label)}</td>`;
+      norm.forEach(s => {
+        const v = get(s);
+        html += `<td class="insti-txt">${hasVal(v) ? esc(v) : unk}</td>`;
+      });
+      html += '</tr>';
+    }
+  }
+
+  // Schema stats — coloured by direction vs base, with inline deltas.
+  const statRows = STAT_ROWS.map(r => ({
+    label: r.label,
+    vals: norm.map(s => statVal(s.stats, r)),
+  })).filter(r => r.vals.some(v => v != null));
+  if (statRows.length) {
+    html += `<tr class="insti-grp"><td colspan="${ncol}">Schema stats</td></tr>`;
+    for (const r of statRows) {
+      html += `<tr><td class="isd-lbl">${esc(r.label)}</td>`;
+      const baseVal = r.vals[0];
+      r.vals.forEach((v, i) => {
+        if (i === 0) {
+          html += `<td class="isd-bval">${v != null ? esc(v) : unk}</td>`;
+          return;
+        }
+        let cls = 'isd-same';
+        let delta = '';
+        if (v != null && baseVal != null) {
+          const d = v - baseVal;
+          if (d > 0) cls = 'isd-up';
+          else if (d < 0) cls = 'isd-down';
+          if (d !== 0) delta = ` <span class="isd-delta-inline">(${d > 0 ? '+' : ''}${d})</span>`;
+        } else if (v != null && baseVal == null) {
+          cls = 'isd-up';
+        }
+        html += `<td class="isd-cval ${cls}">${v != null ? esc(v) + delta : unk}</td>`;
+      });
+      html += '</tr>';
+    }
+  }
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
 export function showInstanceInfo() {
   const overlay = document.getElementById('insti-overlay');
   const body = document.getElementById('insti-body');
   const title = document.getElementById('insti-title');
   if (!overlay || !body) return;
-
-  const esc = s =>
-    String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  const unk = '<span class="insti-unknown">—</span>';
-  const kv = (k, v) =>
-    `<dt>${esc(k)}</dt><dd>${v == null || v === '' ? unk : '<code>' + esc(v) + '</code>'}</dd>`;
 
   const base = {
     instance: graphState.graphData && graphState.graphData._instance,
@@ -267,13 +392,13 @@ export function showInstanceInfo() {
       version: diffD._compareVersion,
     };
     html += '<div class="insti-banner insti-banner-base">Base schema</div>';
-    html += _instanceSectionsHtml(base, esc, kv, { noStatCards: true });
+    html += instanceSectionsHtml(base, { noStatCards: true });
     html += '<div class="insti-banner insti-banner-compare">Compare schema</div>';
-    html += _instanceSectionsHtml(cmpScope, esc, kv, { noStatCards: true });
-    html += _statsDiffHtml(base.stats, diffD._compareStats, esc);
+    html += instanceSectionsHtml(cmpScope, { noStatCards: true });
+    html += _statsDiffHtml(base.stats, diffD._compareStats);
   } else {
     if (title) title.textContent = 'Instance';
-    html += _instanceSectionsHtml(base, esc, kv);
+    html += instanceSectionsHtml(base);
   }
 
   body.innerHTML = html;

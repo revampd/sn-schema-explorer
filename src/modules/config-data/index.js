@@ -15,6 +15,12 @@ import { setWorkspace, registerWorkspace, onWorkspaceChange } from '../../core/w
 import { registerTool, refreshLanding } from '../landing/index.js';
 import { reconcile, reconcileToCsv, SECTION_LABELS } from './reconcile.js';
 import { renderComparisonTable } from './table-view.js';
+import { instancesComparisonHtml } from '../../core/instance-info.js';
+
+// Sentinel section key for the always-present Instance Data tab. Not a metadata
+// section — it renders the instance identity / runtime / export + a schema-stats
+// comparison across every registered instance (see core/instance-info.js).
+const INSTANCE_TAB = '__instance__';
 
 // ── Settings feature ──────────────────────────────────────────────────────
 Settings.registerFeature({
@@ -29,28 +35,107 @@ Settings.registerFeature({
 registerWorkspace({ key: 'config-data', root: '#config-data' });
 
 // ── View state ────────────────────────────────────────────────────────────
-const view = { section: null, search: '', filter: 'all', showDates: false };
+// selectedIds: null = "all registered instances"; otherwise an explicit subset.
+const view = { section: null, search: '', filter: 'all', showDates: false, selectedIds: null };
 
-// Sections that ≥1 registered instance carries. A single instance shows one
-// column; two or more light up drift / missing / state-mismatch.
-function comparableSections() {
-  const agg = aggregateCapabilities();
-  return METADATA_SECTIONS.filter(s => agg[s] && agg[s].count >= 1);
+// The instances currently chosen for comparison (defaults to all). Stale ids
+// (removed instances) are dropped; an empty selection falls back to all.
+function selectedInstances() {
+  const all = instancesState.instances;
+  if (!view.selectedIds) return all;
+  const set = new Set(view.selectedIds);
+  const sel = all.filter(e => set.has(e.id));
+  return sel.length ? sel : all;
 }
 
+// How many of the *selected* instances carry a given metadata section.
+function sectionCarriers(section) {
+  return selectedInstances().filter(e => e.capabilities && e.capabilities[section]).length;
+}
+
+// Sections that ≥1 selected instance carries. A single instance shows one
+// column; two or more light up drift / missing / state-mismatch.
+function comparableSections() {
+  return METADATA_SECTIONS.filter(s => sectionCarriers(s) >= 1);
+}
+
+// Tool-enablement (landing card) is based on ALL registered instances, not the
+// in-workspace selection — the workspace is reachable whenever any instance
+// carries a section.
 function hasComparable() {
-  return comparableSections().length > 0;
+  const agg = aggregateCapabilities();
+  return METADATA_SECTIONS.some(s => agg[s] && agg[s].count >= 1);
 }
 
 // ── Rendering ───────────────────────────────────────────────────────────────
+
+// Instance picker — toggle which registered instances participate. Hidden when
+// there's nothing to choose (≤1 instance).
+function renderInstanceSelector() {
+  const host = document.getElementById('cd-instances');
+  if (!host) return;
+  host.textContent = '';
+  const all = instancesState.instances;
+  if (all.length <= 1) {
+    host.style.display = 'none';
+    return;
+  }
+  host.style.display = '';
+  const selSet = new Set(selectedInstances().map(e => e.id));
+  const label = document.createElement('span');
+  label.className = 'cd-instances-label';
+  label.textContent = 'Compare:';
+  host.appendChild(label);
+  all.forEach(e => {
+    const on = selSet.has(e.id);
+    const chip = document.createElement('button');
+    chip.className = 'cd-inst-chip' + (on ? ' active' : '');
+    chip.textContent = e.label;
+    chip.title = on ? 'Click to exclude from comparison' : 'Click to include in comparison';
+    chip.addEventListener('click', () => toggleInstance(e.id));
+    host.appendChild(chip);
+  });
+}
+
+function toggleInstance(id) {
+  const cur = new Set(selectedInstances().map(e => e.id));
+  if (cur.has(id)) {
+    if (cur.size > 1) cur.delete(id); // keep at least one selected
+  } else {
+    cur.add(id);
+  }
+  // Store in registry order; null when everything is selected (the default).
+  const ids = instancesState.instances.map(e => e.id).filter(x => cur.has(x));
+  view.selectedIds = ids.length === instancesState.instances.length ? null : ids;
+  renderCompare();
+}
 
 function renderTabs() {
   const host = document.getElementById('cd-tabs');
   if (!host) return;
   host.textContent = '';
-  const agg = aggregateCapabilities();
+
+  // Instance Data tab — always present whenever ≥1 selected instance exists.
+  const instCount = selectedInstances().length;
+  const instBtn = document.createElement('button');
+  instBtn.className = 'cd-tab' + (view.section === INSTANCE_TAB ? ' active' : '');
+  instBtn.disabled = instCount < 1;
+  instBtn.dataset.section = INSTANCE_TAB;
+  instBtn.title =
+    instCount < 1
+      ? 'Instance Data — register an instance to view it here'
+      : `Instance Data — ${instCount} instance${instCount === 1 ? '' : 's'}`;
+  instBtn.textContent = 'Instance Data';
+  if (instCount >= 1) {
+    instBtn.addEventListener('click', () => {
+      view.section = INSTANCE_TAB;
+      renderCompare();
+    });
+  }
+  host.appendChild(instBtn);
+
   METADATA_SECTIONS.forEach(section => {
-    const carriers = (agg[section] && agg[section].count) || 0;
+    const carriers = sectionCarriers(section);
     const enabled = carriers >= 1;
     const btn = document.createElement('button');
     btn.className = 'cd-tab' + (section === view.section ? ' active' : '');
@@ -99,18 +184,67 @@ function renderStats(result) {
 }
 
 function currentResult() {
-  // Compare across every registered instance; reconcile() keeps only those that
+  // Compare across the selected instances; reconcile() keeps only those that
   // carry the section as the table's columns.
-  return reconcile(view.section, instancesState.instances);
+  return reconcile(view.section, selectedInstances());
+}
+
+// Map a registry entry to an instance-info scope. Un-loaded placeholders
+// (data:null) still expose identity/runtime from their persisted `meta`.
+function scopeFromEntry(e) {
+  const d = e.data;
+  return {
+    label: e.label,
+    loaded: !!d,
+    instance: (d && d._instance) || e.meta || {},
+    stats: d && d._stats,
+    capabilities: d && d._capabilities,
+    build: d && d._build,
+    version: d && d._schema_version,
+  };
+}
+
+// Toggle between the metadata-comparison view and the Instance Data panel.
+function showInstanceMode(on) {
+  const controls = document.querySelector('#config-data .cd-controls');
+  const stats = document.getElementById('cd-stats');
+  const tableWrap = document.getElementById('cd-table-wrap');
+  const empty = document.getElementById('cd-empty');
+  const inst = document.getElementById('cd-instance');
+  if (controls) controls.style.display = on ? 'none' : '';
+  if (stats) stats.style.display = on ? 'none' : '';
+  if (inst) inst.style.display = on ? '' : 'none';
+  if (on) {
+    if (tableWrap) tableWrap.style.display = 'none';
+    if (empty) empty.style.display = 'none';
+  }
+}
+
+function renderInstanceData() {
+  const host = document.getElementById('cd-instance');
+  if (!host) return;
+  const scopes = selectedInstances().map(scopeFromEntry);
+  host.innerHTML = scopes.length ? instancesComparisonHtml(scopes) : '';
 }
 
 function renderCompare() {
+  renderInstanceSelector();
   const sections = comparableSections();
-  // Pick/keep a valid section.
-  if (!view.section || !sections.includes(view.section)) {
-    view.section = sections[0] || METADATA_SECTIONS[0];
+  const hasInstances = selectedInstances().length > 0;
+  // Keep the Instance Data tab if chosen; otherwise pick a valid metadata
+  // section, falling back to Instance Data when instances exist but carry no
+  // metadata sections (so the workspace is never blank).
+  if (view.section !== INSTANCE_TAB && !sections.includes(view.section)) {
+    view.section = sections[0] || (hasInstances ? INSTANCE_TAB : METADATA_SECTIONS[0]);
   }
   renderTabs();
+
+  if (view.section === INSTANCE_TAB) {
+    showInstanceMode(true);
+    renderInstanceData();
+    return;
+  }
+  showInstanceMode(false);
 
   const empty = document.getElementById('cd-empty');
   const tableWrap = document.getElementById('cd-table-wrap');

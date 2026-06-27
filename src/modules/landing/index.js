@@ -103,6 +103,23 @@ function deriveLabel(parsed, fileName) {
   return (fileName || 'Instance').replace(/\.json$/i, '');
 }
 
+// A short, human-readable disambiguator for an instance card. The instance name
+// alone is not unique — the same instance can be exported multiple times (e.g.
+// pre/post upgrade), so we surface the build + export timestamp to tell them
+// apart. Returns '' when no useful metadata is present (older exports).
+export function instanceSubtitle(meta) {
+  if (!meta || typeof meta !== 'object') return '';
+  const parts = [];
+  if (meta.build_name) parts.push(meta.build_name);
+  if (meta.exported_at) {
+    // Node emits ISO; the background script emits a GlideDateTime string
+    // ('YYYY-MM-DD HH:MM:SS'). Both parse; fall back to the raw string.
+    const d = new Date(meta.exported_at);
+    parts.push(isNaN(d.getTime()) ? String(meta.exported_at) : d.toLocaleString());
+  }
+  return parts.join(' · ');
+}
+
 // Register parsed schema data as an instance and select it. Stays on landing.
 function registerFromData(parsed, fileName, source) {
   const entry = addInstance({
@@ -257,15 +274,50 @@ function sectionStatus(entry, def) {
   );
 }
 
+// Swap an instance card's title for an inline text input (no popup). Commits on
+// Enter or blur, cancels on Escape; either way the card is re-rendered.
+function startInlineRename(entry, titleEl) {
+  const input = h('input', {
+    class: 'ic-title-edit',
+    type: 'text',
+    value: entry.label,
+    onclick: ev => ev.stopPropagation(),
+  });
+  let done = false;
+  const finish = save => {
+    if (done) return;
+    done = true;
+    if (save) {
+      const name = input.value.trim();
+      if (name) renameInstance(entry.id, name);
+    }
+    refreshLanding();
+  };
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      finish(true);
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      finish(false);
+    }
+  });
+  input.addEventListener('blur', () => finish(true));
+  titleEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
 function instanceCard(entry) {
   const restored = !entry.data; // persisted placeholder — needs a re-drop
+  const titleEl = h('div', { class: 'ic-title', title: entry.label }, entry.label);
   return h(
     'div',
     { class: 'inst-card' + (restored ? ' restored' : ''), dataInstance: entry.id },
     h(
       'div',
       { class: 'ic-head' },
-      h('div', { class: 'ic-title', title: entry.label }, entry.label),
+      titleEl,
       h(
         'div',
         { class: 'ic-tools' },
@@ -278,11 +330,7 @@ function instanceCard(entry) {
           title: 'Rename',
           onclick: ev => {
             ev.stopPropagation();
-            const name = prompt('Rename instance:', entry.label);
-            if (name != null) {
-              renameInstance(entry.id, name.trim());
-              refreshLanding();
-            }
+            startInlineRename(entry, titleEl);
           },
         },
         '✎'
@@ -301,6 +349,10 @@ function instanceCard(entry) {
         '×'
       )
     ),
+    (() => {
+      const sub = instanceSubtitle(entry.meta);
+      return sub ? h('div', { class: 'ic-sub', title: sub }, sub) : null;
+    })(),
     h(
       'div',
       { class: 'ic-body' },
@@ -352,13 +404,6 @@ export function refreshLanding() {
 
 // ── Setup-instructions UI (relocated from load) ─────────────────────────────
 
-function toggleSetupGuide(btn) {
-  const bodyId = btn.id.replace('sg-toggle-', 'sg-body-');
-  const body = document.getElementById(bodyId);
-  const open = btn.classList.toggle('open');
-  if (body) body.classList.toggle('open', open);
-}
-
 function copyCode(btn) {
   const pre = btn.closest('.code-block').querySelector('pre');
   navigator.clipboard
@@ -382,6 +427,78 @@ function copyCode(btn) {
     });
 }
 
+// ── Background-script config UI ──────────────────────────────────────────────
+//
+// The setup section lets the user tweak the most common CONFIG fields of the
+// background exporter before copying it. We keep the bg script itself the single
+// source of truth: rather than templating a CONFIG block, we rewrite only the
+// known field lines INSIDE the `var CONFIG = { … }` block of the displayed
+// source. Always derived from the pristine original so edits are idempotent.
+
+/**
+ * Return the bg script source with the given config applied. Pure + exported
+ * for unit testing. Unknown/absent fields are left untouched; if the CONFIG
+ * block can't be located the source is returned unchanged.
+ */
+export function applyBgConfig(source, cfg) {
+  const start = source.indexOf('var CONFIG = {');
+  if (start === -1) return source;
+  const end = source.indexOf('\n};', start);
+  if (end === -1) return source;
+  let block = source.slice(start, end);
+
+  const setStr = (field, val) =>
+    (block = block.replace(new RegExp(`(\\n\\s*${field}:\\s*)'[^']*'`), `$1'${val}'`));
+  const setBool = (field, val) =>
+    (block = block.replace(new RegExp(`(\\n\\s*${field}:\\s*)(?:true|false)`), `$1${val}`));
+  const setArr = (field, arr) => {
+    const list = arr.map(v => `'${v}'`).join(', ');
+    block = block.replace(new RegExp(`(\\n\\s*${field}:\\s*)\\[[^\\]]*\\]`), `$1[${list}]`);
+  };
+
+  if (cfg.format) setStr('format', cfg.format);
+  if (typeof cfg.includeRecordCounts === 'boolean')
+    setBool('includeRecordCounts', cfg.includeRecordCounts);
+  if (typeof cfg.printToScriptOutput === 'boolean')
+    setBool('printToScriptOutput', cfg.printToScriptOutput);
+  if (typeof cfg.includePropertyValues === 'boolean')
+    setBool('includePropertyValues', cfg.includePropertyValues);
+  if (Array.isArray(cfg.metadataSections)) setArr('metadataSections', cfg.metadataSections);
+  if (Array.isArray(cfg.edgeTypes)) setArr('edgeTypes', cfg.edgeTypes);
+
+  return source.slice(0, start) + block + source.slice(end);
+}
+
+// Read the current form state out of the #bg-config panel.
+function readBgConfigForm(root) {
+  const checked = field => {
+    const el = root.querySelector(`[data-bg="${field}"]`);
+    return el ? el.checked : false;
+  };
+  const groupValues = group =>
+    [...root.querySelectorAll(`[data-bg-group="${group}"] input:checked`)].map(i => i.value);
+  const fmtEl = root.querySelector('[data-bg="format"]');
+  return {
+    format: fmtEl ? fmtEl.value : 'json',
+    includeRecordCounts: checked('includeRecordCounts'),
+    printToScriptOutput: checked('printToScriptOutput'),
+    includePropertyValues: checked('includePropertyValues'),
+    metadataSections: groupValues('metadataSections'),
+    edgeTypes: groupValues('edgeTypes'),
+  };
+}
+
+function initBgConfig() {
+  const panel = document.getElementById('bg-config');
+  const pre = document.getElementById('code-bg');
+  if (!panel || !pre) return;
+  const original = pre.textContent;
+  const rerender = () => {
+    pre.textContent = applyBgConfig(original, readBgConfigForm(panel));
+  };
+  panel.addEventListener('change', rerender);
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 export function initLanding() {
@@ -397,7 +514,14 @@ export function initLanding() {
   });
 
   const fileInput = document.getElementById('file-input');
-  if (fileInput) fileInput.addEventListener('change', e => loadFileList(e.target.files));
+  if (fileInput)
+    fileInput.addEventListener('change', e => {
+      loadFileList(e.target.files);
+      // Reset so re-selecting the SAME file fires `change` again — otherwise the
+      // value is unchanged and the event never fires, silently blocking re-import
+      // (e.g. drop a file, delete the instance, then pick the same file again).
+      e.target.value = '';
+    });
 
   // Drag & drop anywhere on the instance grid registers an instance.
   const grid = document.getElementById('landing-instances');
@@ -418,13 +542,13 @@ export function initLanding() {
   const home = document.getElementById('btn-home');
   if (home) home.addEventListener('click', () => setWorkspace('landing'));
 
-  // Setup-instructions toggle + code copy (relocated from the load overlay).
-  document
-    .getElementById('sg-toggle-file')
-    ?.addEventListener('click', e => toggleSetupGuide(e.currentTarget));
+  // Setup-instructions code copy (the accordion is the outer <details>).
   document
     .querySelectorAll('.code-copy-btn')
     .forEach(btn => btn.addEventListener('click', e => copyCode(e.currentTarget)));
+
+  // Background-script CONFIG editor — rewrites the displayed bg source on change.
+  initBgConfig();
 
   onWorkspaceChange(ws => {
     if (ws === 'landing') refreshLanding();

@@ -91,6 +91,28 @@ body[data-workspace='landing'] #btn-home {
   flex: 1;
   min-width: 0;
 }
+.ic-sub {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin: -6px 0 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ic-title-edit {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sn-wasabi);
+  border-radius: 5px;
+  padding: 1px 6px;
+  outline: none;
+  font-family: inherit;
+}
 .ic-tools {
   display: flex;
   gap: 4px;

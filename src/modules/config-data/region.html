@@ -7,6 +7,9 @@
       <div class="cd-sub">Reconcile plugins, store apps, custom apps &amp; system properties across your registered instances.</div>
     </div>
 
+    <!-- Instance picker — choose which registered instances to compare (rendered by index.js). -->
+    <div class="cd-instances" id="cd-instances" style="display:none"></div>
+
     <!-- Section tab bar (rendered by index.js; tabs disable when &lt;2 instances carry the section) -->
     <div class="cd-tabs" id="cd-tabs"></div>
 
@@ -31,5 +34,8 @@
       <table class="cd-table" id="cd-table"><thead></thead><tbody></tbody></table>
     </div>
     <div class="cd-empty" id="cd-empty" style="display:none"></div>
+
+    <!-- Instance Data panel (rendered by index.js when the Instance Data tab is active) -->
+    <div class="cd-instance insti-body" id="cd-instance" style="display:none"></div>
   </div>
 </div>

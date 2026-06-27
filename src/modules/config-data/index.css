@@ -38,6 +38,51 @@
 }
 
 /* Section tabs */
+/* Instance picker */
+.cd-instances {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.cd-instances-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.cd-inst-chip {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--muted);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 12px;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s,
+    opacity 0.15s;
+}
+.cd-inst-chip:hover {
+  border-color: var(--sn-wasabi);
+  color: var(--text);
+}
+.cd-inst-chip.active {
+  border-color: var(--sn-wasabi);
+  color: var(--text);
+}
+.cd-inst-chip.active::before {
+  content: '✓ ';
+  color: var(--sn-wasabi);
+}
+.cd-inst-chip:not(.active) {
+  opacity: 0.55;
+}
+
 .cd-tabs {
   display: flex;
   gap: 8px;

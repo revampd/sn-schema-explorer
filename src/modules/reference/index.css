@@ -66,13 +66,6 @@
   padding: 0 20px 32px;
   background: var(--sn-deep);
 }
-.ref-modal-body::-webkit-scrollbar {
-  width: 6px;
-}
-.ref-modal-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
 
 /* Scoped reference content styles */
 .ref-modal-body .tabs {

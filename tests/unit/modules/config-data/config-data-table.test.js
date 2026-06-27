@@ -118,8 +118,20 @@ describe('renderComparisonTable', () => {
       inst('b', 'Test', 'properties', [{ name: 'glide.x', value: 'off', type: 'string' }]),
     ]);
     const table = renderComparisonTable(r);
-    const devCell = table.querySelectorAll('tbody td')[2];
+    // Properties drop the redundant Key column (key === name) — columns are
+    // Name | Dev | Test | Status, so the first instance cell is index 1.
+    const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent);
+    expect(heads).toEqual(['Name', 'Dev', 'Test', 'Status']);
+    const devCell = table.querySelectorAll('tbody td')[1];
     expect(devCell.querySelector('.cd-val').textContent).toBe('on');
     expect(devCell.querySelector('.cd-dot')).toBeNull();
+  });
+
+  it('keeps the Key column for sections where key differs from name (plugins)', () => {
+    const r = reconcile('plugins', [inst('a', 'Dev', 'plugins', [P('com.x', '1.0', true)])]);
+    const heads = [...renderComparisonTable(r).querySelectorAll('thead th')].map(
+      th => th.textContent
+    );
+    expect(heads).toContain('Key');
   });
 });

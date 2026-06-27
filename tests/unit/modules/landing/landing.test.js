@@ -24,9 +24,13 @@ import {
   renderInstances,
   refreshLanding,
   initLanding,
+  instanceSubtitle,
+  applyBgConfig,
   _resetTools,
 } from '../../../../src/modules/landing/index.js';
-import { addInstance, _resetInstances } from '../../../../src/core/instances-state.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { addInstance, getInstance, _resetInstances } from '../../../../src/core/instances-state.js';
 
 const SCHEMA_DATA = {
   _instance: { instance_name: 'dev1' },
@@ -90,6 +94,152 @@ describe('instance cards', () => {
     addInstance({ label: 'Prod', data: SCHEMA_DATA });
     renderInstances();
     expect(document.querySelector('.ic-title').textContent).toBe('Prod');
+  });
+
+  it('renders a disambiguating subtitle (build · export date) when metadata is present', () => {
+    addInstance({
+      label: 'dev1',
+      data: SCHEMA_DATA,
+      meta: {
+        instance_name: 'dev1',
+        build_name: 'Washington',
+        exported_at: '2026-06-20T10:00:00Z',
+      },
+    });
+    renderInstances();
+    const sub = document.querySelector('.ic-sub');
+    expect(sub).toBeTruthy();
+    expect(sub.textContent).toContain('Washington');
+    // The date portion is locale-formatted; just assert the build joined with it.
+    expect(sub.textContent).toContain('·');
+  });
+
+  it('omits the subtitle when no useful metadata is present', () => {
+    addInstance({ label: 'dev1', data: { nodes: [{ id: 'task' }], edges: [] }, meta: {} });
+    renderInstances();
+    expect(document.querySelector('.ic-sub')).toBeNull();
+  });
+});
+
+describe('instanceSubtitle()', () => {
+  it('joins build and a parsed export timestamp', () => {
+    const out = instanceSubtitle({ build_name: 'Xanadu', exported_at: '2026-01-02T03:04:05Z' });
+    expect(out.startsWith('Xanadu · ')).toBe(true);
+  });
+
+  it('handles a GlideDateTime-style string from the background exporter', () => {
+    const out = instanceSubtitle({ exported_at: '2026-06-20 14:32:01' });
+    expect(out).not.toBe('');
+  });
+
+  it('falls back to the raw string for an unparseable timestamp', () => {
+    expect(instanceSubtitle({ exported_at: 'not-a-date' })).toBe('not-a-date');
+  });
+
+  it('returns empty for missing / non-object meta', () => {
+    expect(instanceSubtitle(null)).toBe('');
+    expect(instanceSubtitle({})).toBe('');
+    expect(instanceSubtitle('nope')).toBe('');
+  });
+});
+
+describe('inline rename', () => {
+  it('swaps the title for an input and commits on Enter', () => {
+    const e = addInstance({ label: 'old', data: SCHEMA_DATA });
+    renderInstances();
+    document.querySelector(`.inst-card[data-instance="${e.id}"] .ic-rename`).click();
+    const input = document.querySelector('.ic-title-edit');
+    expect(input).toBeTruthy();
+    input.value = 'renamed';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(getInstance(e.id).label).toBe('renamed');
+  });
+
+  it('cancels on Escape, leaving the label unchanged', () => {
+    const e = addInstance({ label: 'keep', data: SCHEMA_DATA });
+    renderInstances();
+    document.querySelector(`.inst-card[data-instance="${e.id}"] .ic-rename`).click();
+    const input = document.querySelector('.ic-title-edit');
+    input.value = 'discarded';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(getInstance(e.id).label).toBe('keep');
+  });
+
+  it('ignores an empty name', () => {
+    const e = addInstance({ label: 'stays', data: SCHEMA_DATA });
+    renderInstances();
+    document.querySelector(`.inst-card[data-instance="${e.id}"] .ic-rename`).click();
+    const input = document.querySelector('.ic-title-edit');
+    input.value = '   ';
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(getInstance(e.id).label).toBe('stays');
+  });
+});
+
+describe('applyBgConfig()', () => {
+  const SAMPLE = [
+    'var CONFIG = {',
+    "  format: 'json', // 'json' | 'markdown' | 'jsonld'",
+    "  edgeTypes: ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'],",
+    '  printToScriptOutput: false,',
+    '  includeRecordCounts: false,',
+    '  metadataSections: [], // e.g. ["plugins"]',
+    '  includePropertyValues: false,',
+    '  maxFieldsPerTable: 0,',
+    '};',
+    '',
+    "gs.print('done');",
+  ].join('\n');
+
+  it('rewrites scalar, boolean and array fields in place', () => {
+    const out = applyBgConfig(SAMPLE, {
+      format: 'markdown',
+      includeRecordCounts: true,
+      printToScriptOutput: true,
+      includePropertyValues: false,
+      metadataSections: ['plugins', 'storeApps'],
+      edgeTypes: ['reference', 'm2m'],
+    });
+    expect(out).toContain("format: 'markdown',");
+    expect(out).toContain('includeRecordCounts: true,');
+    expect(out).toContain('printToScriptOutput: true,');
+    expect(out).toContain("metadataSections: ['plugins', 'storeApps'],");
+    expect(out).toContain("edgeTypes: ['reference', 'm2m'],");
+    // Untouched code outside the block survives.
+    expect(out).toContain("gs.print('done');");
+  });
+
+  it('empties an array field when no values are selected', () => {
+    const out = applyBgConfig(SAMPLE, { metadataSections: [], edgeTypes: [] });
+    expect(out).toContain('metadataSections: [],');
+    expect(out).toContain('edgeTypes: [],');
+  });
+
+  it('preserves the trailing comment on a rewritten line', () => {
+    const out = applyBgConfig(SAMPLE, { format: 'jsonld' });
+    expect(out).toContain("format: 'jsonld', // 'json' | 'markdown' | 'jsonld'");
+  });
+
+  it('returns the source unchanged when no CONFIG block is present', () => {
+    const src = 'var x = 1;\n';
+    expect(applyBgConfig(src, { format: 'markdown' })).toBe(src);
+  });
+
+  it('applies cleanly to the real background-exporter source (drift guard)', () => {
+    const bgPath = resolve(process.cwd(), 'src/exporters/background/sn-schema-export.bg.js');
+    const src = readFileSync(bgPath, 'utf8');
+    const out = applyBgConfig(src, {
+      format: 'markdown',
+      includeRecordCounts: true,
+      metadataSections: ['plugins'],
+      edgeTypes: ['reference'],
+    });
+    expect(out).toContain("format: 'markdown'");
+    expect(out).toContain('includeRecordCounts: true');
+    expect(out).toContain("metadataSections: ['plugins']");
+    expect(out).toContain("edgeTypes: ['reference']");
+    // The dynamic, non-configured lines must be left intact.
+    expect(out).toContain('attachmentTargetSysId: gs.getUserID()');
   });
 });
 

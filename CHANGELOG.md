@@ -101,6 +101,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is never mutated. The Diff card icon enables only when Schema Diff is on and at
   least two schema-capable instances are registered.
 
+- **Instance Data tab in Configuration Data**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The
+  Configuration Data workspace gains an **Instance Data** tab (always present
+  when ≥1 instance is registered) that compares instance identity, runtime, and
+  export metadata plus a schema-stats table across the registered instances —
+  one aligned table with a column per instance, base-vs-compare colouring and
+  inline deltas on the stat rows. Un-loaded (restored) instances still show their
+  identity/runtime from persisted metadata. The single-instance footer pill modal
+  now shares the same renderers.
+
+- **Instance picker in Configuration Data**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). A chip row
+  above the section tabs lets you choose which registered instances to compare
+  (shown when more than one is registered); the selection drives every tab,
+  including Instance Data.
+
+- **Configure the background script before copying**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The setup
+  instructions gain a small form that rewrites the background exporter's `CONFIG`
+  block in place — output format, per-table record counts, print-to-output,
+  property values, metadata sections, and edge types — so you copy a
+  ready-configured script. The script remains the single source of truth (only
+  the known fields are rewritten).
+
+- **Instance cards show a build · export-time subtitle**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). Because the
+  same instance can be exported more than once (e.g. pre/post upgrade), each
+  landing card now shows the build name and export timestamp so duplicate
+  instances are distinguishable.
+
 ### Changed
 
 - The front door is now the landing page rather than a load overlay; the graph
@@ -110,6 +140,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Both exporters now read the active-plugin count from `sys_plugins`
   (`active=true`) instead of `v_plugin` (`active=active`), retiring `v_plugin`
   from the exporter.
+- **Instance rename is now inline** — no browser `prompt()` popup. Clicking the
+  ✎ on an instance card turns its title into an editable field (Enter or blur to
+  commit, Escape to cancel).
+- **Unified scrollbar theming.** A single global scrollbar theme (tokens in
+  `base.css`) now styles every scrollable surface, so new features get a
+  consistent themed scrollbar automatically; the ~12 per-component scrollbar
+  rules were removed (intentionally hidden tab bars and the wasabi autocomplete
+  dropdown are kept as explicit overrides).
 - **Source tree restructured (internal, no behaviour change).** Flattened
   `src/viewer/` away into `src/core/` (the shared platform — former
   `core`+`engine`+`shared`), `src/modules/<feature>/` (self-contained features),
@@ -124,6 +162,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Re-importing the same schema file did nothing**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). The landing
+  file input never reset its value, so re-selecting the same filename (e.g. after
+  deleting that instance) didn't fire a `change` event. The input now resets after
+  each selection.
+- **Properties tab showed redundant identical Name + Key columns**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). Properties
+  are keyed and named by the same field, so the duplicate Key column added noise
+  and pushed the value column off-screen. The Key column is now dropped when it
+  would duplicate Name (properties only; plugins/store apps/custom apps keep it).
+- **Landing setup instructions required two unfolds and didn't span the divider**
+  ([#123](https://github.com/revampd/sn-schema-explorer/issues/123)). A redundant
+  inner accordion was removed (the section now expands in one click) and the
+  panel stretches to full width.
 - **Background-script exporter failed to compile in ServiceNow** with
   `invalid property id` ([#120](https://github.com/revampd/sn-schema-explorer/issues/120)).
   The bg script runs under Rhino at ES Level 0 (ES3), which forbids future-reserved
