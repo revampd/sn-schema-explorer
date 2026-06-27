@@ -57,7 +57,8 @@ test('tool switcher enters Path Finder and returns to Schema Map', async ({ page
   );
   await page.goto(APP_URL);
   await page.waitForLoadState('domcontentloaded');
-  await register(page, SCHEMA_OUTPUT, 'base.json');
+  await register(page, SCHEMA_OUTPUT, 'base.json'); // test-instance
+  await register(page, SCHEMA_OUTPUT_B, 'compare.json'); // test-instance-b
   await page
     .locator('.inst-card:not(.add-card)')
     .first()
@@ -68,6 +69,19 @@ test('tool switcher enters Path Finder and returns to Schema Map', async ({ page
   await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
   await expect(page.locator('#pf-sidebar')).toBeVisible();
   await expect(page.locator('#tool-switcher .ts-btn[data-tool="path"]')).toHaveClass(/active/);
+  // Path Finder's sidebar omits the density controls, application scopes, and the
+  // sort bar.
+  await expect(page.locator('#density-group')).toBeHidden();
+  await expect(page.locator('#scope-info-group')).toBeHidden();
+  await expect(page.locator('#sort-bar')).toBeHidden();
+
+  // …and they must stay hidden after a header-dropdown instance switch (which
+  // re-runs loadGraph).
+  await page.locator('#header-instance .sn-dd-btn').click();
+  await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'test-instance-b' }).click();
+  await expect(page.locator('#density-group')).toBeHidden();
+  await expect(page.locator('#scope-info-group')).toBeHidden();
+  await expect(page.locator('#sort-bar')).toBeHidden();
 
   await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
   await expect(page.locator('#pf-sidebar')).toBeHidden();
