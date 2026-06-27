@@ -33,6 +33,7 @@ import { computeDiff } from './compute-diff.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
+import { makeConfigDrift } from './config-drift.js';
 import { initDiffInstancePicker, refreshDiffPicker } from './instance-picker.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
@@ -237,6 +238,37 @@ function diffApplyOverlays() {
       .classed('diff-removed', diffState._diffData.removed.has(id))
       .classed('diff-changed', diffState._diffData.changed.has(id));
   });
+
+  // Config-drift badge: a small corner dot per node, keyed by the owning app's
+  // drift between base and compare. Opt-in — only when both sides exported app
+  // metadata (makeConfigDrift.comparable). A distinct channel (dot) so it never
+  // fights the diff node-stroke colours. 'inactive' is left unbadged (neutral).
+  const BADGE_CLASS = {
+    sync: 'cfgb-sync',
+    drift: 'cfgb-drift',
+    missing: 'cfgb-missing',
+    active: 'cfgb-state',
+  };
+  root.selectAll('circle.cfg-node-badge').remove();
+  const baseData = getInstance(instancesState.selectedId)?.data;
+  const compareData = getInstance(diffState._compareId)?.data;
+  const drift = makeConfigDrift(baseData, compareData);
+  if (drift.comparable) {
+    root.selectAll('g.node-group').each(function (d) {
+      const entry = drift.forScope(d.scope);
+      const cls = entry && BADGE_CLASS[entry.status];
+      if (!cls) return;
+      const rect = this.querySelector('rect.node-rect');
+      if (!rect) return;
+      const bb = rect.getBBox();
+      d3.select(this)
+        .append('circle')
+        .attr('class', 'cfg-node-badge ' + cls)
+        .attr('r', 4)
+        .attr('cx', bb.x + bb.width - 8)
+        .attr('cy', bb.y + 8);
+    });
+  }
 
   root.selectAll('g.diff-pill-layer').remove();
   const pillLayer = root.append('g').attr('class', 'diff-pill-layer');

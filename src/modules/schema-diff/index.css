@@ -509,3 +509,89 @@ path.diff-edge-removed {
   stroke-width: 2.5px !important;
   filter: drop-shadow(0 0 4px var(--sn-wasabi));
 }
+
+/* ── Config-drift layer (#139): inspector section + canvas badge ──────────── */
+:root {
+  --cfg-state: #60a5fa; /* state mismatch — distinct from drift amber */
+}
+.cfg-insp-app {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+.cfg-insp-app-name {
+  font-weight: 600;
+  font-size: 11px;
+}
+.cfg-insp-chip {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--sn-border);
+  color: var(--muted);
+}
+.cfg-insp-status {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+.cfgs-sync {
+  color: var(--diff-added);
+  background: var(--diff-added-dim);
+}
+.cfgs-drift {
+  color: var(--diff-changed);
+  background: var(--diff-changed-dim);
+}
+.cfgs-missing {
+  color: var(--diff-removed);
+  background: var(--diff-removed-dim);
+}
+.cfgs-active,
+.cfgs-inactive {
+  color: var(--cfg-state);
+  background: rgba(96, 165, 250, 0.13);
+}
+.cfg-insp-cell-head {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+.cfg-insp-cell {
+  padding: 4px 6px;
+}
+.cfg-insp-ver {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.cfg-insp-act {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Canvas badge — a small corner dot, distinct channel from diff strokes. */
+circle.cfg-node-badge {
+  stroke: rgba(3, 45, 66, 0.9);
+  stroke-width: 1.2px;
+  pointer-events: none;
+}
+circle.cfg-node-badge.cfgb-sync {
+  fill: var(--diff-added);
+}
+circle.cfg-node-badge.cfgb-drift {
+  fill: var(--diff-changed);
+}
+circle.cfg-node-badge.cfgb-missing {
+  fill: var(--diff-removed);
+}
+circle.cfg-node-badge.cfgb-state {
+  fill: var(--cfg-state);
+}

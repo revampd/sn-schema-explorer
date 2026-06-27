@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Config drift in the Schema Diff inspector** (`schema-diff/config-drift.js`,
+  [#139](https://github.com/revampd/sn-schema-explorer/issues/139); part of the
+  [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
+  lenses" epic). When comparing two instances, selecting a table now shows a
+  **Configuration** section in the inspector — the owning application, its
+  version/active on **each side** (base vs compare), and the drift status — beside
+  the existing field- and relationship-level diff. A structurally-identical table
+  whose app drifted is now also inspectable (a "Configuration drift" panel). A
+  small corner **badge** marks drifted nodes on the canvas (a distinct channel
+  from the diff stroke colours). Config is **opt-in**: it appears only when
+  **both** instances exported store/custom app metadata — otherwise it's just a
+  schema comparison, and an absent section is never mistaken for a missing app.
+  Pairwise (base vs compare), reusing the Configuration Data classifier so the
+  inspector, the map, and the table all agree. (N-way drift stays in the
+  Configuration Data table.)
+
 - **Unified comparison context** (`core/focus-state.js`,
   [#138](https://github.com/revampd/sn-schema-explorer/issues/138); part of the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated

@@ -6,11 +6,70 @@
  * compare view for changed tables), and the relationship-change rows. Registered
  * as the fill-inspector hook by index.js; behaviour-preserving.
  */
-import { uiState, diffState } from '../../core/state.js';
+import { uiState, diffState, instancesState, getInstance } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { typeLabel } from '../../core/render.js';
 import { Settings } from '../settings/index.js';
 import { focusTable, clearSelection } from '../../core/inspector.js';
+import { makeConfigDrift } from './config-drift.js';
+import { STATUS_LABELS } from '../config-data/reconcile.js';
+
+// Resolve a table's config-drift entry for the active comparison, or null when
+// not comparable / no owning app. Base = the loaded instance; compare defaults to
+// the unified compare selection (the per-layer reference seam — see memory:
+// per-layer-comparison-reference).
+function configEntryFor(scope) {
+  if (!scope) return null;
+  const baseData = getInstance(instancesState.selectedId)?.data;
+  const compareData = getInstance(diffState._compareId)?.data;
+  return makeConfigDrift(baseData, compareData).forScope(scope);
+}
+
+// Append the Configuration section: owning app, status, and base-vs-compare
+// version/active. el()/setText() are passed in from the caller for consistency.
+function appendConfigSection(ic, el, setText, entry) {
+  if (!entry) return;
+  const title = el('div', 'diff-insp-section-title');
+  setText(title, 'Configuration');
+  ic.appendChild(title);
+
+  const appRow = el('div', 'cfg-insp-app');
+  const nameEl = el('span', 'cfg-insp-app-name');
+  setText(nameEl, entry.app?.name || '(unknown app)');
+  const chip = el('span', 'cfg-insp-chip');
+  setText(chip, entry.app?._section === 'customApps' ? 'Custom app' : 'Store app');
+  appRow.appendChild(nameEl);
+  appRow.appendChild(chip);
+  ic.appendChild(appRow);
+
+  const banner = el('div', 'cfg-insp-status cfgs-' + entry.status);
+  setText(banner, STATUS_LABELS[entry.status] || entry.status);
+  ic.appendChild(banner);
+
+  const sbs = el('div', 'diff-sbs');
+  const cell = (label, rec) => {
+    const c = el('div', 'cfg-insp-cell');
+    const h = el('div', 'cfg-insp-cell-head');
+    setText(h, label);
+    c.appendChild(h);
+    if (!rec) {
+      const dash = el('div', 'diff-field-absent');
+      setText(dash, '— not present');
+      c.appendChild(dash);
+    } else {
+      const ver = el('div', 'cfg-insp-ver');
+      setText(ver, 'v' + (rec.version || '?'));
+      const act = el('div', 'cfg-insp-act');
+      setText(act, rec.active === false ? 'inactive' : 'active');
+      c.appendChild(ver);
+      c.appendChild(act);
+    }
+    return c;
+  };
+  sbs.appendChild(cell('Base', entry.base));
+  sbs.appendChild(cell('Compare', entry.compare));
+  ic.appendChild(sbs);
+}
 
 export function diffFillInspector(d) {
   if (!diffState._diffData || uiState.viewMode !== 'diff') return false;
@@ -18,7 +77,15 @@ export function diffFillInspector(d) {
   const isAdded = diffState._diffData.added.has(tableId);
   const isRemoved = diffState._diffData.removed.has(tableId);
   const isChanged = diffState._diffData.changed.has(tableId);
-  if (!isAdded && !isRemoved && !isChanged) return false;
+  const isStructural = isAdded || isRemoved || isChanged;
+
+  const baseNode = diffState._diffData.baseMap.get(tableId);
+  const compareNode = diffState._diffData.compareMap.get(tableId);
+  const displayNode = baseNode || compareNode;
+  const cfgEntry = configEntryFor(displayNode?.scope || (typeof d === 'object' ? d.scope : null));
+
+  // No structural change AND no config drift → let the normal inspector render.
+  if (!isStructural && !cfgEntry) return false;
 
   Dom.inspectorEmpty.style.display = 'none';
   Dom.inspectorContent.style.display = 'block';
@@ -35,9 +102,23 @@ export function diffFillInspector(d) {
     return e;
   };
 
-  const baseNode = diffState._diffData.baseMap.get(tableId);
-  const compareNode = diffState._diffData.compareMap.get(tableId);
-  const displayNode = baseNode || compareNode;
+  // Config-only: the table's schema is identical but its owning app drifted.
+  if (!isStructural) {
+    const cName = el('div', 'insp-name');
+    setText(cName, tableId);
+    const cLabel = el('div', 'insp-label');
+    setText(cLabel, displayNode?.label || '');
+    ic.appendChild(cName);
+    ic.appendChild(cLabel);
+    const cBanner = el('div', 'diff-insp-banner dib-changed');
+    setText(cBanner, '~ Configuration drift');
+    ic.appendChild(cBanner);
+    const note = el('div', 'diff-field-absent');
+    setText(note, 'No structural changes — field & relationship schema is identical.');
+    ic.appendChild(note);
+    appendConfigSection(ic, el, setText, cfgEntry);
+    return true;
+  }
 
   const nameEl = el('div', 'insp-name');
   setText(nameEl, tableId);
@@ -113,6 +194,7 @@ export function diffFillInspector(d) {
         : 'All relationships for this table are gone in the compare schema.';
       ic.appendChild(note);
     }
+    appendConfigSection(ic, el, setText, cfgEntry);
     return true;
   }
 
@@ -251,5 +333,6 @@ export function diffFillInspector(d) {
     });
   }
 
+  appendConfigSection(ic, el, setText, cfgEntry);
   return true;
 }
