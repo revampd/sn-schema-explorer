@@ -10,6 +10,7 @@ import {
   hasAppMetadata,
   appDriftSummary,
   tablesForApp,
+  appChangeCategory,
 } from '../../../../src/modules/schema-diff/config-drift.js';
 
 const withApps = apps => ({ _metadata: { storeApps: apps } });
@@ -109,5 +110,24 @@ describe('tablesForApp', () => {
   it('returns [] for a missing app or nodes', () => {
     expect(tablesForApp(null, nodes)).toEqual([]);
     expect(tablesForApp({ key: 'sn_x', name: 'Secrets' }, null)).toEqual([]);
+  });
+});
+
+describe('appChangeCategory', () => {
+  const rec = v => ({ version: v });
+  it('maps an app present on only one side to removed / added by direction', () => {
+    expect(appChangeCategory({ base: rec('1'), compare: null })).toBe('removed');
+    expect(appChangeCategory({ base: null, compare: rec('1') })).toBe('added');
+  });
+  it('maps a version/state difference (present both sides) to changed', () => {
+    expect(appChangeCategory({ base: rec('2'), compare: rec('1'), status: 'drift' })).toBe(
+      'changed'
+    );
+    expect(appChangeCategory({ base: rec('1'), compare: rec('1'), status: 'active' })).toBe(
+      'changed'
+    );
+  });
+  it('returns null for an in-sync app (not a change)', () => {
+    expect(appChangeCategory({ base: rec('1'), compare: rec('1'), status: 'sync' })).toBeNull();
   });
 });

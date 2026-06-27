@@ -18,7 +18,7 @@
  * its own toggle/legend control in JS so it touches no Prettier-ignored partial.
  * ============================================================================ */
 
-import { graphState, uiState, buildSpine, isGlobalScope } from '../../core/state.js';
+import { graphState, uiState, buildSpine, isGlobalScope, isComparing } from '../../core/state.js';
 import { instancesState } from '../../core/instances-state.js';
 import { onFocusChange } from '../../core/focus-state.js';
 import { render, addRenderHook } from '../../core/render.js';
@@ -55,6 +55,10 @@ function eligible() {
     !!graphState.graphData &&
     Settings.isEnabled('configData') &&
     uiState.viewMode === 'force' &&
+    // While a comparison is active, config drift is folded into the unified
+    // "Differences" control (its Config sub-mute) — this standalone overlay stands
+    // down to avoid two competing config controls/tints (#150).
+    !isComparing() &&
     appCapableInstances().length >= 2
   );
 }

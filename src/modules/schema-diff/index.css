@@ -771,12 +771,19 @@ circle.cfg-node-badge.cfgb-state {
   opacity: 0.28;
 }
 
-/* ── Structure-changes layer toggle (#141) — canvas chip ─────────────────── */
-#diff-structure-toggle {
+/* ── Unified "Differences" layer control (#150) — canvas chip group ───────── */
+.diff-layer-control {
   position: absolute;
   top: 48px;
   left: 16px;
   z-index: 14;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+#diff-layer-master,
+.diff-layer-sub {
   cursor: pointer;
   border: 1px solid var(--sn-border);
   border-radius: 6px;
@@ -791,7 +798,21 @@ circle.cfg-node-badge.cfgb-state {
   text-transform: uppercase;
   padding: 5px 9px;
 }
-#diff-structure-toggle.active {
+#diff-layer-master.active {
+  color: var(--text);
+  border-color: var(--sn-accent, #2dd4bf);
+  background: rgba(45, 212, 191, 0.14);
+}
+.diff-layer-subs {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+.diff-layer-sub {
+  padding: 3px 7px;
+  text-transform: none;
+}
+.diff-layer-sub.active {
   color: var(--text);
   border-color: var(--diff-changed);
   background: var(--diff-changed-dim);

@@ -102,6 +102,14 @@ test('Diff inspector shows the Configuration section with per-side versions + st
 
   // Canvas carries the at-a-glance badge for the drifted node.
   await expect(page.locator('circle.cfg-node-badge.cfgb-drift')).toHaveCount(1);
+
+  // Unified "Differences" control (#150): the Config sub-mute appears (drift is
+  // comparable) and muting it clears the config badges; the standalone config-drift
+  // overlay control stands down during a comparison.
+  await expect(page.locator('#diff-sub-config')).toBeVisible();
+  await expect(page.locator('#cfg-drift-layer')).toBeHidden();
+  await page.locator('#diff-sub-config').click();
+  await expect(page.locator('circle.cfg-node-badge')).toHaveCount(0);
 });
 
 // Richer fixtures for the sidebar block: a drifted app (Widget App 2.0→1.0), a

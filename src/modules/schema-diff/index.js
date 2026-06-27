@@ -8,6 +8,7 @@ import {
   setCompareIds,
   isComparing,
   isStructureLayerOn,
+  isConfigLayerOn,
   onFocusChange,
 } from '../../core/state.js';
 import { createDropdown } from '../../core/dropdown.js';
@@ -122,7 +123,7 @@ function loadDiffSchema(compareData) {
   // #141: starting a comparison no longer changes the view-mode, so sync the
   // sidebar here to reveal the diff report on the map.
   diffSyncSidebar();
-  refreshStructureToggle();
+  refreshDiffLayerControl();
   updateInstancePill();
 
   // Export method mismatch disclaimer
@@ -220,7 +221,7 @@ function clearDiff() {
   diffBuildList();
   // Comparison dropped — restore the default sidebar and hide the layer toggle.
   diffSyncSidebar();
-  refreshStructureToggle();
+  refreshDiffLayerControl();
   updateInstancePill();
   render();
 }
@@ -332,7 +333,7 @@ function diffApplyOverlays() {
   const baseData = getInstance(instancesState.selectedId)?.data;
   const compareData = getInstance(diffState._compareId)?.data;
   const drift = makeConfigDrift(baseData, compareData);
-  if (drift.comparable) {
+  if (drift.comparable && isConfigLayerOn()) {
     root.selectAll('g.node-group').each(function (d) {
       const entry = drift.forScope(d.scope);
       const cls = entry && BADGE_CLASS[entry.status];
@@ -717,34 +718,96 @@ onWorkspaceChange(() => refreshHeaderCompare());
 // freshly loaded graph, base switches, and compare changes.
 onFocusChange(() => refreshHeaderCompare());
 
-// ── Canvas "Structure changes" layer toggle (#141) ───────────────────────────
-// Lets the user mute the structural-diff colouring while keeping the comparison
-// (e.g. to read the config-drift badges alone). Shown only while comparing on the
-// map; built in JS so no Prettier-ignored partial is touched.
-let _structToggle = null;
+// ── Canvas "Differences" layer control (#150) ─────────────────────────────────
+// One control for the whole comparison overlay: a master "Differences" toggle
+// plus two sub-mutes — Structure (node colours + edge pills) and Config (drift
+// badges). Replaces the separate "Structure changes" + "Config drift" buttons.
+// While a comparison is active the standalone config-overlay control stands down
+// (see config-overlay/index.js), so this is the single place to mute either
+// channel. Shown only while comparing on the map; built in JS (no partial edits).
+let _diffLayerControl = null;
 
-function refreshStructureToggle() {
+function refreshDiffLayerControl() {
   const host = document.getElementById('edge-legend')?.parentNode;
   if (!host) return;
-  if (!_structToggle) {
-    const btn = document.createElement('button');
-    btn.id = 'diff-structure-toggle';
-    btn.type = 'button';
-    btn.className = 'cfg-drift-toggle';
-    btn.textContent = 'Structure changes';
-    btn.addEventListener('click', () => {
-      diffState._structureLayer = !diffState._structureLayer;
-      refreshStructureToggle();
+  if (!_diffLayerControl) {
+    const box = document.createElement('div');
+    box.id = 'diff-layer-control';
+    box.className = 'diff-layer-control';
+
+    const master = document.createElement('button');
+    master.id = 'diff-layer-master';
+    master.type = 'button';
+    master.className = 'cfg-drift-toggle';
+    master.textContent = 'Differences';
+    master.title = 'Show the comparison overlay (structure changes + config drift)';
+    master.addEventListener('click', () => {
+      diffState._diffLayerOn = !diffState._diffLayerOn;
+      refreshDiffLayerControl();
       render();
     });
-    host.appendChild(btn);
-    _structToggle = btn;
+
+    const subs = document.createElement('div');
+    subs.className = 'diff-layer-subs';
+    const mkSub = (id, label, get, toggle) => {
+      const b = document.createElement('button');
+      b.id = id;
+      b.type = 'button';
+      b.className = 'diff-layer-sub';
+      b.textContent = label;
+      b.addEventListener('click', () => {
+        toggle();
+        refreshDiffLayerControl();
+        render();
+      });
+      b._get = get;
+      return b;
+    };
+    subs.appendChild(
+      mkSub(
+        'diff-sub-structure',
+        'Structure',
+        () => diffState._structureLayer,
+        () => (diffState._structureLayer = !diffState._structureLayer)
+      )
+    );
+    subs.appendChild(
+      mkSub(
+        'diff-sub-config',
+        'Config',
+        () => diffState._configLayer,
+        () => (diffState._configLayer = !diffState._configLayer)
+      )
+    );
+
+    box.append(master, subs);
+    host.appendChild(box);
+    _diffLayerControl = box;
   }
+
+  const box = _diffLayerControl;
   const show = isComparing() && uiState.viewMode === 'force';
-  _structToggle.style.display = show ? '' : 'none';
-  _structToggle.setAttribute('aria-pressed', String(!!diffState._structureLayer));
-  _structToggle.classList.toggle('active', !!diffState._structureLayer);
+  box.style.display = show ? '' : 'none';
+  if (!show) return;
+
+  const master = box.querySelector('#diff-layer-master');
+  master.setAttribute('aria-pressed', String(!!diffState._diffLayerOn));
+  master.classList.toggle('active', !!diffState._diffLayerOn);
+
+  // The Config sub only applies when both sides exported app metadata.
+  const baseData = getInstance(instancesState.selectedId)?.data;
+  const compareData = getInstance(diffState._compareId)?.data;
+  const configComparable = makeConfigDrift(baseData, compareData).comparable;
+
+  const subs = box.querySelector('.diff-layer-subs');
+  subs.style.display = diffState._diffLayerOn ? '' : 'none';
+  box.querySelectorAll('.diff-layer-sub').forEach(b => {
+    const on = !!b._get();
+    b.setAttribute('aria-pressed', String(on));
+    b.classList.toggle('active', on);
+  });
+  box.querySelector('#diff-sub-config').style.display = configComparable ? '' : 'none';
 }
 
-onFocusChange(() => refreshStructureToggle());
-onViewModeChange(() => refreshStructureToggle());
+onFocusChange(() => refreshDiffLayerControl());
+onViewModeChange(() => refreshDiffLayerControl());

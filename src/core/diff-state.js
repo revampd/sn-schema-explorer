@@ -31,6 +31,12 @@ export const diffState = {
   // structure-diff layer (added/removed/changed colouring + graft) can be toggled
   // off without dropping the comparison.
   _structureLayer: true,
+  // #150 — the canvas comparison overlay is ONE "Differences" layer with two
+  // channels (sub-mutes): `_structureLayer` (node stroke colours + edge pills) and
+  // `_configLayer` (config-drift corner badges). `_diffLayerOn` is the master
+  // switch; turning it off mutes both channels without dropping the comparison.
+  _diffLayerOn: true,
+  _configLayer: true,
 };
 
 /**
@@ -41,7 +47,12 @@ export function isComparing() {
   return !!diffState._diffData;
 }
 
-/** Is the structure-diff layer currently painting (comparison active + toggle on)? */
+/** Is the structure channel painting (comparison active + master on + structure sub on)? */
 export function isStructureLayerOn() {
-  return isComparing() && diffState._structureLayer;
+  return isComparing() && diffState._diffLayerOn && diffState._structureLayer;
+}
+
+/** Is the config-drift channel painting (comparison active + master on + config sub on)? */
+export function isConfigLayerOn() {
+  return isComparing() && diffState._diffLayerOn && diffState._configLayer;
 }
