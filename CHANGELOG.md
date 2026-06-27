@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Unified N-column comparison inspector**
+  ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). While a
+  comparison is active, the inspector is now a **matrix that scales from one
+  compare to many** — one column per instance (Base + each compare), with a
+  per-instance status strip, a field matrix (each field coloured per column vs
+  Base: added / removed / type-changed), relationship changes grouped per
+  compare, and per-compare configuration drift. With a single compare it reads
+  like the classic Base | Compare diff; with several it grows columns. When the
+  focused table is identical across every compare (and has no config drift) the
+  rich single-table inspector renders instead — single-instance detail is
+  unchanged. (The multi-select Compare control that feeds more than one compare
+  lands in a follow-up PR; the renderer is already N-column.)
 - **N-way comparison seam — internal groundwork**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150); the
   [#130](https://github.com/revampd/sn-schema-explorer/issues/130) "integrated
