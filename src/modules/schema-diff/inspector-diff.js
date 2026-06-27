@@ -45,12 +45,15 @@ function tableStatus(diff, id) {
   return 'absent';
 }
 
-const STATUS_CLASS = {
-  added: 'dfr-added',
-  removed: 'dfr-removed',
-  changed: 'dfr-changed',
-  same: 'dfr-same',
-  absent: '',
+// Column-header / status-chip colour by the table's status in that instance.
+// `same` (identical) reads GREEN — in sync — not the neutral/amber it used to.
+const COL_STATUS_CLASS = {
+  base: 'cstat-base',
+  same: 'cstat-same',
+  added: 'cstat-added',
+  removed: 'cstat-removed',
+  changed: 'cstat-changed',
+  absent: 'cstat-absent',
 };
 const STATUS_TEXT = {
   added: '+ added',
@@ -59,6 +62,37 @@ const STATUS_TEXT = {
   same: 'identical',
   absent: '— absent',
 };
+
+// Friendly relationship grouping — mirrors the edge-type legend + the single
+// inspector's relationship sections, including reference direction. Raw edge
+// types ('reference', 'rel', 'm2m') are never shown to the user.
+const EDGE_ORDER = [
+  'reference_out',
+  'reference_in',
+  'extends_out',
+  'extends_in',
+  'm2m',
+  'rel',
+  'view',
+  'cmdb_rel',
+];
+const EDGE_LABEL = {
+  reference_out: 'Reference to',
+  reference_in: 'Referenced by',
+  extends_out: 'Inheritance (extends)',
+  extends_in: 'Child tables',
+  m2m: 'M2M junction',
+  rel: 'Named relationship',
+  view: 'DB view member',
+  cmdb_rel: 'CI topology',
+};
+function edgeKind(e, tableId) {
+  const s = typeof e.source === 'object' ? e.source.id : e.source;
+  const out = s === tableId;
+  if (e.type === 'reference') return out ? 'reference_out' : 'reference_in';
+  if (e.type === 'extends') return out ? 'extends_out' : 'extends_in';
+  return e.type;
+}
 
 // Set a grid to N equal columns (the .diff-sbs base style is a 2-col grid).
 function setCols(node, n) {
@@ -77,12 +111,13 @@ export function diffFillInspector(d) {
   const baseLabel = getInstance(instancesState.selectedId)?.label || 'Base';
   const baseData = getInstance(instancesState.selectedId)?.data || null;
   const cols = [
-    { id: '__base__', label: baseLabel, kind: 'base' },
+    { id: '__base__', label: baseLabel, kind: 'base', data: baseData, status: 'base' },
     ...matrix.map(diff => ({
       id: diff._compareId,
       label: diff._compareLabel || diff._compareId,
       kind: 'compare',
       diff,
+      data: getInstance(diff._compareId)?.data || null,
       status: tableStatus(diff, tableId),
     })),
   ];
@@ -119,10 +154,7 @@ export function diffFillInspector(d) {
 
   const strip = setCols(el('div', 'diff-sbs diff-col-strip'), cols.length);
   cols.forEach(c => {
-    const chip = el(
-      'div',
-      'diff-col-chip ' + (c.kind === 'base' ? 'dcc-base' : STATUS_CLASS[c.status] || 'dfr-same')
-    );
+    const chip = el('div', 'diff-col-chip ' + (COL_STATUS_CLASS[c.status] || 'cstat-same'));
     const nm = setText(el('div', 'diff-col-name'), c.label);
     const st = setText(
       el('div', 'diff-col-status'),
@@ -134,10 +166,10 @@ export function diffFillInspector(d) {
   });
   ic.appendChild(strip);
 
-  // ── Fields matrix ───────────────────────────────────────────────────────────
-  renderFieldsMatrix(ic, cols, baseNode, tableId);
+  // ── Fields matrix (inheritance-aware) ────────────────────────────────────────
+  renderFieldsMatrix(ic, cols, tableId);
 
-  // ── Relationship changes (grouped per compare) ──────────────────────────────
+  // ── Relationship changes (grouped, friendly labels) ──────────────────────────
   renderRelChanges(ic, cols, tableId);
 
   // ── Configuration (per compare) ─────────────────────────────────────────────
@@ -146,47 +178,71 @@ export function diffFillInspector(d) {
   return true;
 }
 
-// Field type for a node's field, or undefined if the field/node is absent.
-function fieldType(node, name) {
-  if (!node) return undefined;
-  const f = (node.fields || []).find(x => x.name === name);
-  return f ? f.type : undefined;
+// Build child→parent map from a subject's `extends` edges (source extends target).
+function buildParentMap(data) {
+  const m = new Map();
+  for (const e of data?.edges || []) {
+    if (e.type !== 'extends') continue;
+    const s = typeof e.source === 'object' ? e.source.id : e.source;
+    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    if (s && t) m.set(s, t);
+  }
+  return m;
 }
 
-function renderFieldsMatrix(ic, cols, baseNode, tableId) {
-  // Per-column node for this table.
-  const nodeFor = c => (c.kind === 'base' ? baseNode : c.diff.compareMap.get(tableId) || null);
-  const colNodes = cols.map(nodeFor);
+// The EFFECTIVE field set of a table in one subject: its own fields PLUS those
+// inherited up the extends chain (own wins on a name clash). Mirrors the single
+// inspector, which walks the inheritance chain rather than trusting a flattened
+// node — so the diff reflects the same schema the single view shows.
+//   → Map<name, { type, inherited, source }>
+function effectiveFields(data, tableId) {
+  const out = new Map();
+  if (!data) return out;
+  const nodes = new Map((data.nodes || []).map(n => [n.id, n]));
+  const parents = buildParentMap(data);
+  const seen = new Set();
+  let cur = tableId;
+  for (let depth = 0; cur && !seen.has(cur) && depth < 25; depth++) {
+    seen.add(cur);
+    const node = nodes.get(cur);
+    for (const f of node?.fields || []) {
+      if (!out.has(f.name)) {
+        out.set(f.name, { type: f.type, inherited: cur !== tableId, source: cur });
+      }
+    }
+    cur = parents.get(cur);
+  }
+  return out;
+}
 
-  // Union of every field name across all columns.
+function renderFieldsMatrix(ic, cols, tableId) {
+  // Per-column effective field set (own + inherited).
+  const colFields = cols.map(c => effectiveFields(c.data, tableId));
+  const baseFields = colFields[0];
+
   const names = new Set();
-  colNodes.forEach(n => (n?.fields || []).forEach(f => names.add(f.name)));
+  colFields.forEach(m => m.forEach((_v, name) => names.add(name)));
   if (!names.size) return;
 
-  const baseType = name => fieldType(baseNode, name);
-
-  // A field row is "interesting" if any compare column differs from base.
+  // A row is "interesting" only when a compare column differs from base in type
+  // (present↔absent counts). Identical fields — inherited ones included — fold
+  // into the unchanged tally, exactly like the single view treats them as noise.
   const rows = [];
   let unchanged = 0;
   for (const name of [...names].sort()) {
-    const bt = baseType(name);
-    const differs = cols.some(c => {
-      if (c.kind === 'base') return false;
-      const ct = fieldType(c.diff.compareMap.get(tableId), name);
-      return ct !== bt; // absent-vs-present or type change
-    });
-    if (!differs) {
-      unchanged++;
-      continue;
-    }
-    rows.push(name);
+    const bt = baseFields.get(name)?.type;
+    const differs = cols.some((c, i) => i > 0 && colFields[i].get(name)?.type !== bt);
+    if (differs) rows.push(name);
+    else unchanged++;
   }
 
   ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Fields — by instance'));
 
+  // Column headers coloured by the table's status in that instance (identical =
+  // green, changed = amber …) — not a uniform "compare" colour.
   const header = setCols(el('div', 'diff-sbs'), cols.length);
   cols.forEach(c => {
-    const h = el('div', 'diff-sbs-col-header ' + (c.kind === 'base' ? 'dsc-base' : 'dsc-compare'));
+    const h = el('div', 'diff-sbs-col-header ' + (COL_STATUS_CLASS[c.status] || 'cstat-same'));
     setText(h, c.label);
     header.appendChild(h);
   });
@@ -194,23 +250,18 @@ function renderFieldsMatrix(ic, cols, baseNode, tableId) {
 
   const customOn = Settings.isEnabled('customHighlight');
   for (const name of rows) {
-    const bt = baseType(name);
+    const bt = baseFields.get(name)?.type;
     const row = setCols(el('div', 'diff-sbs'), cols.length);
-    cols.forEach(c => {
-      const node = nodeFor(c);
-      const t = fieldType(node, name);
+    cols.forEach((c, i) => {
+      const entry = colFields[i].get(name);
+      const t = entry?.type;
       let cls;
-      if (c.kind === 'base') {
-        cls = t === undefined ? '' : 'dfr-base';
-      } else if (t === undefined) {
-        cls = bt === undefined ? '' : 'dfr-removed'; // present in base, gone here
-      } else if (bt === undefined) {
-        cls = 'dfr-added'; // new here vs base
-      } else if (t !== bt) {
-        cls = 'dfr-changed';
-      } else {
-        cls = 'dfr-same';
-      }
+      if (c.kind === 'base') cls = t === undefined ? '' : 'dfr-base';
+      else if (t === undefined) cls = bt === undefined ? '' : 'dfr-removed';
+      else if (bt === undefined) cls = 'dfr-added';
+      else if (t !== bt) cls = 'dfr-changed';
+      else cls = 'dfr-same';
+
       const cell = el('div', 'diff-field-row' + (cls ? ' ' + cls : ''));
       if (t === undefined) {
         cell.appendChild(setText(el('div', 'diff-field-absent'), '—'));
@@ -218,8 +269,12 @@ function renderFieldsMatrix(ic, cols, baseNode, tableId) {
         const wrap = el('div', 'diff-field-text');
         const nm = setText(el('div', 'diff-field-name'), name);
         if (customOn && Settings.isCustomName(name)) {
-          const badge = setText(el('span', 'insp-custom-badge'), 'custom');
-          nm.appendChild(badge);
+          nm.appendChild(setText(el('span', 'insp-custom-badge'), 'custom'));
+        }
+        if (entry.inherited) {
+          const inh = setText(el('span', 'diff-field-inh'), 'inherited');
+          inh.title = 'Inherited from ' + entry.source;
+          nm.appendChild(inh);
         }
         wrap.appendChild(nm);
         cell.appendChild(wrap);
@@ -249,33 +304,64 @@ function renderRelChanges(ic, cols, tableId) {
   }
   if (!groups.length) return;
 
+  // Human-readable table labels, from every subject's node maps.
+  const labelById = new Map();
+  for (const c of compareCols) {
+    for (const [id, n] of c.diff.baseMap)
+      if (n.label && !labelById.has(id)) labelById.set(id, n.label);
+    for (const [id, n] of c.diff.compareMap)
+      if (n.label && !labelById.has(id)) labelById.set(id, n.label);
+  }
+  const otherOf = e => {
+    const s = typeof e.source === 'object' ? e.source.id : e.source;
+    const t = typeof e.target === 'object' ? e.target.id : e.target;
+    return s === tableId ? t : s;
+  };
+
   ic.appendChild(setText(el('div', 'diff-insp-section-title'), 'Relationship changes'));
   const single = compareCols.length === 1;
 
+  const renderRow = (e, sign) => {
+    const otherId = otherOf(e);
+    const row = el('div', 'diff-field-row ' + (sign === '+' ? 'dfr-added' : 'dfr-removed'));
+    row.dataset.id = otherId;
+    row.title = otherId;
+    row.appendChild(
+      setText(el('span', 'diff-edge-sign ' + (sign === '+' ? 'des-added' : 'des-removed')), sign)
+    );
+    const name = setText(el('span', 'diff-field-name'), labelById.get(otherId) || otherId);
+    row.appendChild(name);
+    // For references, show the dot-walk field (the single inspector's "via field").
+    if (e.type === 'reference' && e.field) {
+      row.appendChild(setText(el('span', 'diff-field-type'), e.field));
+    }
+    ic.appendChild(row);
+  };
+
   for (const g of groups) {
     // With more than one compare, head each group with the instance label so the
-    // change is attributable; with a single compare keep the flat list (parity
-    // with the classic diff).
-    if (!single) {
-      ic.appendChild(setText(el('div', 'diff-rel-group-head'), 'vs ' + g.col.label));
-    }
-    const rows = [
-      ...g.added.map(e => ({ e, sign: '+', cls: 'dfr-added' })),
-      ...g.removed.map(e => ({ e, sign: '−', cls: 'dfr-removed' })),
-    ];
-    for (const { e, sign, cls } of rows) {
-      const s = typeof e.source === 'object' ? e.source.id : e.source;
-      const t = typeof e.target === 'object' ? e.target.id : e.target;
-      const otherId = s === tableId ? t : s;
-      const row = el('div', 'diff-field-row ' + cls);
-      row.dataset.id = otherId;
-      row.title = otherId;
-      row.appendChild(
-        setText(el('span', 'diff-edge-sign ' + (sign === '+' ? 'des-added' : 'des-removed')), sign)
+    // change is attributable; a single compare keeps the flat grouped list.
+    if (!single) ic.appendChild(setText(el('div', 'diff-rel-group-head'), 'vs ' + g.col.label));
+
+    // Group the changed edges by friendly relationship type (Reference to /
+    // Referenced by / Child tables / M2M junction / …), mirroring the legend and
+    // the single inspector — not raw edge-type strings.
+    const byKind = new Map();
+    const push = (e, sign) => {
+      const k = edgeKind(e, tableId);
+      if (!byKind.has(k)) byKind.set(k, []);
+      byKind.get(k).push({ e, sign });
+    };
+    g.added.forEach(e => push(e, '+'));
+    g.removed.forEach(e => push(e, '−'));
+
+    for (const kind of EDGE_ORDER) {
+      const list = byKind.get(kind);
+      if (!list || !list.length) continue;
+      ic.appendChild(
+        setText(el('div', 'diff-rel-subhead'), `${EDGE_LABEL[kind]} (${list.length})`)
       );
-      row.appendChild(setText(el('span', 'diff-edge-type'), e.type || ''));
-      row.appendChild(setText(el('span', 'diff-field-name'), otherId));
-      ic.appendChild(row);
+      list.forEach(({ e, sign }) => renderRow(e, sign));
     }
   }
 

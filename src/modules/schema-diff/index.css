@@ -511,8 +511,32 @@ path.diff-edge-removed {
   border-radius: 4px;
   min-width: 0;
 }
-.diff-col-chip.dcc-base {
+
+/* Column status colour (#150) — shared by the status-strip chips and the field
+   matrix column headers. `same` (identical) is GREEN (in sync), not amber. */
+.cstat-base {
   background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+.cstat-same {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.cstat-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.cstat-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.cstat-changed {
+  background: var(--diff-changed-dim);
+  color: var(--diff-changed);
+}
+.cstat-absent {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
 }
 .diff-col-name {
   font-size: 9px;
@@ -534,6 +558,27 @@ path.diff-edge-removed {
   font-weight: 700;
   color: var(--muted);
   margin: 6px 0 3px;
+}
+/* Friendly relationship-type subheader inside the relationship-changes section. */
+.diff-rel-subhead {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--fg);
+  opacity: 0.85;
+  margin: 5px 0 2px;
+}
+/* "inherited" tag on a field that comes from a parent table (matches the single
+   inspector's inheritance treatment). */
+.diff-field-inh {
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  margin-left: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  vertical-align: middle;
 }
 .diff-field-name {
   font-family: 'JetBrains Mono', ui-monospace, monospace;

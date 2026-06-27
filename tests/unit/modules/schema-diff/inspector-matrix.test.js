@@ -141,3 +141,87 @@ describe('diffFillInspector — N=2 parity + fall-through', () => {
     expect(diffFillInspector({ id: 'task' })).toBe(false);
   });
 });
+
+describe('diffFillInspector — friendly relationship grouping (#150)', () => {
+  // base: incident → sys_user (reference) and incident ⇄ grp (m2m)
+  const relBase = {
+    nodes: [node('incident', [f('a')]), node('sys_user'), node('grp')],
+    edges: [
+      { source: 'incident', target: 'sys_user', type: 'reference', field: 'caller' },
+      { source: 'incident', target: 'grp', type: 'm2m' },
+    ],
+  };
+  // relPersonless: reference removed, a named relationship added.
+  const relCmp = {
+    nodes: [node('incident', [f('a')]), node('sys_user'), node('grp'), node('plan')],
+    edges: [
+      { source: 'incident', target: 'grp', type: 'm2m' },
+      { source: 'incident', target: 'plan', type: 'rel' },
+    ],
+  };
+
+  it('groups changes under legend labels, never raw edge types', () => {
+    instancesState.instances.push({
+      id: 'i_rel',
+      label: 'relc',
+      data: relCmp,
+      capabilities: { schema: true },
+    });
+    instancesState.instances[0].data = relBase; // base = relBase
+    instancesState._byId.clear();
+    instancesState.instances.forEach((e, i) => instancesState._byId.set(e.id, i));
+    // Rebuild the matrix with relBase as base.
+    const diff = computeDiff(relBase, relCmp);
+    diff._compareId = 'i_rel';
+    diff._compareLabel = 'relc';
+    diffState._diffMatrix = [diff];
+    diffState._diffData = diff;
+
+    expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
+    const subheads = [...inspectorContent.querySelectorAll('.diff-rel-subhead')].map(
+      e => e.textContent
+    );
+    expect(subheads).toContain('Reference to (1)'); // caller removed
+    expect(subheads).toContain('Named relationship (1)'); // plan added
+    // Raw edge-type words must not leak into the section.
+    expect(inspectorContent.textContent).not.toMatch(/\breference\b/);
+  });
+});
+
+describe('diffFillInspector — inheritance-aware fields (#150)', () => {
+  // parent `task`[a]; child `incident` extends task, owns [b].
+  const inhBase = {
+    nodes: [node('task', [f('a')]), node('incident', [f('b')])],
+    edges: [{ source: 'incident', target: 'task', type: 'extends' }],
+  };
+  // compare changes the child's OWN field (so the table is flagged changed) AND
+  // the parent's inherited field type.
+  const inhCmp = {
+    nodes: [node('task', [f('a', 'integer')]), node('incident', [f('b', 'integer')])],
+    edges: [{ source: 'incident', target: 'task', type: 'extends' }],
+  };
+
+  it('surfaces an inherited field on the child when it differs, tagged inherited', () => {
+    instancesState.instances = [
+      { id: 'i_base', label: 'base', data: inhBase, capabilities: { schema: true } },
+      { id: 'i_cmp', label: 'cmp', data: inhCmp, capabilities: { schema: true } },
+    ];
+    instancesState.selectedId = 'i_base';
+    instancesState._byId.clear();
+    instancesState.instances.forEach((e, i) => instancesState._byId.set(e.id, i));
+    const diff = computeDiff(inhBase, inhCmp);
+    diff._compareId = 'i_cmp';
+    diff._compareLabel = 'cmp';
+    diffState._diffMatrix = [diff];
+    diffState._diffData = diff;
+
+    // 'incident' has no OWN field change, but its inherited 'a' differs (parent
+    // changed) — the matrix must show it, tagged as inherited.
+    expect(diffFillInspector({ id: 'incident', scope: 'global' })).toBe(true);
+    const names = [...inspectorContent.querySelectorAll('.diff-field-name')].map(e =>
+      e.textContent.replace('inherited', '').trim()
+    );
+    expect(names).toContain('a');
+    expect(inspectorContent.querySelector('.diff-field-inh')).toBeTruthy();
+  });
+});

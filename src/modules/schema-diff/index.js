@@ -178,7 +178,11 @@ function loadDiffFromInstances(baseId, compareIds) {
     diffUngraftAddedFromBase();
     if (!selectInstanceForGraph(baseId)) return;
   }
-  const compares = ids;
+  // An instance can't compare against itself — drop any compare equal to the
+  // (possibly just-switched) base. Otherwise switching the base onto an existing
+  // compare leaves a phantom self-compare column (identical everywhere) and the
+  // selection count disagrees with the picker, which hides the base.
+  const compares = ids.filter(id => id !== instancesState.selectedId);
   if (!compares.length) {
     clearDiff();
     return;
@@ -577,7 +581,14 @@ export function refreshHeaderCompare() {
     schemaInstanceCount() >= 2 &&
     !!graphState.graphData;
   host.style.display = eligible ? '' : 'none';
-  if (!eligible) return;
+  if (!eligible) {
+    // The swap (⇄) button must hide alongside the Compare control — both are only
+    // meaningful with ≥2 schemas on the map (not on Home / with a single schema).
+    // refreshHeaderSwap() runs only on the eligible path below, so hide it here.
+    const sw = document.getElementById('header-swap');
+    if (sw) sw.style.display = 'none';
+    return;
+  }
 
   if (!_cmpDd) {
     _cmpDd = createDropdown({

@@ -139,12 +139,14 @@ test('with a comparison active, the header dropdown switches the Base (synced wi
   await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'vs test-instance-b' }).click();
   await expect(page.locator('#diff-sidebar')).toBeVisible();
 
-  // The header instance dropdown switches the Base; with a comparison active the
-  // diff re-runs against the new base and the sidebar Base picker stays in sync.
+  // The header instance dropdown switches the Base. Here the only compare is
+  // test-instance-b, so switching the base ONTO it would make the compare equal
+  // the base — an instance can't compare against itself (#150), so the comparison
+  // clears and the default sidebar returns.
   await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance');
   await page.locator('#header-instance .sn-dd-btn').click();
   await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'test-instance-b' }).click();
   await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
-  // The comparison follows the new base (still showing the diff sidebar).
-  await expect(page.locator('#diff-sidebar')).toBeVisible();
+  await expect(page.locator('#diff-sidebar')).toBeHidden();
+  await expect(page.locator('#table-list')).toBeVisible();
 });
