@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `propertyEncodedQuery`, with flat GlideRecord fetchers that produce the
   identical shape to the Node extractor (shape defined once in the shared
   builder). Values are off by default and read from the DB only when opted in.
+- **Multi-instance registry state** (internal foundation for the upcoming
+  landing page, [#99](https://github.com/revampd/sn-schema-explorer/issues/99)).
+  New `core/instances-state.js` holds registered instances with presence-based
+  capability detection and list-only persistence (`snse:instances:v1`; heavy
+  schema data stays in memory). No user-facing change yet — tools become
+  registry consumers in later PRs.
 
 ### Changed
 

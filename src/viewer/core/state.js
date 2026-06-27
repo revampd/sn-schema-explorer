@@ -8,6 +8,19 @@ export {
 } from './graph-state.js';
 export { uiState } from './ui-state.js';
 export { diffState } from './diff-state.js';
+export {
+  instancesState,
+  METADATA_SECTIONS,
+  detectCapabilities,
+  aggregateCapabilities,
+  addInstance,
+  getInstance,
+  removeInstance,
+  renameInstance,
+  selectInstance,
+  persist as persistInstances,
+  loadPersisted as loadPersistedInstances,
+} from './instances-state.js';
 
 import { graphState } from './graph-state.js';
 import { uiState } from './ui-state.js';
