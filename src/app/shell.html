@@ -93,6 +93,9 @@
         <button class="export-scope-btn"         id="export-data-scope-nbhd"
                 data-scope="neighbourhood" data-cat="data"
                 title="Export only the selected table and its visible neighbours">Neighbourhood</button>
+        <button class="export-scope-btn export-scope-cmp" id="export-data-scope-cmp"
+                data-scope="comparison" data-cat="data" hidden
+                title="Export only the comparison/diff (no schema dump)">Comparison</button>
       </div>
       <div class="export-fmts" role="group" aria-label="Data export format">
         <button class="export-fmt-btn" id="epb-json"     data-fmt="json"    data-cat="data">↓ JSON</button>
@@ -102,6 +105,20 @@
         <button class="export-fmt-btn" id="epb-openapi"  data-fmt="openapi" data-cat="data">↓ OpenAPI</button>
       </div>
       <span id="export-nbhd-hint" class="export-nbhd-hint" hidden>Select a table first</span>
+    </div>
+    <!-- Comparison controls — shown only while a comparison is active (#177).
+         The embedded toggle folds the diff into Full/Neighbourhood exports; the
+         multi-select chooses which active compares are included. -->
+    <div class="export-row export-comparison-controls" id="export-comparison-controls" hidden>
+      <label class="sn-toggle" id="export-include-comparison-wrap"
+             title="Fold the comparison into the Full / Neighbourhood schema export">
+        <input type="checkbox" id="export-include-comparison">
+        <span class="sn-toggle-track"></span>
+        <span class="sn-toggle-label">Include comparison</span>
+      </label>
+      <span class="export-scale-label">Compares:</span>
+      <div class="export-compare-picker" id="export-compare-picker"
+           role="group" aria-label="Compares to include in the export"></div>
     </div>
     <!-- Separator (only between the data + image rows on the Schema Map) -->
     <div class="export-row-sep export-row-sep--datadiv"></div>

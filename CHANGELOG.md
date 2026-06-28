@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export the active comparison/diff from the Schema Map**
+  ([#177](https://github.com/revampd/sn-schema-explorer/issues/177)). When a
+  comparison is active, the export bar's data row gains comparison controls: an
+  **Include comparison** toggle that folds the diff into the Full / Neighbourhood
+  schema export (embedded — a `comparison` block in JSON, a "Differences" section
+  in Markdown, `sn:comparison` in JSON-LD, a comment block in OWL/Turtle, and an
+  `x-comparison` extension in OpenAPI), and a new **Comparison** scope that exports
+  _only_ the diff in any of the five formats. A **multi-select** lists the active
+  compares so you choose which diff sets are included. All of it is opt-in and
+  appears only while comparing — the plain schema export is unchanged otherwise.
+  (Image exports carrying the visible diff highlights will follow.)
 - **Multi-select Compare (compare against several instances at once)**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The header
   **Compare** control is now multi-select: it's a single dropdown whose rows are
