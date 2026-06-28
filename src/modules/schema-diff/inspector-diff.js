@@ -20,7 +20,7 @@
  */
 import { uiState, diffState, instancesState, getInstance, isComparing } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
-import { typeLabel } from '../../core/render.js';
+import { typeLabel, typeBadgeColor } from '../../core/render.js';
 import { Settings } from '../settings/index.js';
 import { focusTable, clearSelection } from '../../core/inspector.js';
 import { makeConfigDrift } from './config-drift.js';
@@ -353,7 +353,11 @@ function renderFieldsMatrix(ic, cols, colFields) {
         }
         wrap.appendChild(nm);
         cell.appendChild(wrap);
-        cell.appendChild(setText(el('span', 'diff-field-type'), typeLabel(t)));
+        // Colour the type label by field type, matching the single inspector.
+        const ftype = setText(el('span', 'diff-field-type'), typeLabel(t));
+        ftype.style.color = typeBadgeColor(t);
+        ftype.title = t;
+        cell.appendChild(ftype);
       }
       row.appendChild(cell);
     });
