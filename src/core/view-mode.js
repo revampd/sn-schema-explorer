@@ -37,6 +37,9 @@ export function setViewMode(mode, opts = {}) {
   }
 
   uiState.viewMode = mode;
+  // Stamp the active view on <body> so CSS can react (e.g. the table search bar is
+  // hidden in Path Finder, which has its own source/target inputs).
+  if (typeof document !== 'undefined') document.body.dataset.view = mode;
 
   // (The header tool switcher reflects the active mode via its onViewModeChange
   // listener — no segmented control to sync here anymore.)
