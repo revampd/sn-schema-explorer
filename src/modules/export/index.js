@@ -1,5 +1,6 @@
-import { graphState, uiState } from '../../core/state.js';
+import { graphState, uiState, diffState, isComparing } from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
+import { diffToExport, diffToMarkdown, diffToTurtleComment, toYaml } from './diff-export.js';
 import { svg, root, zoom } from '../../core/canvas.js';
 import { Settings } from '../settings/index.js';
 import {
@@ -58,6 +59,45 @@ function exportSlug() {
   return 'schema';
 }
 
+// ── Comparison/diff export (#177) ──────────────────────────────────────────────
+// When a comparison is active, the data exporters can fold the diff in (embedded)
+// or emit it on its own (the 'comparison' data scope). The user picks which
+// compares to include via the export bar; null = every active compare.
+let _includeComparison = false; // embedded toggle (Full / Neighbourhood scope)
+let _includedCompareIds = null; // subset of active compares; null = all
+
+export function getIncludeComparison() {
+  return _includeComparison;
+}
+export function setIncludeComparison(on) {
+  _includeComparison = !!on;
+}
+export function getIncludedCompareIds() {
+  return _includedCompareIds;
+}
+export function setIncludedCompareIds(ids) {
+  _includedCompareIds = ids && ids.length ? ids.slice() : ids === null ? null : [];
+}
+
+function _baseLabel() {
+  const inst = graphState.graphData?._instance;
+  return inst?.instance_name || inst?.instance_url || null;
+}
+
+/** The current comparison as a serialisable object, honoring the include subset.
+ *  Returns null when not comparing or the chosen subset has no differences. */
+function _activeComparison() {
+  if (!isComparing() || !diffState._diffMatrix?.length) return null;
+  return diffToExport(diffState._diffMatrix, {
+    includedIds: _includedCompareIds,
+    baseLabel: _baseLabel(),
+  });
+}
+
+function _comparisonSlug() {
+  return _baseLabel() ? _baseLabel().replace(/[^a-z0-9_-]+/gi, '_') : 'schema';
+}
+
 export function exportSchemaJSON() {
   if (!graphState.graphData) return;
   const clean = {
@@ -74,6 +114,10 @@ export function exportSchemaJSON() {
       };
     }),
   };
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) clean.comparison = cmp;
+  }
   const blob = new Blob([JSON.stringify(clean)], { type: 'application/json' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.json`);
 }
@@ -177,6 +221,10 @@ export function exportSchemaMarkdown() {
   const nodes = _collectNodes('full', data);
   let md = _markdownHeader('full', data);
   md += nodes.map(n => _nodeToMarkdown(n, data)).join('\n---\n\n');
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) md += '\n\n---\n\n' + diffToMarkdown(cmp);
+  }
   const blob = new Blob([md], { type: 'text/markdown' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.md`);
 }
@@ -187,7 +235,16 @@ export function exportSchemaJsonLd() {
   if (!graphState.graphData) return;
   const data = graphState.graphData;
   const nodes = _collectNodes('full', data);
-  const blob = new Blob([_schemaToJsonLd(nodes, data)], { type: 'application/ld+json' });
+  let jsonld = _schemaToJsonLd(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) {
+      const doc = JSON.parse(jsonld);
+      doc['sn:comparison'] = cmp; // best-effort: unmapped term, ignored by strict consumers
+      jsonld = JSON.stringify(doc);
+    }
+  }
+  const blob = new Blob([jsonld], { type: 'application/ld+json' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.jsonld`);
 }
 
@@ -211,7 +268,12 @@ export function exportSchemaTurtle() {
   if (!graphState.graphData) return;
   const data = graphState.graphData;
   const nodes = _collectNodes('full', data);
-  const blob = new Blob([_schemaToTurtle(nodes, data)], { type: 'text/turtle;charset=utf-8' });
+  let ttl = _schemaToTurtle(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) ttl = ttl + '\n' + diffToTurtleComment(cmp);
+  }
+  const blob = new Blob([ttl], { type: 'text/turtle;charset=utf-8' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.ttl`);
 }
 
@@ -233,7 +295,12 @@ export function exportSchemaOpenApi() {
   if (!graphState.graphData) return;
   const data = graphState.graphData;
   const nodes = _collectNodes('full', data);
-  const blob = new Blob([_schemaToOpenApi(nodes, data)], { type: 'application/yaml' });
+  let yaml = _schemaToOpenApi(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) yaml = yaml.replace(/\n*$/, '\n') + 'x-comparison:\n' + toYaml(cmp, 1) + '\n';
+  }
+  const blob = new Blob([yaml], { type: 'application/yaml' });
   downloadBlob(blob, `sn_schema_${exportTimestamp()}.yaml`);
 }
 
@@ -247,6 +314,74 @@ export function exportNeighbourhoodOpenApi() {
   if (!nodes) return;
   const blob = new Blob([_schemaToOpenApi(nodes, data)], { type: 'application/yaml' });
   downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.yaml`);
+}
+
+// ── Standalone comparison exports (the 'comparison' data scope, #177) ──────────
+// Emit ONLY the diff (no schema dump). Available for every data format; the
+// semantic formats (JSON-LD / Turtle / OpenAPI) get a best-effort wrapper, since
+// a diff-only ontology / API spec is not a conventional artifact.
+
+function _noComparison() {
+  alert(
+    'No comparison to export. Pick one or more instances in the Compare control, then choose the compares to include.'
+  );
+}
+
+export function exportComparisonJSON() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const blob = new Blob([JSON.stringify(cmp)], { type: 'application/json' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.json`);
+}
+
+export function exportComparisonMarkdown() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const date = new Date().toISOString().slice(0, 10);
+  const md =
+    `# ServiceNow Schema Comparison\n\n> Generated by [SN Schema Explorer](https://github.com/revampd/sn-schema-explorer) on ${date}\n\n---\n\n` +
+    diffToMarkdown(cmp);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.md`);
+}
+
+export function exportComparisonJsonLd() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const doc = {
+    '@context': { sn: 'https://servicenow.com/schema#' },
+    '@id': 'https://servicenow.com/schema/comparison',
+    '@type': 'sn:Comparison',
+    'sn:exportedAt': new Date().toISOString(),
+    'sn:comparison': cmp,
+  };
+  const blob = new Blob([JSON.stringify(doc)], { type: 'application/ld+json' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.jsonld`);
+}
+
+export function exportComparisonTurtle() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const ttl =
+    '# ServiceNow Schema Comparison (diff-only export)\n' +
+    `# Generated on ${new Date().toISOString()}\n\n` +
+    diffToTurtleComment(cmp);
+  const blob = new Blob([ttl], { type: 'text/turtle;charset=utf-8' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.ttl`);
+}
+
+export function exportComparisonOpenApi() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const yaml =
+    'openapi: 3.0.3\n' +
+    "info:\n  title: ServiceNow schema comparison\n  version: '1.0'\n" +
+    'paths: {}\n' +
+    'x-comparison:\n' +
+    toYaml(cmp, 1) +
+    '\n';
+  const blob = new Blob([yaml], { type: 'application/yaml' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.yaml`);
 }
 
 // Edge-type legend items — mirrors the on-canvas legend (#edge-legend in
@@ -899,17 +1034,48 @@ function _updateScaleInfo(scale) {
 
 // ── Export bar (panel below header) ──────────────────────────────────────────
 
-let _dataScope = 'full'; // 'full' | 'neighbourhood'  — for JSON / Markdown
+let _dataScope = 'full'; // 'full' | 'neighbourhood' | 'comparison' — for data formats
 let _imageScope = 'view'; // 'view' | 'full'            — for PNG / SVG
+
+// Data-export dispatch: scope → format → handler. The 'comparison' scope (#177)
+// emits only the diff; it's only selectable while a comparison is active.
+const _DATA_EXPORTS = {
+  full: {
+    json: exportSchemaJSON,
+    markdown: exportSchemaMarkdown,
+    jsonld: exportSchemaJsonLd,
+    turtle: exportSchemaTurtle,
+    openapi: exportSchemaOpenApi,
+  },
+  neighbourhood: {
+    json: exportNeighbourhoodJSON,
+    markdown: exportNeighbourhoodMarkdown,
+    jsonld: exportNeighbourhoodJsonLd,
+    turtle: exportNeighbourhoodTurtle,
+    openapi: exportNeighbourhoodOpenApi,
+  },
+  comparison: {
+    json: exportComparisonJSON,
+    markdown: exportComparisonMarkdown,
+    jsonld: exportComparisonJsonLd,
+    turtle: exportComparisonTurtle,
+    openapi: exportComparisonOpenApi,
+  },
+};
 
 function _syncScopeUI() {
   const isNbhd = _dataScope === 'neighbourhood';
   const isImgFull = _imageScope === 'full';
   const hasSelect = !!uiState.selectedNode;
 
-  // Data scope toggle
-  document.getElementById('export-data-scope-full')?.classList.toggle('active', !isNbhd);
-  document.getElementById('export-data-scope-nbhd')?.classList.toggle('active', isNbhd);
+  // Data scope toggle — three-way (full / neighbourhood / comparison), mutually
+  // exclusive. The comparison button's visibility is managed in _syncComparisonUI.
+  document
+    .getElementById('export-data-scope-full')
+    ?.classList.toggle('active', _dataScope === 'full');
+  document
+    .getElementById('export-data-scope-nbhd')
+    ?.classList.toggle('active', _dataScope === 'neighbourhood');
   // Image scope toggle
   document.getElementById('export-img-scope-view')?.classList.toggle('active', !isImgFull);
   document.getElementById('export-img-scope-full')?.classList.toggle('active', isImgFull);
@@ -923,6 +1089,78 @@ function _syncScopeUI() {
   // Hint text
   const hint = document.getElementById('export-nbhd-hint');
   if (hint) hint.hidden = !(isNbhd && !hasSelect);
+
+  _syncComparisonUI();
+}
+
+// The active compares, as {id,label}, from the diff matrix (selection order).
+function _activeCompareList() {
+  return (diffState._diffMatrix || []).map(d => ({
+    id: d._compareId,
+    label: d._compareLabel || d._compareId,
+  }));
+}
+
+function _isIncluded(id) {
+  return _includedCompareIds === null || _includedCompareIds.includes(id);
+}
+
+// Show/hide the comparison affordances and render the compare picker. Gated on an
+// active comparison; resets the 'comparison' scope when comparing stops.
+function _syncComparisonUI() {
+  const comparing = isComparing() && !!diffState._diffMatrix?.length;
+  const cmpScopeBtn = document.getElementById('export-data-scope-cmp');
+  const controls = document.getElementById('export-comparison-controls');
+  if (cmpScopeBtn) cmpScopeBtn.hidden = !comparing;
+  if (controls) controls.hidden = !comparing;
+
+  // Fall back to Full when the comparison goes away mid-session.
+  if (!comparing && _dataScope === 'comparison') {
+    _dataScope = 'full';
+    document.getElementById('export-data-scope-full')?.classList.add('active');
+    document.getElementById('export-data-scope-cmp')?.classList.remove('active');
+  }
+  if (cmpScopeBtn) cmpScopeBtn.classList.toggle('active', _dataScope === 'comparison');
+  if (!comparing) return;
+
+  // The embedded toggle only applies to Full / Neighbourhood — the Comparison
+  // scope IS the diff, so hide it there.
+  const includeWrap = document.getElementById('export-include-comparison-wrap');
+  if (includeWrap) includeWrap.hidden = _dataScope === 'comparison';
+  const includeCb = document.getElementById('export-include-comparison');
+  if (includeCb) includeCb.checked = _includeComparison;
+
+  const picker = document.getElementById('export-compare-picker');
+  if (picker) {
+    picker.textContent = '';
+    for (const c of _activeCompareList()) {
+      const chip = document.createElement('label');
+      chip.className = 'export-compare-chip' + (_isIncluded(c.id) ? ' active' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = _isIncluded(c.id);
+      cb.dataset.compareId = c.id;
+      const span = document.createElement('span');
+      span.textContent = c.label;
+      chip.appendChild(cb);
+      chip.appendChild(span);
+      picker.appendChild(chip);
+    }
+  }
+}
+
+// Toggle one compare's membership, normalising "all selected" back to null.
+function _toggleIncludedCompare(id, on) {
+  const all = _activeCompareList().map(c => c.id);
+  let set = _includedCompareIds === null ? all.slice() : _includedCompareIds.slice();
+  if (on) {
+    if (!set.includes(id)) set.push(id);
+  } else {
+    set = set.filter(x => x !== id);
+  }
+  // Canonicalise: every compare selected → null ("all").
+  _includedCompareIds = all.every(x => set.includes(x)) ? null : set;
+  _syncComparisonUI();
 }
 
 // Config Data export handler — injected by modules/config-data so the bar can
@@ -995,6 +1233,18 @@ export function initExportListeners() {
     else exportBarOpen();
   });
 
+  // Comparison controls — embedded toggle + which-compares multi-select (#177).
+  Dom.exportBar?.addEventListener('change', e => {
+    if (e.target.id === 'export-include-comparison') {
+      _includeComparison = e.target.checked;
+      return;
+    }
+    const cmpCb = e.target.closest('.export-compare-chip input');
+    if (cmpCb) {
+      _toggleIncludedCompare(cmpCb.dataset.compareId, cmpCb.checked);
+    }
+  });
+
   // Scope toggles + format buttons (delegated on the bar)
   Dom.exportBar?.addEventListener('click', e => {
     // Scope toggle — data or image row, independent
@@ -1016,49 +1266,9 @@ export function initExportListeners() {
         return;
       }
       if (cat === 'data') {
-        if (_dataScope === 'full') {
-          if (fmt === 'json') {
-            exportSchemaJSON();
-            return;
-          }
-          if (fmt === 'markdown') {
-            exportSchemaMarkdown();
-            return;
-          }
-          if (fmt === 'jsonld') {
-            exportSchemaJsonLd();
-            return;
-          }
-          if (fmt === 'turtle') {
-            exportSchemaTurtle();
-            return;
-          }
-          if (fmt === 'openapi') {
-            exportSchemaOpenApi();
-            return;
-          }
-        } else {
-          if (fmt === 'json') {
-            exportNeighbourhoodJSON();
-            return;
-          }
-          if (fmt === 'markdown') {
-            exportNeighbourhoodMarkdown();
-            return;
-          }
-          if (fmt === 'jsonld') {
-            exportNeighbourhoodJsonLd();
-            return;
-          }
-          if (fmt === 'turtle') {
-            exportNeighbourhoodTurtle();
-            return;
-          }
-          if (fmt === 'openapi') {
-            exportNeighbourhoodOpenApi();
-            return;
-          }
-        }
+        const fn = _DATA_EXPORTS[_dataScope]?.[fmt];
+        if (fn) fn();
+        return;
       }
       if (cat === 'image') {
         if (_imageScope === 'view') {

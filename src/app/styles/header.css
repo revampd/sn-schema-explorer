@@ -164,6 +164,7 @@ header > * {
 /* Path Finder: images only — drop the data row + its divider, and the
    full-canvas scope (only "Current view" is meaningful for the DAG). */
 body[data-view='path'] #export-bar .export-row--data,
+body[data-view='path'] #export-bar .export-comparison-controls,
 body[data-view='path'] #export-bar .export-row-sep--datadiv {
   display: none !important;
 }
@@ -175,11 +176,49 @@ body[data-workspace='config-data'] #export-bar .export-row--config {
   display: flex;
 }
 body[data-workspace='config-data'] #export-bar .export-row--data,
+body[data-workspace='config-data'] #export-bar .export-comparison-controls,
 body[data-workspace='config-data'] #export-bar .export-row--image,
 body[data-workspace='config-data'] #export-bar .export-row-sep,
 body[data-workspace='config-data'] #export-bar .export-settings-row,
 body[data-workspace='config-data'] #export-bar #export-color-picker {
   display: none !important;
+}
+
+/* The comparison controls carry `.export-row` (flex) but are JS-gated via the
+   [hidden] attr — which UA styles can't enforce against an author flex rule. */
+#export-bar .export-comparison-controls[hidden],
+#export-bar .export-scope-btn[hidden],
+#export-bar #export-include-comparison-wrap[hidden] {
+  display: none !important;
+}
+
+/* Comparison multi-select chips (#177) — which compares fold into the export. */
+.export-compare-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.export-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--sn-border, var(--border));
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--muted);
+  user-select: none;
+}
+.export-compare-chip.active {
+  color: var(--text);
+  border-color: var(--diff-changed, #4dd0e1);
+  background: color-mix(in srgb, var(--diff-changed, #4dd0e1) 12%, transparent);
+}
+.export-compare-chip input {
+  margin: 0;
+  accent-color: var(--diff-changed, #4dd0e1);
 }
 .export-bar-inner {
   padding: 10px 16px;

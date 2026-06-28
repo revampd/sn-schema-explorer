@@ -176,6 +176,70 @@ test.describe('Schema Diff', () => {
     const added = page.locator('#diff-stat-added, #diff-n-added').first();
     await expect(added).toHaveText(/[1-9]/, { timeout: 10_000 });
   });
+
+  test('exports the active comparison — embedded toggle + standalone scope (#177)', async ({
+    page,
+  }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
+    });
+    const compare = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
+    compare._instance = { ...(compare._instance || {}), instance_name: 'compare-inst' };
+    compare.nodes.push({
+      id: 'problem',
+      label: 'Problem',
+      fields: [{ name: 'sys_id', type: 'GUID' }],
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    // The comparison affordances appear in the export bar only while comparing.
+    await page.locator('#btn-export').click();
+    await expect(page.locator('#export-bar.open')).toBeVisible();
+    await expect(page.locator('#export-data-scope-cmp')).toBeVisible();
+    await expect(page.locator('#export-comparison-controls')).toBeVisible();
+    await expect(page.locator('.export-compare-chip')).toHaveCount(1);
+
+    // Embedded: tick "Include comparison" and export Full-schema JSON → carries a
+    // `comparison` block with the added table.
+    await page.locator('#export-include-comparison').check({ force: true });
+    const dl1 = page.waitForEvent('download');
+    await page.locator('#epb-json').click();
+    const embedded = await dl1;
+    const embPath = await embedded.path();
+    const { readFileSync } = await import('fs');
+    const embJson = JSON.parse(readFileSync(embPath, 'utf8'));
+    expect(embJson.nodes.length).toBeGreaterThan(0); // still a full schema
+    expect(embJson.comparison).toBeTruthy();
+    expect(embJson.comparison.tables.some(t => t.id === 'problem')).toBe(true);
+
+    // Standalone: the Comparison scope emits ONLY the diff.
+    await page.locator('#btn-export').click();
+    await page.locator('#export-data-scope-cmp').click();
+    const dl2 = page.waitForEvent('download');
+    await page.locator('#epb-json').click();
+    const standalone = await dl2;
+    expect(standalone.suggestedFilename()).toMatch(/sn_comparison_.*\.json$/);
+    const stPath = await standalone.path();
+    const stJson = JSON.parse(readFileSync(stPath, 'utf8'));
+    expect(stJson.nodes).toBeUndefined(); // no schema dump
+    expect(stJson.tables.some(t => t.id === 'problem')).toBe(true);
+  });
 });
 
 // ── Configuration Data ─────────────────────────────────────────────────────
