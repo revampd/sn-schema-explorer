@@ -16,7 +16,10 @@ const { inspectorContent } = vi.hoisted(() => ({
 vi.mock('../../../../src/core/dom.js', () => ({
   Dom: { inspectorEmpty: { style: {} }, inspectorContent },
 }));
-vi.mock('../../../../src/core/render.js', () => ({ typeLabel: t => t }));
+vi.mock('../../../../src/core/render.js', () => ({
+  typeLabel: t => t,
+  typeBadgeColor: () => '#888',
+}));
 vi.mock('../../../../src/modules/settings/index.js', () => ({
   Settings: { isEnabled: () => false, isCustomName: () => false },
 }));
