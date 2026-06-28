@@ -7,7 +7,7 @@
  * singletons. No coupling to the canvas render path — render.js re-exports
  * updateInstancePill / showInstanceInfo so existing importers are unaffected.
  */
-import { graphState, diffState, getInstance } from './state.js';
+import { graphState, diffState, getInstance, instancesState } from './state.js';
 
 // ── Shared HTML primitives ──────────────────────────────────────────────────
 export const esc = s =>
@@ -414,13 +414,49 @@ export function showInstanceInfo() {
   overlay.classList.add('is-open');
 }
 
+// All-instances roster overlay — opened from the landing footer chip, where no
+// single instance is selected. Renders each registered instance's metadata
+// sections (more detail than the compact landing cards: URL, build, version,
+// capabilities, full stats), stacked with a banner per instance.
+export function showInstancesRoster() {
+  const overlay = document.getElementById('insti-overlay');
+  const body = document.getElementById('insti-body');
+  const title = document.getElementById('insti-title');
+  if (!overlay || !body) return;
+  const insts = instancesState.instances || [];
+  if (!insts.length) return;
+  if (title) title.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
+  let html = '';
+  for (const e of insts) {
+    const d = e.data || {};
+    html += '<div class="insti-banner insti-banner-base">' + esc(e.label) + '</div>';
+    html += instanceSectionsHtml(
+      {
+        instance: d._instance,
+        stats: d._stats,
+        capabilities: d._capabilities,
+        build: d._build,
+        version: d._schema_version,
+      },
+      { noStatCards: false }
+    );
+  }
+  body.innerHTML = html;
+  overlay.classList.add('is-open');
+}
+
 (function wireInstanceModal() {
   function attach() {
     const overlay = document.getElementById('insti-overlay');
     const pill = document.getElementById('footer-instance');
     const closeBtn = document.getElementById('insti-close');
     if (!overlay || !pill || !closeBtn) return;
-    pill.addEventListener('click', showInstanceInfo);
+    pill.addEventListener('click', () => {
+      // On the landing page the chip is a roster of all instances; elsewhere it's
+      // the active instance (/comparison).
+      if (pill.classList.contains('footer-instance--roster')) showInstancesRoster();
+      else showInstanceInfo();
+    });
     closeBtn.addEventListener('click', () => overlay.classList.remove('is-open'));
     overlay.addEventListener('click', e => {
       if (e.target === overlay) overlay.classList.remove('is-open');
