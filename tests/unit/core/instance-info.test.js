@@ -6,8 +6,13 @@
  * Configuration Data → Instance Data tab. (The module wires the modal on import,
  * hence jsdom.)
  */
-import { describe, it, expect } from 'vitest';
-import { instanceSectionsHtml, instancesComparisonHtml } from '../../../src/core/instance-info.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  instanceSectionsHtml,
+  instancesComparisonHtml,
+  showInstancesRoster,
+} from '../../../src/core/instance-info.js';
+import { instancesState } from '../../../src/core/instances-state.js';
 
 const SCOPE_A = {
   label: 'prod',
@@ -102,5 +107,34 @@ describe('instancesComparisonHtml()', () => {
 
   it('returns empty string for no scopes', () => {
     expect(instancesComparisonHtml([])).toBe('');
+  });
+});
+
+describe('showInstancesRoster() — landing all-instances overview', () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div id="insti-overlay"><div id="insti-title"></div><div id="insti-body"></div></div>';
+    instancesState.instances = [];
+  });
+
+  it('opens the shared overlay with a side-by-side comparison of all instances', () => {
+    instancesState.instances = [
+      { label: 'prod', data: { _instance: { instance_name: 'prod' }, _stats: SCOPE_A.stats } },
+      { label: 'dev', data: { _instance: { instance_name: 'dev' }, _stats: SCOPE_B.stats } },
+    ];
+    showInstancesRoster();
+    const overlay = document.getElementById('insti-overlay');
+    expect(overlay.classList.contains('is-open')).toBe(true);
+    expect(document.getElementById('insti-title').textContent).toBe('2 instances');
+    // Side-by-side: the shared comparison table with a column per instance.
+    const body = document.getElementById('insti-body');
+    expect(body.querySelector('table.insti-compare')).toBeTruthy();
+    expect(body.textContent).toContain('prod');
+    expect(body.textContent).toContain('dev');
+  });
+
+  it('does nothing when no instances are registered', () => {
+    showInstancesRoster();
+    expect(document.getElementById('insti-overlay').classList.contains('is-open')).toBe(false);
   });
 });

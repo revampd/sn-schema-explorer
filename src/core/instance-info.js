@@ -7,7 +7,7 @@
  * singletons. No coupling to the canvas render path — render.js re-exports
  * updateInstancePill / showInstanceInfo so existing importers are unaffected.
  */
-import { graphState, diffState, getInstance } from './state.js';
+import { graphState, diffState, getInstance, instancesState } from './state.js';
 
 // ── Shared HTML primitives ──────────────────────────────────────────────────
 export const esc = s =>
@@ -414,13 +414,43 @@ export function showInstanceInfo() {
   overlay.classList.add('is-open');
 }
 
+// All-instances overview — opened from the landing footer roster chip, where no
+// single instance is selected. Reuses the shared SIDE-BY-SIDE comparison table
+// (instancesComparisonHtml): attribute rows × instance columns, so instances are
+// compared at a glance rather than stacked (no scroll-down). Same renderer the
+// Configuration Data N-way comparison uses.
+export function showInstancesRoster() {
+  const overlay = document.getElementById('insti-overlay');
+  const body = document.getElementById('insti-body');
+  const title = document.getElementById('insti-title');
+  if (!overlay || !body) return;
+  const insts = instancesState.instances || [];
+  if (!insts.length) return;
+  if (title) title.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
+  const scopes = insts.map(e => ({
+    label: e.label,
+    loaded: !!e.data,
+    instance: e.data && e.data._instance,
+    stats: e.data && e.data._stats,
+    build: e.data && e.data._build,
+    version: e.data && e.data._schema_version,
+  }));
+  body.innerHTML = instancesComparisonHtml(scopes);
+  overlay.classList.add('is-open');
+}
+
 (function wireInstanceModal() {
   function attach() {
     const overlay = document.getElementById('insti-overlay');
     const pill = document.getElementById('footer-instance');
     const closeBtn = document.getElementById('insti-close');
     if (!overlay || !pill || !closeBtn) return;
-    pill.addEventListener('click', showInstanceInfo);
+    pill.addEventListener('click', () => {
+      // On the landing page the chip is a roster of all instances; elsewhere it's
+      // the active instance (/comparison).
+      if (pill.classList.contains('footer-instance--roster')) showInstancesRoster();
+      else showInstanceInfo();
+    });
     closeBtn.addEventListener('click', () => overlay.classList.remove('is-open'));
     overlay.addEventListener('click', e => {
       if (e.target === overlay) overlay.classList.remove('is-open');

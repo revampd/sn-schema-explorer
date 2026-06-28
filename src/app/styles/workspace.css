@@ -13,11 +13,7 @@
 
 /* On the landing page nothing is selected, so the footer chip shows a ROSTER of
    all registered instances (populated by landing/index.js) rather than one
-   arbitrary instance. The roster is informational, not clickable. */
-#footer-instance.footer-instance--roster {
-  cursor: default;
-  pointer-events: none;
-}
+   arbitrary instance. Clicking it opens the all-instances overview. */
 #footer-instance.footer-instance--roster .footer-instance-dot {
   color: var(--muted);
 }
