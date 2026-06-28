@@ -545,14 +545,16 @@ path.diff-edge-removed {
 }
 
 /* Column status colour (#150) — shared by the status-strip chips and the field
-   matrix column headers. `same` (identical) is GREEN (in sync), not amber. */
+   matrix column headers. `same` (identical) is NEUTRAL: no change means no status
+   colour. Only added (green) / removed (red) / changed (amber) carry colour, so an
+   identical column never looks like it was added. */
 .cstat-base {
   background: rgba(255, 255, 255, 0.05);
   color: var(--fg);
 }
 .cstat-same {
-  background: var(--diff-added-dim);
-  color: var(--diff-added);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
 }
 .cstat-added {
   background: var(--diff-added-dim);
