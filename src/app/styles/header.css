@@ -333,6 +333,12 @@ header > * {
 .header-spring {
   margin-left: auto;
 }
+/* Path Finder has its own source/target inputs — the table search + Filter aren't
+   relevant there, so hide them in that view. */
+body[data-view='path'] .search-wrap,
+body[data-view='path'] #scope-filter-btn {
+  display: none !important;
+}
 
 .btn {
   background: rgba(255, 255, 255, 0.05);
