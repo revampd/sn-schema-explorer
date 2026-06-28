@@ -219,15 +219,24 @@ test.describe('Configuration Data', () => {
     // com.x drifts (1.0 vs 1.1) → at least one Drift chip.
     await expect(page.locator('.cd-table .pill-badge', { hasText: 'Drift' }).first()).toBeVisible();
 
+    // Export CSV/JSON now live in the header Export bar (view-aware). Open it.
+    await page.locator('#btn-export').click();
+    await expect(page.locator('#export-bar.open')).toBeVisible();
+    // Only the Config Data row is shown on this workspace.
+    await expect(page.locator('.export-row--config')).toBeVisible();
+    await expect(page.locator('.export-row--data')).toBeHidden();
+    await expect(page.locator('.export-row--image')).toBeHidden();
+
     // Export CSV triggers a download.
     const downloadPromise = page.waitForEvent('download');
-    await page.locator('#cd-export').click();
+    await page.locator('#epb-cd-csv').click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/plugins_configuration\.csv$/);
 
     // Export JSON triggers a download too.
+    await page.locator('#btn-export').click();
     const jsonDownloadPromise = page.waitForEvent('download');
-    await page.locator('#cd-export-json').click();
+    await page.locator('#epb-cd-json').click();
     const jsonDownload = await jsonDownloadPromise;
     expect(jsonDownload.suggestedFilename()).toMatch(/plugins_configuration\.json$/);
     void testInfo;

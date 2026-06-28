@@ -23,6 +23,7 @@ import { reconcile, reconcileToCsv, reconcileToJson, SECTION_LABELS } from './re
 import { renderComparisonTable } from './table-view.js';
 import { instancesComparisonHtml } from '../../core/instance-info.js';
 import { createDropdown } from '../../core/dropdown.js';
+import { setConfigExportHook } from '../export/index.js';
 
 // Sentinel section key for the always-present Instance Data tab. Not a metadata
 // section — it renders the instance identity / runtime / export + a schema-stats
@@ -190,6 +191,41 @@ function currentResult() {
   return reconcile(view.section, selectedInstances());
 }
 
+// Reflect the active section in the header Export bar's config row: name the
+// section, and disable CSV/JSON when there is nothing tabular to export.
+function syncConfigExportBar() {
+  const labelEl = document.getElementById('export-cd-section');
+  const hintEl = document.getElementById('export-cd-hint');
+  const setBtns = on => {
+    ['epb-cd-csv', 'epb-cd-json'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = !on;
+    });
+  };
+  const setHint = txt => {
+    if (!hintEl) return;
+    hintEl.hidden = !txt;
+    hintEl.textContent = txt || '';
+  };
+
+  if (view.section === INSTANCE_TAB) {
+    if (labelEl) labelEl.textContent = 'Instance Data';
+    setBtns(false);
+    setHint('Instance Data isn’t a table — pick a section to export.');
+    return;
+  }
+
+  if (labelEl) labelEl.textContent = SECTION_LABELS[view.section] || 'comparison';
+  if (!comparableSections().length) {
+    setBtns(false);
+    setHint('No section data to export.');
+    return;
+  }
+  const rows = currentResult().rows.length;
+  setBtns(rows > 0);
+  setHint(rows ? '' : 'No rows to export.');
+}
+
 // Map a registry entry to an instance-info scope. Un-loaded placeholders
 // (data:null) still expose identity/runtime from their persisted `meta`.
 function scopeFromEntry(e) {
@@ -240,6 +276,11 @@ function renderCompare() {
   }
   renderTabs();
 
+  // Keep the header Export bar (CSV/JSON) in step with the active section: it
+  // names what will be exported and disables when there's nothing tabular to
+  // export (Instance Data tab, no sections, or no rows after filtering).
+  syncConfigExportBar();
+
   if (view.section === INSTANCE_TAB) {
     showInstanceMode(true);
     renderInstanceData();
@@ -249,12 +290,6 @@ function renderCompare() {
 
   const empty = document.getElementById('cd-empty');
   const tableWrap = document.getElementById('cd-table-wrap');
-  const setExportDisabled = on => {
-    ['cd-export', 'cd-export-json'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.disabled = on;
-    });
-  };
 
   if (!sections.length) {
     if (tableWrap) tableWrap.style.display = 'none';
@@ -264,7 +299,6 @@ function renderCompare() {
         'Register at least one instance carrying a metadata section (plugins, store apps, custom apps, or properties) to view it here. Add more instances to compare them. Re-export with the metadata sections enabled if a section is empty.';
     }
     renderStats({ rows: [], counts: { sync: 0, drift: 0, missing: 0, active: 0, inactive: 0 } });
-    setExportDisabled(true);
     return;
   }
 
@@ -285,7 +319,6 @@ function renderCompare() {
     empty.style.display = visibleRows ? 'none' : 'block';
     if (!visibleRows) empty.textContent = 'No entries match the current filter.';
   }
-  setExportDisabled(!result.rows.length);
 }
 
 // ── Public entry ──────────────────────────────────────────────────────────
@@ -343,26 +376,28 @@ export function initConfigData() {
     a.click();
     URL.revokeObjectURL(a.href);
   };
-  const exportBtn = document.getElementById('cd-export');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => {
-      const result = currentResult();
-      if (!result.rows.length) return;
-      download(reconcileToCsv(result), 'text/csv', 'csv');
-    });
-  }
-  const exportJsonBtn = document.getElementById('cd-export-json');
-  if (exportJsonBtn) {
-    exportJsonBtn.addEventListener('click', () => {
-      const result = currentResult();
-      if (!result.rows.length) return;
+  // Export CSV / JSON now lives in the header Export bar (view-aware). The bar
+  // calls back here via setConfigExportHook so this module owns the data + format
+  // while the export module owns the UI. Exports the active section comparison.
+  setConfigExportHook(fmt => {
+    const result = currentResult();
+    if (!result.rows.length) return;
+    if (fmt === 'csv') download(reconcileToCsv(result), 'text/csv', 'csv');
+    else if (fmt === 'json')
       download(JSON.stringify(reconcileToJson(result), null, 2), 'application/json', 'json');
-    });
-  }
+  });
 
-  // Re-render whenever this workspace becomes active.
+  // Re-render whenever this workspace becomes active, and make sure the header
+  // Export button is live (it starts disabled until a graph schema loads, but
+  // Config Data can be reached without one).
   onWorkspaceChange(ws => {
-    if (ws === 'config-data') renderCompare();
+    if (ws !== 'config-data') return;
+    const btnExport = document.getElementById('btn-export');
+    if (btnExport) {
+      btnExport.disabled = false;
+      btnExport.classList.remove('btn-nav-disabled');
+    }
+    renderCompare();
   });
 
   // Landing card icon — launches the (global) Configuration Data workspace.
