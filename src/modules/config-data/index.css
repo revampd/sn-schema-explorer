@@ -3,7 +3,9 @@
  * by styles/workspace.css while this workspace is active. */
 .cd-workspace {
   grid-column: 1 / -1;
-  grid-row: 2 / 5;
+  /* Content row only (row 4) — the header Export bar (row 2) now surfaces here
+     too, so the workspace must sit below it rather than spanning rows 2–4. */
+  grid-row: 4 / 5;
   overflow: auto;
   background: var(--bg);
   z-index: 5;

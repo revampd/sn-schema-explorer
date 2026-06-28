@@ -75,8 +75,17 @@
 <!-- Export bar — grid row below the header, toggled by the Export button -->
 <div id="export-bar">
   <div class="export-bar-inner">
-    <!-- Row 1: data exports — JSON and Markdown with schema/neighbourhood scope -->
-    <div class="export-row">
+    <!-- Config Data exports — CSV / JSON of the active section comparison (Config workspace only) -->
+    <div class="export-row export-row--config">
+      <span class="export-scale-label">Export <span id="export-cd-section">comparison</span> as</span>
+      <div class="export-fmts" role="group" aria-label="Configuration data export format">
+        <button class="export-fmt-btn" id="epb-cd-csv"  data-fmt="csv"  data-cat="config">↓ CSV</button>
+        <button class="export-fmt-btn" id="epb-cd-json" data-fmt="json" data-cat="config">↓ JSON</button>
+      </div>
+      <span id="export-cd-hint" class="export-nbhd-hint" hidden></span>
+    </div>
+    <!-- Row 1: data exports — JSON and Markdown with schema/neighbourhood scope (Schema Map only) -->
+    <div class="export-row export-row--data">
       <div class="export-scope-seg" role="group" aria-label="Data export scope">
         <button class="export-scope-btn active" id="export-data-scope-full"
                 data-scope="full"          data-cat="data"
@@ -94,10 +103,10 @@
       </div>
       <span id="export-nbhd-hint" class="export-nbhd-hint" hidden>Select a table first</span>
     </div>
-    <!-- Separator -->
-    <div class="export-row-sep"></div>
+    <!-- Separator (only between the data + image rows on the Schema Map) -->
+    <div class="export-row-sep export-row-sep--datadiv"></div>
     <!-- Row 2: image exports — PNG and SVG with viewport/full-canvas scope -->
-    <div class="export-row">
+    <div class="export-row export-row--image">
       <div class="export-scope-seg" role="group" aria-label="Image export scope">
         <button class="export-scope-btn active" id="export-img-scope-view"
                 data-scope="view" data-cat="image"

@@ -925,6 +925,14 @@ function _syncScopeUI() {
   if (hint) hint.hidden = !(isNbhd && !hasSelect);
 }
 
+// Config Data export handler — injected by modules/config-data so the bar can
+// trigger a CSV / JSON download of the active section comparison without the
+// export module importing the config workspace (avoids a circular import).
+let _configExportHook = null;
+export function setConfigExportHook(fn) {
+  _configExportHook = fn;
+}
+
 export function exportBarOpen() {
   if (!Dom.exportBar) return;
   const maxScale = Settings.getMaxPngScale();
@@ -1003,6 +1011,10 @@ export function initExportListeners() {
     if (fmtBtn && !fmtBtn.disabled) {
       const { fmt, cat } = fmtBtn.dataset;
       exportBarClose();
+      if (cat === 'config') {
+        _configExportHook?.(fmt);
+        return;
+      }
       if (cat === 'data') {
         if (_dataScope === 'full') {
           if (fmt === 'json') {

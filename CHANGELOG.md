@@ -55,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The Export bar is now view-aware and surfaces in every tool.** The header
+  **Export** button opens an export bar trimmed to what each workspace can
+  actually export: the **Schema Map** keeps its data row (JSON / Markdown /
+  JSON-LD / OWL-Turtle / OpenAPI) plus image row (PNG / SVG); **Path Finder**
+  shows image exports only, scoped to the current view (no data formats, no
+  full-canvas image scope, since the DAG has no full-schema export); and
+  **Configuration Data** gains a CSV / JSON row that names the active section
+  ("Export Plugins as …") and disables with a hint when there's nothing tabular
+  to export (the Instance Data tab, or an empty result). The inline **Export
+  CSV / Export JSON** buttons that used to sit in the Configuration Data controls
+  have moved into this shared bar, so export lives in one place across the app.
 - **Comparison inspector layout matches the single-instance inspector**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The diff
   inspector now opens with a **Properties** section (scope / core / children /

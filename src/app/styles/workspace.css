@@ -27,8 +27,12 @@
 body:not([data-workspace='schema-explorer']) #sidebar,
 body:not([data-workspace='schema-explorer']) #canvas,
 body:not([data-workspace='schema-explorer']) #inspector,
-body:not([data-workspace='schema-explorer']) #export-bar,
 body:not([data-workspace='schema-explorer']) #filter-bar {
+  display: none !important;
+}
+/* The export bar is shared chrome: it surfaces on Config Data too (CSV/JSON row),
+   so hide it only on workspaces that have no export (the landing page). */
+body:not([data-workspace='schema-explorer']):not([data-workspace='config-data']) #export-bar {
   display: none !important;
 }
 body:not([data-workspace='schema-explorer']) .search-wrap,
@@ -37,12 +41,16 @@ body:not([data-workspace='schema-explorer']) #btn-hist-back,
 body:not([data-workspace='schema-explorer']) #btn-hist-fwd,
 body:not([data-workspace='schema-explorer']) #btn-refresh,
 body:not([data-workspace='schema-explorer']) #btn-reset,
-body:not([data-workspace='schema-explorer']) #btn-export,
 body:not([data-workspace='schema-explorer']) #btn-ref-guide,
 body:not([data-workspace='schema-explorer']) .header-stats,
 body:not([data-workspace='schema-explorer']) header .header-sep,
 body:not([data-workspace='schema-explorer']) #btn-sidebar-toggle,
 body:not([data-workspace='schema-explorer']) #btn-fit-m,
 body:not([data-workspace='schema-explorer']) #btn-inspector-toggle {
+  display: none !important;
+}
+/* Export button is available on Config Data; hide it only where there's no
+   export (landing). #btn-export is .desk-only, so this respects that too. */
+body:not([data-workspace='schema-explorer']):not([data-workspace='config-data']) #btn-export {
   display: none !important;
 }

@@ -150,6 +150,37 @@ header > * {
 #export-bar.open {
   display: block;
 }
+/* ── View-aware export rows ───────────────────────────────────────────────
+ * The bar surfaces in three workspaces and trims its rows to what makes sense:
+ *   Schema Map    → data row + image row + settings (default markup)
+ *   Path Finder   → image row + settings only (no data formats, view scope only)
+ *   Config Data   → CSV / JSON row only
+ * Visibility is pure CSS off body[data-view] / body[data-workspace]. */
+/* Hidden by default (scoped to beat `.export-row { display: flex }` at equal
+   specificity); only the Config Data workspace re-shows it below. */
+#export-bar .export-row--config {
+  display: none;
+}
+/* Path Finder: images only — drop the data row + its divider, and the
+   full-canvas scope (only "Current view" is meaningful for the DAG). */
+body[data-view='path'] #export-bar .export-row--data,
+body[data-view='path'] #export-bar .export-row-sep--datadiv {
+  display: none !important;
+}
+body[data-view='path'] #export-bar #export-img-scope-full {
+  display: none;
+}
+/* Config Data: just the CSV / JSON row. */
+body[data-workspace='config-data'] #export-bar .export-row--config {
+  display: flex;
+}
+body[data-workspace='config-data'] #export-bar .export-row--data,
+body[data-workspace='config-data'] #export-bar .export-row--image,
+body[data-workspace='config-data'] #export-bar .export-row-sep,
+body[data-workspace='config-data'] #export-bar .export-settings-row,
+body[data-workspace='config-data'] #export-bar #export-color-picker {
+  display: none !important;
+}
 .export-bar-inner {
   padding: 10px 16px;
   display: flex;
