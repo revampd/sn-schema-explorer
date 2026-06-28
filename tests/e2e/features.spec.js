@@ -175,6 +175,15 @@ test.describe('Schema Diff', () => {
     // One table added (problem); the added counter should read at least 1.
     const added = page.locator('#diff-stat-added, #diff-n-added').first();
     await expect(added).toHaveText(/[1-9]/, { timeout: 10_000 });
+
+    // Selecting a compare auto-enables the Differences overlay on the canvas
+    // (the user shouldn't have to click Differences to see the diff), and the
+    // toggle still mutes it on demand.
+    const diffToggle = page.locator('#diff-layer-master');
+    await expect(diffToggle).toBeVisible();
+    await expect(diffToggle).toHaveAttribute('aria-pressed', 'true');
+    await diffToggle.click();
+    await expect(diffToggle).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('exports the active comparison — embedded toggle + standalone scope (#177)', async ({

@@ -111,6 +111,10 @@ function loadDiffSchema(compareData) {
   diffState._diffData._compareVersion = compareData._schema_version || null;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
+  // Establishing a comparison turns the Differences overlay ON, regardless of any
+  // prior toggle state — selecting one or more compare targets should light up the
+  // diff view on the canvas (the toggle still mutes it without dropping the diff).
+  diffState._diffLayerOn = true;
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   diffUpdateSummary();
@@ -211,6 +215,8 @@ function clearDiff() {
   diffState._diffData = null;
   diffState._diffMatrix = null;
   setCompareId(null);
+  // Reset the overlay to ON so the next comparison starts with the diff visible.
+  diffState._diffLayerOn = true;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
   diffState._configFilter = 'all';
