@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schema export (embedded — a `comparison` block in JSON, a "Differences" section
   in Markdown, `sn:comparison` in JSON-LD, a comment block in OWL/Turtle, and an
   `x-comparison` extension in OpenAPI), and a new **Comparison** scope that exports
-  *only* the diff in any of the five formats. A **multi-select** lists the active
+  _only_ the diff in any of the five formats. A **multi-select** lists the active
   compares so you choose which diff sets are included. All of it is opt-in and
   appears only while comparing — the plain schema export is unchanged otherwise.
   (Image exports carrying the visible diff highlights will follow.)
