@@ -1018,13 +1018,15 @@ function gatherInstanceInfo() {
   //
   // The cap DOES bite when we eventually `array.join('')` to produce the
   // single string for attachment.write(). If the total size would exceed
-  // ~10 MB we fall through to a "split attachments" strategy that writes
+  // ~5 MB we fall through to a "split attachments" strategy that writes
   // the schema across N sys_attachment rows, each safely under the cap.
   // A small manifest record points the viewer at the parts so they can
   // be reassembled client-side.
   // Deliberately well below Rhino's 32 MB String limit: the lower trigger
   // caps peak in-memory string size to avoid memory pressure in ServiceNow.
-  var STRING_CAP_BYTES = 10 * 1024 * 1024; // cap peak memory; split anything larger
+  // 5 MB also keeps a single attachment from truncating in the script output
+  // panel (see CONFIG note above); anything larger is split into parts.
+  var STRING_CAP_BYTES = 5 * 1024 * 1024; // cap peak memory; split anything larger
 
   var chunks = [];
   var totalBytes = 0;
@@ -1125,7 +1127,7 @@ function gatherInstanceInfo() {
     );
 
     // Pack chunks into parts. Each part stays well under the string cap.
-    var PART_TARGET_BYTES = 10 * 1024 * 1024; // 10 MB per part
+    var PART_TARGET_BYTES = 5 * 1024 * 1024; // 5 MB per part (matches the split cap)
     var parts = []; // [ { idx, sysId, fileName, bytes } ]
     var partBuffer = [];
     var partBytes = 0;

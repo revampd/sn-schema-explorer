@@ -66,6 +66,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Background exporter splits at 5 MB (was 10 MB).** The ServiceNow background
+  script now writes a single attachment only up to 5 MB and switches to the
+  multi-part (manifest + parts) format above that, with each part capped at
+  5 MB. This keeps a single attachment from truncating in the script output
+  panel and lowers peak in-memory string size in the Rhino sandbox. The viewer
+  auto-stitches multi-part exports on load, so there's no change to how you load
+  them.
 - **The Export bar is now view-aware and surfaces in every tool.** The header
   **Export** button opens an export bar trimmed to what each workspace can
   actually export: the **Schema Map** keeps its data row (JSON / Markdown /
