@@ -446,8 +446,31 @@ export function renderInstances() {
   host.appendChild(addCard());
 }
 
+// Footer chip on the landing page: a roster of every registered instance, since
+// nothing is "selected" here. Reuses #footer-instance (the tool views repopulate
+// it with the active / base→compare instance). Informational, not clickable.
+function updateLandingFooterRoster() {
+  const pill = document.getElementById('footer-instance');
+  const nameEl = document.getElementById('footer-instance-name');
+  const buildEl = document.getElementById('footer-instance-build');
+  if (!pill || !nameEl || !buildEl) return;
+  const insts = instancesState.instances;
+  if (!insts.length) {
+    pill.classList.remove('is-visible', 'footer-instance--roster');
+    return;
+  }
+  const names = insts.map(e => e.label);
+  nameEl.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
+  // All names in one chip — the text ellipsis-truncates when there are many; the
+  // full list is in the tooltip. (No fixed cap, so it scales to any count.)
+  buildEl.textContent = '· ' + names.join(' · ');
+  pill.title = 'Registered instances: ' + names.join(', ');
+  pill.classList.add('is-visible', 'footer-instance--roster');
+}
+
 export function refreshLanding() {
   renderInstances();
+  updateLandingFooterRoster();
 }
 
 // ── Setup-instructions UI (relocated from load) ─────────────────────────────

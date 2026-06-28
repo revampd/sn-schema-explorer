@@ -7,7 +7,7 @@
  * singletons. No coupling to the canvas render path — render.js re-exports
  * updateInstancePill / showInstanceInfo so existing importers are unaffected.
  */
-import { graphState, diffState } from './state.js';
+import { graphState, diffState, getInstance } from './state.js';
 
 // ── Shared HTML primitives ──────────────────────────────────────────────────
 export const esc = s =>
@@ -55,9 +55,13 @@ function statVal(stats, row) {
 export function updateInstancePill() {
   const pill = document.getElementById('footer-instance');
   if (!pill) return;
+  // A tool view owns the chip — drop the landing roster styling (landing repopulates
+  // it when the workspace switches back).
+  pill.classList.remove('footer-instance--roster');
   const inst = graphState.graphData && graphState.graphData._instance;
   if (!inst) {
     pill.classList.remove('is-visible');
+    pill.title = 'Click to view full instance details';
     return;
   }
   function shortLabel(x) {
@@ -77,14 +81,19 @@ export function updateInstancePill() {
   }
   const nameEl = document.getElementById('footer-instance-name');
   const buildEl = document.getElementById('footer-instance-build');
-  const cmpInst = diffState._diffData && diffState._diffData._compareInstance;
-  if (cmpInst) {
-    nameEl.textContent = shortLabel(inst) + ' → ' + shortLabel(cmpInst);
+  // While comparing, one chip captures the whole set: base → each compare. The
+  // visible text ellipsis-truncates; the full list is in the tooltip.
+  const cmpIds = (diffState._compareIds || []).filter(Boolean);
+  if (cmpIds.length) {
+    const names = cmpIds.map(id => getInstance(id)?.label || id);
+    nameEl.textContent = shortLabel(inst) + ' → ' + names.join(', ');
     buildEl.textContent = '';
+    pill.title = 'Comparing ' + shortLabel(inst) + ' against: ' + names.join(', ');
   } else {
     nameEl.textContent = shortLabel(inst);
     const b = buildLabel(inst);
     buildEl.textContent = b ? '· ' + b : '';
+    pill.title = 'Click to view full instance details';
   }
   pill.classList.add('is-visible');
 }
