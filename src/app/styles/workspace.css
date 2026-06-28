@@ -11,6 +11,17 @@
   display: block;
 }
 
+/* On the landing page nothing is selected, so the footer chip shows a ROSTER of
+   all registered instances (populated by landing/index.js) rather than one
+   arbitrary instance. The roster is informational, not clickable. */
+#footer-instance.footer-instance--roster {
+  cursor: default;
+  pointer-events: none;
+}
+#footer-instance.footer-instance--roster .footer-instance-dot {
+  color: var(--muted);
+}
+
 /* ── Clean shell for non–Schema-Explorer workspaces ─────────────────────────
  * On the landing page (and the future Configuration Data workspace) the graph
  * chrome adds no value, so we hide it and let the active workspace region own

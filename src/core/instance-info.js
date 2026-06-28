@@ -55,6 +55,9 @@ function statVal(stats, row) {
 export function updateInstancePill() {
   const pill = document.getElementById('footer-instance');
   if (!pill) return;
+  // A tool view owns the chip — drop the landing roster styling (landing repopulates
+  // it on its own when the workspace switches back).
+  pill.classList.remove('footer-instance--roster');
   const inst = graphState.graphData && graphState.graphData._instance;
   if (!inst) {
     pill.classList.remove('is-visible');
