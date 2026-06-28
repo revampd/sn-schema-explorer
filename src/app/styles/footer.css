@@ -62,7 +62,17 @@ footer .footer-instance {
     border-color 0.15s;
   max-width: 60vw;
   overflow: hidden;
+  white-space: nowrap;
+}
+/* One chip captures the whole set (instance roster on landing, base → compares
+   while comparing); the names list ellipsis-truncates, full list in the tooltip. */
+footer .footer-instance-build {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+}
+footer .footer-instance-dot {
+  flex-shrink: 0;
 }
 footer .footer-instance:hover {
   background: rgba(99, 223, 78, 0.08);

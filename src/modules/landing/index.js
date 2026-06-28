@@ -459,10 +459,12 @@ function updateLandingFooterRoster() {
     pill.classList.remove('is-visible', 'footer-instance--roster');
     return;
   }
-  nameEl.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
   const names = insts.map(e => e.label);
-  const shown = names.slice(0, 3).join(' · ');
-  buildEl.textContent = '· ' + shown + (names.length > 3 ? ' +' + (names.length - 3) : '');
+  nameEl.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
+  // All names in one chip — the text ellipsis-truncates when there are many; the
+  // full list is in the tooltip. (No fixed cap, so it scales to any count.)
+  buildEl.textContent = '· ' + names.join(' · ');
+  pill.title = 'Registered instances: ' + names.join(', ');
   pill.classList.add('is-visible', 'footer-instance--roster');
 }
 
