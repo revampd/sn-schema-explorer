@@ -414,10 +414,11 @@ export function showInstanceInfo() {
   overlay.classList.add('is-open');
 }
 
-// All-instances roster overlay — opened from the landing footer chip, where no
-// single instance is selected. Renders each registered instance's metadata
-// sections (more detail than the compact landing cards: URL, build, version,
-// capabilities, full stats), stacked with a banner per instance.
+// All-instances overview — opened from the landing footer roster chip, where no
+// single instance is selected. Reuses the shared SIDE-BY-SIDE comparison table
+// (instancesComparisonHtml): attribute rows × instance columns, so instances are
+// compared at a glance rather than stacked (no scroll-down). Same renderer the
+// Configuration Data N-way comparison uses.
 export function showInstancesRoster() {
   const overlay = document.getElementById('insti-overlay');
   const body = document.getElementById('insti-body');
@@ -426,22 +427,15 @@ export function showInstancesRoster() {
   const insts = instancesState.instances || [];
   if (!insts.length) return;
   if (title) title.textContent = insts.length + (insts.length === 1 ? ' instance' : ' instances');
-  let html = '';
-  for (const e of insts) {
-    const d = e.data || {};
-    html += '<div class="insti-banner insti-banner-base">' + esc(e.label) + '</div>';
-    html += instanceSectionsHtml(
-      {
-        instance: d._instance,
-        stats: d._stats,
-        capabilities: d._capabilities,
-        build: d._build,
-        version: d._schema_version,
-      },
-      { noStatCards: false }
-    );
-  }
-  body.innerHTML = html;
+  const scopes = insts.map(e => ({
+    label: e.label,
+    loaded: !!e.data,
+    instance: e.data && e.data._instance,
+    stats: e.data && e.data._stats,
+    build: e.data && e.data._build,
+    version: e.data && e.data._schema_version,
+  }));
+  body.innerHTML = instancesComparisonHtml(scopes);
   overlay.classList.add('is-open');
 }
 
