@@ -182,6 +182,10 @@ test.describe('Schema Diff', () => {
     const diffToggle = page.locator('#diff-layer-master');
     await expect(diffToggle).toBeVisible();
     await expect(diffToggle).toHaveAttribute('aria-pressed', 'true');
+
+    // A new comparison shows the FULL graph with diff colouring (not collapsed to
+    // changed-only) — so the "Show all" toggle starts active and offers to narrow.
+    await expect(page.locator('#diff-show-all-btn')).toHaveText('Changed only');
     await diffToggle.click();
     await expect(diffToggle).toHaveAttribute('aria-pressed', 'false');
   });

@@ -139,6 +139,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Starting a comparison no longer collapses the Schema Map.** A new comparison
+  now shows the full graph with diff colouring by default (rather than narrowing
+  to changed-only tables), so the map doesn't look emptied and Refresh visibly
+  re-lays-out the whole graph. The **Changed only** toggle still narrows it on
+  demand. (Pairs with the Differences overlay now auto-enabling on compare.)
 - **Diff sidebar rows for compare-only tables are now clickable**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). With several
   compares, the change report lists tables that exist only in a (non-primary)
