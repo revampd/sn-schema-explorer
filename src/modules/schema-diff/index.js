@@ -109,7 +109,11 @@ function loadDiffSchema(compareData) {
   diffState._diffData._compareCapabilities = compareData._capabilities || null;
   diffState._diffData._compareBuild = compareData._build || null;
   diffState._diffData._compareVersion = compareData._schema_version || null;
-  diffState._diffShowAll = false;
+  // Start a new comparison showing the FULL graph with diff colouring rather than
+  // collapsing to changed-only — otherwise the map looks emptied (and Refresh
+  // appears to do nothing, since it re-lays-out the collapsed set). The
+  // "Changed only" toggle still narrows it on demand.
+  diffState._diffShowAll = true;
   diffState._diffFilter = 'all';
   // Establishing a comparison turns the Differences overlay ON, regardless of any
   // prior toggle state — selecting one or more compare targets should light up the
