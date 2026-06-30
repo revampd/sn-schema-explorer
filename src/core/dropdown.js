@@ -50,7 +50,10 @@ export function createDropdown({
   btn.append(labelSpan, chev);
 
   const menu = document.createElement('div');
-  menu.className = 'sn-dd-menu';
+  // Mirror the caller's className onto the menu too: it's portalled to <body> on
+  // open, so a `.<className> .sn-dd-menu` rule would never match. Tagging the menu
+  // directly lets callers size/style the open list (e.g. a wider min-width).
+  menu.className = 'sn-dd-menu' + (className ? ' ' + className : '');
   menu.id = uid + '-menu';
   menu.setAttribute('role', 'listbox');
   menu.style.display = 'none';
