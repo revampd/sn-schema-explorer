@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+
+- **Selecting a compare schema is faster.** The Differences sidebar was built
+  twice on every compare selection (`loadDiffSchema` rendered the list/summary,
+  then `diffSyncSidebar` rendered them again) — now built once. The element-kind
+  set powering the **Kind** dropdown is also memoized per comparison instead of
+  rescanning the whole diff on every summary refresh. (Bounding the rendered row
+  count for very large diffs is a follow-up.)
+
 ### Added
 
 - **Added/Removed tables now list their relationships in the diff report.** A

@@ -345,19 +345,25 @@ function removedTableTypes(d, id) {
 // dropdown only offers kinds that can affect the visible list. In single-compare
 // mode this spans Added/Removed/Changed (all list relationships); in N-way mode
 // only Changed is sliceable (the matrix list has no relationship sub-rows yet).
+// Memoized by the active diff reference (matrix array or single _diffData) — it
+// only changes when a new comparison is computed, but it's read on every summary
+// refresh, and the scan is O(n + e) over the whole diff.
+let _presentCache = { key: null, val: new Set() };
 export function presentElementTypes() {
-  const t = new Set();
   const matrix = diffState._diffMatrix;
+  const key = matrix && matrix.length > 1 ? matrix : diffState._diffData;
+  if (key && _presentCache.key === key) return _presentCache.val;
+  const t = new Set();
   if (matrix && matrix.length > 1) {
     for (const diff of matrix)
       for (const ch of diff.changed.values()) for (const x of changedTypes(ch)) t.add(x);
-    return t;
+  } else if (key) {
+    const d = diffState._diffData;
+    for (const ch of d.changed.values()) for (const x of changedTypes(ch)) t.add(x);
+    for (const id of d.added) for (const x of addedTableTypes(d, id)) t.add(x);
+    for (const id of d.removed) for (const x of removedTableTypes(d, id)) t.add(x);
   }
-  const d = diffState._diffData;
-  if (!d) return t;
-  for (const ch of d.changed.values()) for (const x of changedTypes(ch)) t.add(x);
-  for (const id of d.added) for (const x of addedTableTypes(d, id)) t.add(x);
-  for (const id of d.removed) for (const x of removedTableTypes(d, id)) t.add(x);
+  _presentCache = { key, val: t };
   return t;
 }
 

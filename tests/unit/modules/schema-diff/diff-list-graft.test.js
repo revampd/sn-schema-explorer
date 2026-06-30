@@ -152,6 +152,15 @@ describe('diffBuildList', () => {
     expect([...presentElementTypes()].sort()).toEqual(['fields', 'ref', 'reference']);
   });
 
+  it('presentElementTypes is memoized per diff and recomputes on a new diff', () => {
+    const first = presentElementTypes();
+    expect(presentElementTypes()).toBe(first); // same diff → cached Set instance
+    diffState._diffData = makeDiffData(); // a new comparison
+    const second = presentElementTypes();
+    expect(second).not.toBe(first); // recomputed
+    expect([...second].sort()).toEqual(['fields', 'ref', 'reference']);
+  });
+
   it('filteredDiffCounts slices Added/Removed/Changed by the Kind selection', () => {
     // No slice → null, so the summary keeps the raw counts.
     diffState._diffElementFilter = null;
