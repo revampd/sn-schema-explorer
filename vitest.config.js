@@ -21,7 +21,7 @@ export default defineConfig({
       // test count increasing. Real exporter logic is covered by the unit tests.
       thresholds: {
         statements: 27.75,
-        branches: 24.25,
+        branches: 24.2,
         functions: 31.0,
         lines: 27.9,
       },

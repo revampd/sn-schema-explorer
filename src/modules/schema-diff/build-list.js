@@ -26,6 +26,38 @@ function typeTag(kind) {
   return tag;
 }
 
+// A collapsible group: a header (caret + label + count) over a body holding the
+// rows. Collapsed state is keyed by `groupKey` in diffState._collapsedGroups and
+// toggled by the delegated header click handler (schema-diff/index.js). Returns
+// the body element to append rows into.
+function makeCollapsibleGroup(frag, groupKey, label, count, kind) {
+  const collapsed = diffState._collapsedGroups?.includes(groupKey);
+  const group = document.createElement('div');
+  group.className = 'diff-group' + (collapsed ? ' collapsed' : '');
+  group.dataset.group = groupKey;
+
+  const header = document.createElement('div');
+  header.className = 'diff-group-header dgh-' + kind;
+  header.dataset.group = groupKey;
+  const caret = document.createElement('span');
+  caret.className = 'diff-group-caret';
+  caret.textContent = '▾';
+  header.append(caret, document.createTextNode(label + ' (' + count + ')'));
+  group.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'diff-group-body';
+  group.appendChild(body);
+
+  frag.appendChild(group);
+  return body;
+}
+
+function typeIncluded(kind) {
+  // kind: 'app' | 'table'. Missing entry defaults to included.
+  return diffState._diffTypes?.[kind] !== false;
+}
+
 export function diffBuildList() {
   clearDiffCursor();
   const list = document.getElementById('diff-list');
@@ -38,11 +70,14 @@ export function diffBuildList() {
   const filter = diffState._diffFilter;
 
   // Config-drift app rows first (few, high-value), then the table changes — both
-  // obey the same Added/Removed/Changed filter.
-  appendAppRows(frag, filter);
-  const matrix = diffState._diffMatrix;
-  if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
-  else appendGroupedRows(frag, filter);
+  // obey the same Added/Removed/Changed filter, and each row TYPE can be hidden
+  // via the report's type filter (diffState._diffTypes).
+  if (typeIncluded('app')) appendAppRows(frag, filter);
+  if (typeIncluded('table')) {
+    const matrix = diffState._diffMatrix;
+    if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
+    else appendGroupedRows(frag, filter);
+  }
 
   list.appendChild(frag);
 }
@@ -62,10 +97,7 @@ function appendAppRows(frag, filter) {
     .filter(({ cat }) => cat && (filter === 'all' || filter === cat));
   if (!visible.length) return;
 
-  const header = document.createElement('div');
-  header.className = 'diff-group-header dgh-config';
-  header.textContent = 'Configuration (' + visible.length + ')';
-  frag.appendChild(header);
+  const body = makeCollapsibleGroup(frag, 'config', 'Configuration', visible.length, 'config');
 
   for (const { a } of visible) {
     const item = document.createElement('div');
@@ -93,7 +125,7 @@ function appendAppRows(frag, filter) {
     status.textContent = STATUS_LABELS[a.status] || a.status;
 
     item.append(pill, names, status);
-    frag.appendChild(item);
+    body.appendChild(item);
   }
 }
 
@@ -164,7 +196,7 @@ function tableRow(id, nodeLabel, kind, { count, statuses, matrix } = {}) {
 function appendGroupedRows(frag, filter) {
   const d = diffState._diffData;
 
-  function appendEdgeSubgroup(tableId, addedEdges, removedEdges) {
+  function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges) {
     if (!addedEdges.length && !removedEdges.length) return;
     const wrap = document.createElement('div');
     wrap.className = 'diff-edge-subgroup';
@@ -195,20 +227,17 @@ function appendGroupedRows(frag, filter) {
     };
     renderEdges(addedEdges, '+', 'des-added');
     renderEdges(removedEdges, '−', 'des-removed');
-    frag.appendChild(wrap);
+    host.appendChild(wrap);
   }
 
   function makeGroup(label, items, kind) {
     items = items.filter(it => tablePasses(it.id, it.nodeLabel, it.node));
     if (!items.length) return;
-    const header = document.createElement('div');
-    header.className = 'diff-group-header dgh-' + kind;
-    header.textContent = label + ' (' + items.length + ')';
-    frag.appendChild(header);
+    const body = makeCollapsibleGroup(frag, kind, label, items.length, kind);
     for (const it of items) {
-      frag.appendChild(tableRow(it.id, it.nodeLabel, kind, { count: it.count }));
+      body.appendChild(tableRow(it.id, it.nodeLabel, kind, { count: it.count }));
       if (it.addedEdges || it.removedEdges) {
-        appendEdgeSubgroup(it.id, it.addedEdges || [], it.removedEdges || []);
+        appendEdgeSubgroup(body, it.id, it.addedEdges || [], it.removedEdges || []);
       }
     }
   }
@@ -284,13 +313,16 @@ function appendMatrixRows(frag, matrix, filter) {
     return tablePasses(r.id, r.node?.label, r.node);
   });
 
-  const header = document.createElement('div');
-  header.className = 'diff-group-header dgh-changed';
-  header.textContent = 'Differs across instances (' + rows.length + ')';
-  frag.appendChild(header);
+  const body = makeCollapsibleGroup(
+    frag,
+    'matrix',
+    'Differs across instances',
+    rows.length,
+    'changed'
+  );
 
   for (const r of rows) {
-    frag.appendChild(
+    body.appendChild(
       tableRow(r.id, r.node?.label, overallKind(r), { statuses: r.statuses, matrix })
     );
   }
