@@ -32,7 +32,7 @@ import {
 } from '../modules/history/index.js';
 import { setViewModeHistoryHook, setViewMode, onViewModeChange } from '../core/view-mode.js';
 import { initWorkspaces, setWorkspace, getWorkspace } from '../core/workspace.js';
-import { uiState } from '../core/state.js';
+import { uiState, graphState } from '../core/state.js';
 import { instancesState, getInstance } from '../core/instances-state.js';
 import { selectInstanceForGraph } from '../modules/load/index.js';
 import {
@@ -90,6 +90,15 @@ registerSwitcherTool({
   activate: () => {
     setWorkspace('schema-explorer');
     setViewMode('force');
+    // Ensure the selected instance's graph is actually loaded — the switcher can
+    // be reached from Config Data, which sets the base without loading the graph.
+    // Done after setViewMode so the focus change selectInstanceForGraph fires sees
+    // viewMode==='force', letting Schema Diff materialize a comparison selection
+    // carried over from Config Data.
+    const id = instancesState.selectedId;
+    if (id && graphState.graphData !== getInstance(id)?.data) {
+      selectInstanceForGraph(id);
+    }
   },
 });
 setInstanceSelectHandler(selectInstanceForGraph);

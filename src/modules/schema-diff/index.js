@@ -596,6 +596,22 @@ onWorkspaceChange(() => refreshHeaderCompare());
 // freshly loaded graph, base switches, and compare changes.
 onFocusChange(() => refreshHeaderCompare());
 
+// Materialize a comparison selection carried over from Config Data — it sets the
+// shared diffState._compareIds WITHOUT computing the diff (no graph there). Once a
+// graph is loaded on the map, compute the diff. The !isComparing() guard makes
+// this run once (loadDiffFromInstances re-fires a focus change that then no-ops).
+onFocusChange(() => {
+  if (
+    getWorkspace() === 'schema-explorer' &&
+    uiState.viewMode === 'force' &&
+    graphState.graphData &&
+    diffState._compareIds.length &&
+    !isComparing()
+  ) {
+    loadDiffFromInstances(instancesState.selectedId, diffState._compareIds);
+  }
+});
+
 // ── Canvas "Differences" layer toggle (#150) ──────────────────────────────────
 // A single toggle for the comparison overlay (structural diff colouring + edge
 // pills) — "diff is diff", no structure/config split. Config drift is surfaced in

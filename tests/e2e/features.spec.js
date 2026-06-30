@@ -374,6 +374,11 @@ test.describe('Configuration Data', () => {
     await card.locator('[data-tool="configData"]').click();
     await expect(page.locator('#config-data')).toBeVisible();
 
+    // The compare selection defaults to none (just the base column); add the other
+    // instance via the header Compare control to get a comparison.
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first().click();
+
     // Plugins tab active by default; the table shows a column per instance.
     await expect(page.locator('.cd-tab.active')).toContainText('Plugins');
     await expect(page.locator('.cd-table tbody tr')).toHaveCount(2); // com.x, com.y
@@ -431,6 +436,10 @@ test.describe('Configuration Data', () => {
       .click();
     await expect(page.locator('#config-data')).toBeVisible();
 
+    // Compare defaults to none; add the other instance so the comparison spans two.
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first().click();
+
     // Switch to the Instance Data tab.
     await page.locator('.cd-tab[data-section="__instance__"]').click();
     await expect(page.locator('.cd-tab.active')).toContainText('Instance Data');
@@ -449,9 +458,7 @@ test.describe('Configuration Data', () => {
     await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
   });
 
-  test('header Compare control narrows the comparison to the selected instances', async ({
-    page,
-  }) => {
+  test('header Compare control sets the comparison columns', async ({ page }) => {
     await loadApp(page, { enableFeatures: { configData: true } });
     await register(page, withStats('dev', 9356), 'dev.json');
     await register(page, withStats('prod', 20), 'prod.json');
@@ -465,22 +472,53 @@ test.describe('Configuration Data', () => {
     await page.locator('.cd-tab[data-section="__instance__"]').click();
 
     const panel = page.locator('#cd-instance');
-    // 3 instances → blank label column + 3 instance columns = 4 header cells.
-    await expect(panel.locator('.insti-compare thead th')).toHaveCount(4);
-
-    // The in-workspace chip picker is gone — selection lives in the header now.
+    // The in-workspace chip picker is gone — selection lives in the header now,
+    // and the compare defaults to none → just the base column (blank + 1 = 2).
     await expect(page.locator('#cd-instances')).toHaveCount(0);
     await expect(page.locator('#header-instance')).toBeVisible();
     await expect(page.locator('#header-compare')).toBeVisible();
+    await expect(panel.locator('.insti-compare thead th')).toHaveCount(2);
 
-    // Drop one compare via the header Compare dropdown → one fewer column. The
-    // base (the header instance dropdown) isn't offered as a compare, so toggle a
-    // candidate that IS offered.
+    // Adding one compare from the header widens the comparison to two instances.
     await page.locator('#header-compare .sn-dd-btn').click();
-    const candidate = page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first();
-    await candidate.click();
-
-    // The comparison now covers only the two remaining instances (3 header cells).
+    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first().click();
     await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
+  });
+
+  test('compare selection in Config carries to the Schema Map diff', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { configData: true, schemaDiff: true } });
+    const mk = (n, ver) => ({
+      _instance: { instance_name: n },
+      nodes: [
+        {
+          id: 'incident',
+          label: 'Incident',
+          fields: [{ name: 'number', label: 'Number', type: 'string' }],
+        },
+      ],
+      edges: [],
+      _metadata: { plugins: [{ id: 'com.a', name: 'A', active: true, version: ver }] },
+    });
+    await register(page, mk('dev', '1.0'), 'dev.json');
+    await register(page, mk('prod', '1.1'), 'prod.json');
+
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="configData"]')
+      .click();
+    await expect(page.locator('#config-data')).toBeVisible();
+    // Default none; pick a compare in Config.
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first().click();
+    const cfgLabel = await page.locator('#header-compare .sn-dd-label').textContent();
+
+    // Switch to the Schema Map via the header switcher — the graph loads and the
+    // comparison materialises as the diff (synced selection).
+    await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await expect(page.locator('#header-compare')).toBeVisible();
+    await expect(page.locator('#diff-layer-master')).toBeVisible(); // diff overlay active
+    expect(await page.locator('#header-compare .sn-dd-label').textContent()).toBe(cfgLabel);
   });
 });
