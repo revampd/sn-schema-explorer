@@ -116,7 +116,8 @@ const config = {
   includePropertyValues: !!args['include-property-values'],
   // Override the built-in redaction pattern (regex without slashes). Falls back
   // to the schema-builder default when absent.
-  propertyValueDenylist: args['property-value-denylist'] || process.env.SN_PROPERTY_VALUE_DENYLIST || null,
+  propertyValueDenylist:
+    args['property-value-denylist'] || process.env.SN_PROPERTY_VALUE_DENYLIST || null,
   // Optional encoded query to narrow which sys_properties rows are exported.
   propertyQuery: args['property-query'] || process.env.SN_PROPERTY_QUERY || '',
   pretty: !!args.pretty,

@@ -845,7 +845,10 @@ export function initLanding() {
       const orig = btn.textContent;
       btn.textContent = '✓ Copied';
       btn.style.color = 'var(--sn-wasabi)';
-      setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+      }, 1800);
     });
   });
 

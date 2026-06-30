@@ -65,7 +65,7 @@ Node extractor's, so both feed the same cross-instance comparison in the viewer.
 
 ### Option B — Node.js extractor
 
-Requires Node.js 18+ and network access to your instance.
+Requires Node.js 22+ and network access to your instance.
 
 > **Secrets are passed via environment variables, not flags.** The extractor
 > refuses `--password` / `--apikey` on the command line because they leak into
@@ -142,8 +142,7 @@ Register multiple instance exports to compare across them; tool tiles light up w
 
 ## Build from source
 
-Prerequisites: Node.js 20+ (the dev toolchain requires it; the standalone
-exporter artifact still runs on Node 18+), npm
+Prerequisites: Node.js 22+, npm
 
 ```bash
 git clone https://github.com/revampd/sn-schema-explorer.git
