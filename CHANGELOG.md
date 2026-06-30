@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-30
+
+### Performance
+
+- **Background exporter is ~51% faster on large instances.** The exporter no longer
+  calls `getRefRecord()` on every reference field in `sys_dictionary` — an ES5/Rhino
+  method that issues a separate GlideRecord query per call. Instead, `sys_db_object`
+  is fetched once up front and all name lookups are resolved from two in-memory maps
+  (by sys_id and by name). On a 9 356-table instance this cut wall-clock time from
+  378 s to 185 s while producing byte-for-byte identical output (42 676 reference
+  edges, 203 811 fields). The dual-map approach also fixes a regression introduced
+  earlier in the same branch where references dropped to 0 on real instances due to
+  Java String / JS string key coercion differences in Rhino.
+
+### Added
+
+- **Freeze Viewport.** A **⊘** button in the zoom-controls group (right edge of the
+  canvas) and its keyboard shortcut **Shift+L** lock the graph so that clicking a
+  node updates only the Inspector — the neighbourhood, visible set, node positions,
+  and layout are untouched. Panning and scroll-zoom still work normally; node dragging
+  (which reheats the force simulation) is blocked. Clicking empty canvas space no
+  longer deselects while frozen. Press **Shift+L** or click the button again to
+  unfreeze. The button highlights in accent colour while active.
+
+### Changed
+
+- **Path Finder, Schema Diff, Configuration Data, and Advanced Path Finder
+  configuration are now always enabled** — the feature toggles have been removed from
+  Settings. All four are baseline features; any previously-saved "disabled" preference
+  is ignored. Settings → Features now shows only Saved Views.
+- **Max PNG Scale removed from Settings.** The export resolution ceiling is now derived
+  automatically from the browser's detected canvas size limit (16 MP → 50×, 64 MP+ →
+  200×). The underlying setting is still respected if written to localStorage manually.
+- **Output format label standardised to "Schema Explorer format"** across the export
+  wizard (bg script and Node.js options) for consistency.
+- **Node.js minimum raised to 22** for the standalone Node exporter and dev toolchain.
+  Dev dependencies updated across the board.
+
 ## [1.0.3] - 2026-06-30
 
 ### Performance

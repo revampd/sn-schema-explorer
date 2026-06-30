@@ -8,6 +8,14 @@ import { inlinePrompt } from '../../core/inline-prompt.js';
 
 let _ctxNode = null;
 
+export function toggleFrozenViewport() {
+  uiState.frozenViewport = !uiState.frozenViewport;
+  Dom.zFreeze.classList.toggle('active', uiState.frozenViewport);
+  Dom.zFreeze.title = uiState.frozenViewport
+    ? 'Unfreeze viewport (Shift+L)'
+    : 'Freeze viewport (Shift+L)';
+}
+
 export function showCtx(e, d) {
   _ctxNode = d;
   const m = Dom.ctxMenu;
@@ -67,6 +75,15 @@ export function initInteractionsListeners() {
     this.classList.toggle('active', uiState.compactMode);
     root.selectAll('.node-label').style('display', uiState.compactMode ? 'none' : null);
     root.selectAll('.node-scope').style('display', uiState.compactMode ? 'none' : null);
+  });
+
+  Dom.zFreeze.addEventListener('click', toggleFrozenViewport);
+
+  document.addEventListener('keydown', e => {
+    if (e.shiftKey && e.key.toLowerCase() === 'l' && !e.target.matches('input,textarea,[contenteditable]')) {
+      e.preventDefault();
+      toggleFrozenViewport();
+    }
   });
 
   // ── Context menu ──────────────────────────────────────────────────────────

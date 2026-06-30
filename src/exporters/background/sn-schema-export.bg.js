@@ -17,7 +17,10 @@
  * -----------------
  *   • Single GlideRecord pass per source table — no setLimit() call, so all rows
  *     are fetched. (setLimit(0) means "return 0 rows", not "unbounded".)
- *   • No nested queries. Joins happen in JS via Maps in SchemaBuilder.
+ *   • No nested queries or per-row drill-down. Joins happen in JS via Maps.
+ *     super_class names are resolved via a two-pass over sys_db_object; reference
+ *     field target names and view names are resolved via Maps built from the
+ *     already-fetched sys_db_object / sys_db_view arrays — no getRefRecord() calls.
  *   • Record-count pass is opt-in because it adds N GlideAggregate calls
  *     (about 5-15 minutes on a typical instance with ~7k tables).
  *
@@ -203,17 +206,25 @@ function preflightCheck() {
 }
 
 function fetchSysDbObject() {
-  var out = [];
+  // Two-pass approach: one GlideRecord query, then pure-JS name resolution.
+  // Pass 1 collects all rows + builds a sys_id→name map so that super_class
+  // names can be resolved without calling getRefRecord() on every row (which
+  // would add ~7k hidden GlideRecord instantiations on a typical instance).
+  var raw = [];
+  var byId = {}; // sys_id → table name, used in pass 2 for super_class resolution
   var gr = new GlideRecord('sys_db_object');
   // (No setLimit — default is unbounded. setLimit(0) actually means "return 0 rows".)
   gr.query();
   while (gr.next()) {
-    out.push({
-      sys_id: gr.getUniqueValue(),
-      name: gr.getValue('name'),
+    var id = gr.getUniqueValue();
+    var name = gr.getValue('name');
+    raw.push({
+      sys_id: id,
+      name: name,
       label: gr.getValue('label'),
-      super_class: readRef(gr, 'super_class', 'name'),
-      sys_scope: readRef(gr, 'sys_scope', null), // we only need displayValue
+      super_class_id: gr.getValue('super_class'),
+      super_class_display: gr.getDisplayValue('super_class'),
+      sys_scope: readRef(gr, 'sys_scope', null), // we only need displayValue; nameAttribute=null skips getRefRecord
       is_extendable: parseBool(gr.getValue('is_extendable')),
       access: gr.getValue('access'),
       // ws_access: true = table reachable via Table API / REST; false = blocked.
@@ -221,11 +232,39 @@ function fetchSysDbObject() {
       ws_access: gr.getValue('ws_access') !== '0' && gr.getValue('ws_access') !== 'false',
       scriptable_table: parseBool(gr.getValue('scriptable_table')),
     });
+    if (name) byId[id] = name;
+  }
+  // Pass 2: resolve super_class.name from the map — O(1) lookup, no GlideRecord.
+  var out = [];
+  for (var i = 0; i < raw.length; i++) {
+    var r = raw[i];
+    var scId = r.super_class_id;
+    var scDisplay = r.super_class_display;
+    out.push({
+      sys_id: r.sys_id,
+      name: r.name,
+      label: r.label,
+      super_class:
+        scId || scDisplay
+          ? { displayValue: scDisplay || '', name: scId ? byId[scId] || '' : '', value: scId || '' }
+          : null,
+      sys_scope: r.sys_scope,
+      is_extendable: r.is_extendable,
+      access: r.access,
+      ws_access: r.ws_access,
+      scriptable_table: r.scriptable_table,
+    });
   }
   return out;
 }
 
-function fetchSysDictionary() {
+function fetchSysDictionary(dbObjectById, dbObjectByName) {
+  // dbObjectById: sys_id→name map, dbObjectByName: name→name map, both built from
+  // fetchSysDbObject() output passed by main(). Used to resolve reference field
+  // target names via O(1) lookup instead of calling getRefRecord() for every
+  // reference field (≈15k hidden GlideRecord fetches on a typical instance).
+  // Both maps are consulted (sys_id first, then name) for cross-version robustness.
+  // Falls back to getRefRecord() when neither map is provided (e.g. tests).
   var out = [];
   var gr = new GlideRecord('sys_dictionary');
   // (No setLimit — default is unbounded. setLimit(0) actually means "return 0 rows".)
@@ -247,13 +286,23 @@ function fetchSysDictionary() {
     var refDisplay = gr.getDisplayValue('reference');
     var refName = '';
     if (refValue) {
-      // reference column on sys_dictionary stores sys_id of a sys_db_object;
-      // we need its .name. Use getRefRecord pattern.
-      try {
-        var refGr = gr.getElement('reference').getRefRecord();
-        if (refGr && refGr.isValidRecord()) refName = String(refGr.getValue('name') || '');
-      } catch (e) {
-        /* ignore */
+      if (dbObjectById || dbObjectByName) {
+        // O(1) lookup — no GlideRecord. Try sys_id map first, then name map (covers
+        // instances where the reference column stores the table name directly rather
+        // than the sys_id). Explicit String() prevents Rhino Java/JS string key
+        // mismatches. An orphaned reference that misses both maps leaves refName as
+        // '' — the same outcome as a failed getRefRecord.
+        var _refKey = String(refValue);
+        refName = (dbObjectById && dbObjectById[_refKey]) ||
+                  (dbObjectByName && dbObjectByName[_refKey]) || '';
+      } else {
+        // Fallback for callers that don't pass the map (e.g. tests).
+        try {
+          var refGr = gr.getElement('reference').getRefRecord();
+          if (refGr && refGr.isValidRecord()) refName = String(refGr.getValue('name') || '');
+        } catch (e) {
+          /* ignore */
+        }
       }
     }
     out.push({
@@ -315,22 +364,29 @@ function fetchSysDbView() {
   return out;
 }
 
-function fetchSysDbViewTable() {
+function fetchSysDbViewTable(dbViewById) {
+  // dbViewById: sys_id→name map built from fetchSysDbView() output, passed by
+  // main(). Resolves the view reference via O(1) lookup instead of getRefRecord().
   var out = [];
   var gr = new GlideRecord('sys_db_view_table');
   // (No setLimit — default is unbounded. setLimit(0) actually means "return 0 rows".)
   gr.query();
   while (gr.next()) {
-    // The `view` field points to a sys_db_view row by sys_id. We need the
-    // view's `name` for the join. Same getRefRecord pattern.
+    var viewId = gr.getValue('view');
     var viewName = '';
-    try {
-      var refGr = gr.getElement('view').getRefRecord();
-      if (refGr && refGr.isValidRecord()) viewName = String(refGr.getValue('name') || '');
-    } catch (e) {}
+    if (viewId) {
+      if (dbViewById) {
+        viewName = dbViewById[viewId] || '';
+      } else {
+        try {
+          var refGr = gr.getElement('view').getRefRecord();
+          if (refGr && refGr.isValidRecord()) viewName = String(refGr.getValue('name') || '');
+        } catch (e) {}
+      }
+    }
     out.push({
       sys_id: gr.getUniqueValue(),
-      view: { displayValue: viewName, name: viewName, value: gr.getValue('view') },
+      view: { displayValue: viewName, name: viewName, value: viewId },
       table: gr.getValue('table'),
       order: gr.getValue('order'),
       left_join: parseBool(gr.getValue('left_join')),
@@ -452,16 +508,32 @@ function fetchCmdbRelTypeSuggest() {
     return out;
   }
   gr.query();
+  // Check whether the map was populated. When populated, any miss is an orphaned
+  // reference — calling getDisplayValue() on it returns a context-sensitive label
+  // that breaks SchemaBuilder's mirror-pair deduplication, so we skip those rows.
+  // When the map is empty (fetchCmdbRelTypeMap failed), fall back to getDisplayValue
+  // for all rows (context-sensitive but better than emitting nothing).
+  var relTypeMapPopulated = false;
+  for (var _rk in relTypeMap) {
+    if (Object.prototype.hasOwnProperty.call(relTypeMap, _rk)) {
+      relTypeMapPopulated = true;
+      break;
+    }
+  }
   var mapHits = 0,
     fallbackUsed = 0;
   while (gr.next()) {
     var cmdbRelTypeId = gr.getValue('cmdb_rel_type');
-    // Prefer the stable descriptor-based label from the map; fall back to
-    // getDisplayValue only if the record wasn't in our pre-fetched map.
     var mapped = cmdbRelTypeId && relTypeMap[cmdbRelTypeId];
     if (mapped) {
       mapHits++;
+    } else if (relTypeMapPopulated) {
+      // Map was built but this rel_type sys_id isn't in it — orphaned reference.
+      // Skip rather than calling getDisplayValue() which defeats deduplication.
+      fallbackUsed++;
+      continue;
     } else {
+      // Map failed entirely — fall back to getDisplayValue.
       fallbackUsed++;
     }
     var relTypeDisplay = mapped || gr.getDisplayValue('cmdb_rel_type');
@@ -812,8 +884,25 @@ function gatherInstanceInfo() {
   var sysDbObject = fetchSysDbObject();
   gs.info('  rows: ' + sysDbObject.length);
 
+  // Build lookup maps for reference-field resolution in fetchSysDictionary.
+  // Eliminates ~15k getRefRecord() calls (one per reference field in sys_dictionary).
+  // Two maps for robustness: sys_id→name covers the standard case where
+  // sys_dictionary.reference stores the sys_id of the sys_db_object row;
+  // name→name covers instances where it stores the table name directly.
+  // Explicit String() wrapping avoids Rhino Java-String vs JS-string key mismatches.
+  var dbObjectById = {};
+  var dbObjectByName = {};
+  for (var dboIdx = 0; dboIdx < sysDbObject.length; dboIdx++) {
+    var _dbo = sysDbObject[dboIdx];
+    if (_dbo.name) {
+      var _dboName = String(_dbo.name);
+      if (_dbo.sys_id) dbObjectById[String(_dbo.sys_id)] = _dboName;
+      dbObjectByName[_dboName] = _dboName;
+    }
+  }
+
   gs.info('[2/9] Fetching sys_dictionary (active, with element)...');
-  var sysDictionary = fetchSysDictionary();
+  var sysDictionary = fetchSysDictionary(dbObjectById, dbObjectByName);
   gs.info('  rows: ' + sysDictionary.length);
 
   gs.info('[3/9] Fetching sys_m2m...');
@@ -824,8 +913,15 @@ function gatherInstanceInfo() {
   var sysDbView = fetchSysDbView();
   gs.info('  rows: ' + sysDbView.length);
 
+  // Build sys_id→name map for view-field resolution in fetchSysDbViewTable.
+  var dbViewById = {};
+  for (var dbvIdx = 0; dbvIdx < sysDbView.length; dbvIdx++) {
+    var _dbv = sysDbView[dbvIdx];
+    if (_dbv.sys_id && _dbv.name) dbViewById[_dbv.sys_id] = _dbv.name;
+  }
+
   gs.info('[5/9] Fetching sys_db_view_table...');
-  var sysDbViewTable = fetchSysDbViewTable();
+  var sysDbViewTable = fetchSysDbViewTable(dbViewById);
   gs.info('  rows: ' + sysDbViewTable.length);
 
   gs.info('[6/9] Fetching sys_relationship...');

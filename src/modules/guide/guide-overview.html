@@ -15,8 +15,9 @@
     </div>
     <div class="guide-card">
       <h4>Additional view modes</h4>
-      <p><strong>Path Finder</strong> — finds shortest dot-walk paths between tables or to a specific field. Enable in Settings → Features.</p>
-      <p><strong>Schema Diff</strong> — compares two schema exports to highlight added, removed, and changed tables. Enable in Settings → Features.</p>
+      <p><strong>Path Finder</strong> — finds shortest dot-walk paths between tables or to a specific field.</p>
+      <p><strong>Schema Diff</strong> — compares two schema exports to highlight added, removed, and changed tables.</p>
+      <p><strong>Configuration Data</strong> — reconciles plugins, store apps, custom apps, and system properties across registered instances to spot version drift and state mismatches.</p>
     </div>
   </div>
   <div class="guide-card">
@@ -35,19 +36,21 @@
   <div class="guide-card">
     <h4>Header at a glance</h4>
     <div class="guide-kv"><span class="guide-key">search box</span><span class="guide-val">Free-text search. The <strong>Tbl / Fld</strong> toggle inside the input switches between table-name and field-name search.</span></div>
-    <div class="guide-kv"><span class="guide-key">Schema Map</span><span class="guide-val">Segmented view-mode control. Schema Map is always present. Path Finder and Schema Diff appear here when enabled in Settings.</span></div>
+    <div class="guide-kv"><span class="guide-key">tool switcher</span><span class="guide-val">Compact button group listing every tool available for the loaded instances — Schema Map is always present; Path Finder, Schema Diff, and Configuration Data appear when compatible instances are registered. Click to switch tools without going Home.</span></div>
+    <div class="guide-kv"><span class="guide-key">instance dropdown</span><span class="guide-val">Selects which registered instance is active in Schema Map and Path Finder; sets the Base in Schema Diff. Appears once at least one instance is registered. A <strong>Compare</strong> multi-select sits beside it when two or more schema-capable instances are registered; <strong>⇄</strong> swaps Base and primary Compare.</span></div>
     <div class="guide-kv"><span class="guide-key">◀ / ▶</span><span class="guide-val">Navigation history. Step back and forward through your last 10 states — table selections, view-mode switches, filter changes, and density slider commits. Disabled until you have recorded at least two states. Keyboard shortcuts: <strong>Alt+←</strong> / <strong>Alt+→</strong>.</span></div>
     <div class="guide-kv"><span class="guide-key">Refresh</span><span class="guide-val">Re-render the graph preserving the current selection, filters, and node positions.</span></div>
     <div class="guide-kv"><span class="guide-key">Fit</span><span class="guide-val">Zoom and pan to fit all visible nodes into the viewport.</span></div>
     <div class="guide-kv"><span class="guide-key">Filter</span><span class="guide-val">Opens the dynamic condition builder. Add conditions to narrow the canvas and sidebar list by scope, table type, name, field name, edge type, field count, or custom prefix. Active conditions show a badge count. Hidden while Path Finder is active.</span></div>
-    <div class="guide-kv"><span class="guide-key">Export</span><span class="guide-val">Download schema data in multiple formats (JSON, Markdown, JSON-LD, OWL/Turtle, OpenAPI YAML) at either full-schema or current-neighbourhood scope, plus PNG and SVG canvas exports with background colour and opacity control. See Tips &amp; Tricks for details on each format.</span></div>
+    <div class="guide-kv"><span class="guide-key">Export</span><span class="guide-val">Download schema data in multiple formats (JSON, Markdown, JSON-LD, OWL/Turtle, OpenAPI YAML) at either full-schema or current-neighbourhood scope, plus PNG and SVG canvas exports with background colour and opacity control. When a comparison is active, an additional <strong>Include comparison</strong> toggle and <strong>Comparison</strong> scope fold the diff into any format or export it standalone. See Tips &amp; Tricks for details on each format.</span></div>
     <div class="guide-kv"><span class="guide-key">Reference</span><span class="guide-val">Open the ServiceNow Data Model Reference. Covers CSDM 5 architecture, domain breakdown, service lifecycle, adoption maturity path, and the ESM blueprint across six tabs. Table name chips throughout the reference are interactive — when a table exists in your loaded schema it lights up green; click it to close the modal and navigate directly to that table in the schema map.</span></div>
     <div class="guide-kv"><span class="guide-key">Guide</span><span class="guide-val">Opens this user guide.</span></div>
     <div class="guide-kv"><span class="guide-key">Settings</span><span class="guide-val">Toggle features and preferences. Settings persist across sessions via localStorage.</span></div>
+    <div class="guide-kv"><span class="guide-key">stats bar</span><span class="guide-val">Compact node / edge / visible / selected counts at the far right of the header bar.</span></div>
   </div>
   <div class="guide-card">
     <h4>Footer</h4>
-    <div class="guide-kv"><span class="guide-key">stats bar</span><span class="guide-val">Shows total tables, total edges, currently visible tables, and the selected table name.</span></div>
-    <div class="guide-kv"><span class="guide-key">instance pill</span><span class="guide-val">Appears after data is loaded. Shows the instance name and build. Click to open the <strong>Instance Info</strong> modal — full metadata, coverage statistics, and runtime info. When a diff schema is loaded, shows <em>base → compare</em> and the modal shows a side-by-side Stats Comparison.</span></div>
+    <div class="guide-kv"><span class="guide-key">instance pill</span><span class="guide-val">Appears after data is loaded. Shows the active instance name and build tag. Click to open the <strong>Instance Info</strong> modal — full metadata, coverage statistics, and runtime info. When comparing, shows <em>base → compare</em> and the modal shows a side-by-side Stats Comparison. With multiple instances registered it switches to a roster view listing all loaded instances.</span></div>
+    <div class="guide-kv"><span class="guide-key">About chip</span><span class="guide-val">Version button at the far right of the footer. Click to open the About modal (version, update status, GitHub link). When a newer release is detected it changes to <strong>New version available</strong> and links to the release notes.</span></div>
   </div>
 </div>

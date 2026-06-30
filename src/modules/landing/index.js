@@ -623,7 +623,7 @@ function initBgConfig() {
     bgFormatDD = createDropdown({ ariaLabel: 'Output format', onChange: rerender });
     bgFormatDD.setOptions(
       [
-        { value: 'json', label: 'JSON (viewer-ready)' },
+        { value: 'json', label: 'JSON (Schema Explorer format)' },
         { value: 'markdown', label: 'Markdown' },
         { value: 'jsonld', label: 'JSON-LD' },
       ],

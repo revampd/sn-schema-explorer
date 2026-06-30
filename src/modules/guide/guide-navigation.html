@@ -42,7 +42,7 @@
   <div class="guide-card">
     <h4>Navigation history</h4>
     <p>The <strong>◀</strong> and <strong>▶</strong> buttons in the header toolbar step backwards and forwards through your last 10 states — exactly like browser history.</p>
-    <p>A history entry is recorded when you: select or deselect a table, switch view modes, apply a scope filter or edge-type toggle, or commit a Hop Depth / Max Nodes slider change.</p>
+    <p>A history entry is recorded when you: select or deselect a table, switch tools, apply a scope filter or edge-type toggle, or commit a Hop Depth / Max Nodes slider change.</p>
     <div class="guide-kv"><span class="guide-key">◀ Back</span><span class="guide-val">Return to the previous state. Disabled at the earliest recorded entry. Keyboard: <strong>Alt+←</strong></span></div>
     <div class="guide-kv"><span class="guide-key">▶ Forward</span><span class="guide-val">Re-apply the next state after going back. Disabled at the most recent entry. Keyboard: <strong>Alt+→</strong></span></div>
     <div class="guide-tip"><p>The history stack resets when you load a new schema, so it always reflects the current dataset only.</p></div>
@@ -53,13 +53,22 @@
     <p>Click again (button reads <strong>◑ Full view</strong> when compact is on) to restore labels.</p>
   </div>
   <div class="guide-card">
+    <h4>Freeze viewport</h4>
+    <p>The <strong>⊘</strong> button in the zoom controls group (right edge of the canvas) freezes the graph. When active:</p>
+    <p>• Clicking a node updates only the Inspector — the neighbourhood, visible set, and layout are untouched.</p>
+    <p>• Clicking empty canvas space no longer deselects.</p>
+    <p>• Node dragging is disabled (dragging would reheat the force simulation).</p>
+    <p>• Panning and zooming still work normally.</p>
+    <p>Click the button again (or press <kbd>Shift+L</kbd>) to unfreeze. The button highlights in accent colour while active.</p>
+  </div>
+  <div class="guide-card">
     <h4>Resizing panels</h4>
     <p>Both the left sidebar and the right Inspector panel can be resized by dragging the thin handle on their inner edge. Your preferred widths are saved automatically.</p>
     <div class="guide-tip"><p>Double-click the resize handle to instantly reset that panel to its default width.</p></div>
   </div>
   <div class="guide-card">
     <h4>Saved Views</h4>
-    <p>The <strong>Saved Views</strong> section in the left sidebar (when enabled in Settings → Features) lets you snapshot the current state — selection, scope filters, edge types, hop depth, max nodes, view mode — and restore it with one click.</p>
+    <p>The <strong>Saved Views</strong> section in the left sidebar (when enabled in Settings → Features) lets you snapshot the current state — selection, scope filters, edge types, hop depth, max nodes, active tool — and restore it with one click.</p>
     <p>Saved Views are stored per dataset (keyed by a fingerprint of the loaded schema), so views from one instance don't appear when you load another.</p>
   </div>
 </div>

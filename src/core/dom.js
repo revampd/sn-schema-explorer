@@ -84,6 +84,7 @@ export const Dom = (() => {
     zIn: g('z-in'),
     zOut: g('z-out'),
     zFit: g('z-fit'),
+    zFreeze: g('z-freeze'),
   };
 })();
 
