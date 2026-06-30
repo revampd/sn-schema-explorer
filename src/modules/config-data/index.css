@@ -19,6 +19,7 @@
 }
 .cd-head {
   margin-bottom: 20px;
+  text-align: center;
 }
 .cd-title {
   font-size: 26px;
@@ -83,6 +84,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: center;
   margin-bottom: 16px;
 }
 .cd-tab {
