@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Filter the diff report's Changed list by element type.** A new **Kind**
+  dropdown in the Differences sidebar slices the Changed tables to those whose
+  change touches a chosen element kind — Fields, References, Inheritance, M2M,
+  Named relationship, DB view, or CI topology. Multi-select (a ✓ marks included
+  kinds; "All kinds" resets). Added/Removed rows and the summary counts are
+  unaffected — it's a list-view slice of "what changed".
 - **Export the active comparison/diff from the Schema Map**
   ([#177](https://github.com/revampd/sn-schema-explorer/issues/177)). When a
   comparison is active, the export bar's data row gains comparison controls: an

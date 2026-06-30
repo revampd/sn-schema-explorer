@@ -337,6 +337,69 @@ test.describe('Schema Diff', () => {
     await expect(page.locator('.diff-group[data-group="config"]')).toHaveCount(0);
     await expect(page.locator('#diff-type-table, #diff-type-app')).toHaveCount(0);
   });
+
+  test('the Kind filter slices the Changed list by element type (#4)', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    // incident changes in FIELDS (extra field); task changes in a REFERENCE edge.
+    const base = {
+      _instance: { instance_name: 'dev' },
+      nodes: [
+        {
+          id: 'incident',
+          label: 'Incident',
+          fields: [{ name: 'number', label: 'Number', type: 'string' }],
+        },
+        { id: 'task', label: 'Task', fields: [{ name: 'a', label: 'A', type: 'string' }] },
+        { id: 'sys_user', label: 'User', fields: [{ name: 'b', label: 'B', type: 'string' }] },
+      ],
+      edges: [{ source: 'incident', target: 'task', type: 'extends' }],
+    };
+    const compare = JSON.parse(JSON.stringify(base));
+    compare._instance = { instance_name: 'compare-inst' };
+    compare.nodes
+      .find(n => n.id === 'incident')
+      .fields.push({ name: 'extra', label: 'Extra', type: 'string' });
+    compare.edges.push({
+      source: 'task',
+      target: 'sys_user',
+      type: 'reference',
+      field: 'assigned_to',
+    });
+    await page
+      .locator('#file-input')
+      .setInputFiles({
+        name: 'base.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(base)),
+      });
+    await page
+      .locator('#file-input')
+      .setInputFiles({
+        name: 'compare.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(compare)),
+      });
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    const changedIds = () =>
+      page
+        .locator('.diff-group[data-group="changed"] .diff-item')
+        .evaluateAll(els => els.map(e => e.dataset.id));
+    expect(await changedIds()).toEqual(['incident', 'task']);
+
+    // Deselect "References" in the Kind dropdown → task (reference-only change) drops.
+    await page.locator('#diff-element-filter .sn-dd-btn').click();
+    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'References' }).click();
+    expect(await changedIds()).toEqual(['incident']);
+  });
 });
 
 // ── Configuration Data ─────────────────────────────────────────────────────

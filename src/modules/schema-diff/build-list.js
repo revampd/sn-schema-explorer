@@ -24,6 +24,27 @@ function typeTag(kind) {
   return tag;
 }
 
+// The element-type kinds a single changed-table entry touches (#4): 'fields' for
+// any field add/remove/retype, plus the edge `type` of each added/removed edge
+// ('reference' | 'extends' | 'm2m' | 'rel' | 'view' | 'cmdb_rel').
+function changedTypes(ch) {
+  const t = new Set();
+  if (ch.addedFields?.length || ch.removedFields?.length || ch.changedFields?.length) {
+    t.add('fields');
+  }
+  for (const e of [...(ch.addedEdges || []), ...(ch.removedEdges || [])]) t.add(e.type);
+  return t;
+}
+
+// Does a changed table pass the active element-type slice? null = no slice (all);
+// otherwise the table's touched kinds must intersect the selected kinds.
+function elementPasses(types) {
+  const sel = diffState._diffElementFilter;
+  if (!sel) return true;
+  for (const t of types) if (sel.includes(t)) return true;
+  return false;
+}
+
 // A collapsible group: a header (caret + label + count) over a body holding the
 // rows. Collapsed state is keyed by `groupKey` in diffState._collapsedGroups and
 // toggled by the delegated header click handler (schema-diff/index.js). Returns
@@ -209,6 +230,7 @@ function appendGroupedRows(frag, filter) {
     makeGroup(
       'Changed',
       [...d.changed.entries()]
+        .filter(([, ch]) => elementPasses(changedTypes(ch))) // #4 element-type slice
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([id, ch]) => {
           const n = d.baseMap.get(id);
@@ -247,12 +269,27 @@ function appendMatrixRows(frag, matrix, filter) {
   const baseMap = matrix[0].baseMap;
   const nodeFor = id => baseMap.get(id) || matrix.map(m => m.compareMap.get(id)).find(Boolean);
 
+  // Union of the element-type kinds a table's change touches across all compares.
+  const matrixChangedTypes = id => {
+    const t = new Set();
+    for (const diff of matrix) {
+      const ch = diff.changed.get(id);
+      if (ch) for (const x of changedTypes(ch)) t.add(x);
+    }
+    return t;
+  };
+
   let rows = [...tables.entries()].map(([id, info]) => ({ id, ...info, node: nodeFor(id) }));
   rows.sort((a, b) => a.id.localeCompare(b.id));
   rows = rows.filter(r => {
     if (filter === 'added' && !r.anyAdded) return false;
     if (filter === 'removed' && !r.anyRemoved) return false;
     if (filter === 'changed' && !r.anyChanged) return false;
+    // #4 element-type slice — only narrows the CHANGED aspect; whole-table
+    // added/removed rows are unaffected (like the single-compare groups).
+    if (diffState._diffElementFilter && r.anyChanged && !r.anyAdded && !r.anyRemoved) {
+      if (!elementPasses(matrixChangedTypes(r.id))) return false;
+    }
     return tablePasses(r.id, r.node?.label, r.node);
   });
 
