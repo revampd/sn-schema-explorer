@@ -82,6 +82,16 @@ function elementPasses(types) {
   return false;
 }
 
+// When a Kind slice is active, the relationship sub-rows are limited to the
+// selected edge kinds too — so e.g. filtering to Inheritance shows only the
+// `extends` edges, not every relationship a qualifying table happens to have.
+// (A slice with only `fields` selected matches no edge type → no edge rows.)
+function edgesPassingFilter(edges) {
+  const sel = diffState._diffElementFilter;
+  if (!sel) return edges;
+  return edges.filter(e => sel.includes(e.type));
+}
+
 // A collapsible group: a header (caret + label + count) over a body holding the
 // rows. Collapsed state is keyed by `groupKey` in diffState._collapsedGroups and
 // toggled by the delegated header click handler (schema-diff/index.js). Returns
@@ -198,6 +208,8 @@ function appendGroupedRows(frag, filter) {
   const d = diffState._diffData;
 
   function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges, kind) {
+    addedEdges = edgesPassingFilter(addedEdges);
+    removedEdges = edgesPassingFilter(removedEdges);
     if (!addedEdges.length && !removedEdges.length) return;
     const wrap = document.createElement('div');
     wrap.className = 'diff-edge-subgroup';

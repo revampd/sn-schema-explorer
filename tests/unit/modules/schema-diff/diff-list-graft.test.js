@@ -112,6 +112,41 @@ describe('diffBuildList', () => {
     diffState._diffFilter = 'all';
   });
 
+  it('an active Kind slice also filters the relationship sub-rows by edge type', () => {
+    // Give the added table two relationships of different kinds.
+    diffState._diffData.tableEdges.set('incident', {
+      addedEdges: [
+        { source: 'incident', target: 'task', type: 'extends' },
+        { source: 'incident', target: 'sys_user', type: 'reference', field: 'owner' },
+      ],
+      removedEdges: [],
+    });
+    diffState._diffFilter = 'added';
+
+    // Filter to Inheritance → only the `extends` edge row shows, not `reference`.
+    diffState._diffElementFilter = ['extends'];
+    diffBuildList();
+    // Re-query each build — diffBuildList rebuilds the list from scratch.
+    const types = () =>
+      [
+        ...document.querySelectorAll(
+          '.diff-group[data-group="added"] .diff-edge-item .diff-edge-type'
+        ),
+      ].map(e => e.textContent);
+    expect(types()).toEqual(['extends']);
+    expect(
+      document.querySelector('.diff-group[data-group="added"] .diff-edge-subgroup-header')
+        .textContent
+    ).toBe('Relationships (1)');
+
+    // No slice → both relationship rows show again.
+    diffState._diffElementFilter = null;
+    diffBuildList();
+    expect(types().sort()).toEqual(['extends', 'reference']);
+
+    diffState._diffFilter = 'all';
+  });
+
   it('shows a removed table’s vanished relationships as a sub-group', () => {
     diffState._diffFilter = 'removed';
     diffBuildList();
