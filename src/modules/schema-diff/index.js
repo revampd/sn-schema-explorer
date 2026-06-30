@@ -121,10 +121,10 @@ function loadDiffSchema(compareData) {
   diffState._diffElementFilter = null;
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
-  diffUpdateSummary();
-  diffBuildList();
   // #141: starting a comparison no longer changes the view-mode, so sync the
-  // sidebar here to reveal the diff report on the map.
+  // sidebar here to reveal the diff report on the map. diffSyncSidebar() already
+  // runs diffUpdateSummary() + diffBuildList() while comparing — don't build the
+  // (potentially huge) list twice per selection.
   diffSyncSidebar();
   updateInstancePill();
   // The compare list is set (setCompareIds) BEFORE `_diffData` is populated here,
