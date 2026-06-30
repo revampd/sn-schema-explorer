@@ -157,6 +157,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Application Scope filter is usable on instances with many scopes.** The
+  scope-pill list in the advanced filter is now capped in height and scrolls,
+  instead of growing to fill (and overflow) the whole viewport on instances with
+  hundreds or thousands of application scopes.
+- **The Inspector no longer crashes on a field without a label.** Field sorting
+  guarded against a missing `label` (`(a.label || '')`), so a schema export that
+  omits a field label renders instead of throwing.
 - **Starting a comparison no longer collapses the Schema Map.** A new comparison
   now shows the full graph with diff colouring by default (rather than narrowing
   to changed-only tables), so the map doesn't look emptied and Refresh visibly

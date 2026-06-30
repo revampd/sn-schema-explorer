@@ -300,7 +300,7 @@ export function fillInspector(d) {
   if (propsSection) ic.appendChild(propsSection);
 
   if (d.fields?.length) {
-    const sortedFields = [...d.fields].sort((a, b) => a.label.localeCompare(b.label));
+    const sortedFields = [...d.fields].sort((a, b) => (a.label || '').localeCompare(b.label || ''));
     const grid = el('div', 'insp-fields-grid');
     let inheritedCount = 0;
     sortedFields.forEach(f => {
@@ -386,7 +386,9 @@ export function fillInspector(d) {
       sub.appendChild(subId);
       grid.appendChild(sub);
 
-      const sortedGroupFields = [...group.fields].sort((a, b) => a.label.localeCompare(b.label));
+      const sortedGroupFields = [...group.fields].sort((a, b) =>
+        (a.label || '').localeCompare(b.label || '')
+      );
       for (const f of sortedGroupFields) {
         const col = typeBadgeColor(f.type);
         const row = el('div', 'insp-field-row insp-field-inherited');
