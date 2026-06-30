@@ -648,6 +648,8 @@ function showWizStep(id) {
   });
 }
 
+const ALL_NODE_EDGE_TYPES = ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'];
+
 function buildNodeCommand() {
   const instance = (document.getElementById('node-instance')?.value || '').trim();
   const user = (document.getElementById('node-user')?.value || '').trim();
@@ -657,9 +659,10 @@ function buildNodeCommand() {
   const recordCounts = document.getElementById('node-record-counts')?.checked;
   const meta = [...document.querySelectorAll('.node-meta:checked')].map(i => i.value);
   const propValues = document.getElementById('node-prop-values')?.checked;
+  const propQuery = (document.getElementById('node-prop-query')?.value || '').trim();
+  const edgeTypes = [...document.querySelectorAll('.node-edge:checked')].map(i => i.value);
 
   const lines = [];
-  // Credential env var (always shown so the user knows where to put it)
   if (auth === 'basic') {
     lines.push('# Set your password — never pass it on the command line');
     lines.push('export SN_PASSWORD=<your-password>');
@@ -677,6 +680,9 @@ function buildNodeCommand() {
   if (recordCounts) cmd.push('  --include-record-counts');
   if (meta.length && meta.length < 4) cmd.push(`  --metadata=${meta.join(',')}`);
   if (propValues) cmd.push('  --include-property-values');
+  if (propQuery) cmd.push(`  --property-query=${propQuery}`);
+  if (edgeTypes.length && edgeTypes.length < ALL_NODE_EDGE_TYPES.length)
+    cmd.push(`  --edge-types=${edgeTypes.join(',')}`);
 
   lines.push(cmd.join(' \\\n'));
   return lines.join('\n');
@@ -685,14 +691,21 @@ function buildNodeCommand() {
 function updateNodeCommand() {
   const pre = document.getElementById('node-cmd-preview');
   if (pre) pre.textContent = buildNodeCommand();
-  // Show/hide the username row based on auth mode
+
   const auth = document.querySelector('input[name="node-auth"]:checked')?.value;
   const userRow = document.getElementById('node-user-row');
   if (userRow) userRow.style.display = auth === 'apikey' ? 'none' : '';
-  // Show/hide property values toggle based on whether properties section is checked
+
   const hasProps = document.querySelector('.node-meta[value="properties"]')?.checked;
-  const propRow = document.getElementById('node-prop-values-row');
-  if (propRow) propRow.style.display = hasProps ? '' : 'none';
+  const propValRow = document.getElementById('node-prop-values-row');
+  if (propValRow) propValRow.style.display = hasProps ? '' : 'none';
+  const propQueryRow = document.getElementById('node-prop-query-row');
+  if (propQueryRow) propQueryRow.style.display = hasProps ? '' : 'none';
+
+  // Edge types only relevant for non-JSON output formats
+  const format = nodeFormatDD ? nodeFormatDD.getValue() : 'json';
+  const edgeSet = document.getElementById('node-edge-types-set');
+  if (edgeSet) edgeSet.style.display = format === 'json' ? 'none' : '';
 }
 
 function initNodeConfig() {

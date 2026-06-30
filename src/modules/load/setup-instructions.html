@@ -11,28 +11,18 @@
         <span class="wiz-method-name">Background Script</span>
         <span class="wiz-method-rec">Recommended</span>
       </div>
-      <ul class="wiz-method-rows">
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Output</span>
-          <span class="wiz-mrow-val">
-            <strong>Schema Explorer format</strong> (JSON) — load and visualise in the tool, then export to any format from within.
-            Also supports Markdown and JSON-LD as direct output.
-            <span class="wiz-mhint">OWL/Turtle and OpenAPI are not available as direct output from the Background Script, but once the JSON is loaded in Schema Explorer you can export to either format via the Export bar.</span>
-          </span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Requirements</span>
-          <span class="wiz-mrow-val">Admin role on the instance · No local tooling needed</span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Runs on</span>
-          <span class="wiz-mrow-val">Your ServiceNow instance — writes the export as a file attachment on your user record</span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Table visibility</span>
-          <span class="wiz-mrow-val">All tables including privately-scoped app tables (admin session bypasses cross-scope ACLs)</span>
-        </li>
-      </ul>
+      <div class="wiz-method-body">
+        <div class="wiz-fact-label">Output</div>
+        <div class="wiz-fact-pills">
+          <span class="wiz-pill wiz-pill--primary">Schema Explorer JSON</span>
+          <span class="wiz-pill">Markdown</span>
+          <span class="wiz-pill">JSON-LD</span>
+        </div>
+        <p class="wiz-fact-note">OWL/Turtle and OpenAPI not available as direct output — export the JSON first, then convert via Schema Explorer's Export bar.</p>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Requirements</span><span>Admin role · no local tooling</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Runs on</span><span>Your ServiceNow instance — saves export as an attachment on your user record</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Table visibility</span><span>All tables, incl. privately-scoped apps (admin session bypasses cross-scope ACLs)</span></div>
+      </div>
     </button>
 
     <button class="wiz-method" data-wiz-method="node">
@@ -40,28 +30,20 @@
         <span class="wiz-method-letter">B</span>
         <span class="wiz-method-name">Node.js extractor</span>
       </div>
-      <ul class="wiz-method-rows">
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Output</span>
-          <span class="wiz-mrow-val">
-            <strong>Schema Explorer format</strong> (JSON) — load and visualise in the tool.
-            Also produces <strong>standalone formats</strong> directly: Markdown, JSON-LD, OWL/Turtle, OpenAPI — consumed by wikis, LLMs, RDF tooling, or API toolchains without opening Schema Explorer.
-            <span class="wiz-mhint">All formats are also available from Schema Explorer's Export bar after loading a JSON export.</span>
-          </span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Requirements</span>
-          <span class="wiz-mrow-val">Node.js 18+ · Network access to instance · Credentials via environment variables</span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Runs on</span>
-          <span class="wiz-mrow-val">Your local machine via the Table API — no instance-side setup required</span>
-        </li>
-        <li class="wiz-mrow">
-          <span class="wiz-mrow-key">Table visibility</span>
-          <span class="wiz-mrow-val">Table API — privately-scoped app tables may be absent due to cross-scope ACL restrictions</span>
-        </li>
-      </ul>
+      <div class="wiz-method-body">
+        <div class="wiz-fact-label">Output</div>
+        <div class="wiz-fact-pills">
+          <span class="wiz-pill wiz-pill--primary">Schema Explorer JSON</span>
+          <span class="wiz-pill">Markdown</span>
+          <span class="wiz-pill">JSON-LD</span>
+          <span class="wiz-pill">OWL/Turtle</span>
+          <span class="wiz-pill">OpenAPI</span>
+        </div>
+        <p class="wiz-fact-note">Standalone formats are generated directly — ready for wikis, LLMs, RDF tooling, or API consumers without opening Schema Explorer.</p>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Requirements</span><span>Node.js 18+ · network access · credentials via env vars</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Runs on</span><span>Your local machine via the Table API — no instance-side setup</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Table visibility</span><span>Table API — privately-scoped app tables may be absent due to cross-scope ACLs</span></div>
+      </div>
     </button>
 
   </div>
@@ -179,6 +161,19 @@
         <label class="sn-toggle"><input type="checkbox" class="node-meta" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
       </fieldset>
       <label class="sn-toggle" id="node-prop-values-row"><input type="checkbox" id="node-prop-values"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+      <label class="bg-cfg-row bg-cfg-row--text" id="node-prop-query-row">
+        <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
+        <input class="bg-cfg-input" type="text" id="node-prop-query" placeholder="e.g. nameSTARTSWITHglide.ui">
+      </label>
+      <fieldset class="bg-cfg-set" id="node-edge-types-set">
+        <legend>Edge types <em>(Markdown / JSON-LD / OWL / OpenAPI)</em></legend>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="extends" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">extends</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="m2m" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">m2m</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">rel</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="view" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">view</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="cmdb_rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">cmdb_rel</span></label>
+      </fieldset>
     </div>
   </div>
 
