@@ -43,7 +43,7 @@ body[data-workspace='landing'] #btn-home {
 }
 .landing-sub {
   margin-top: 8px;
-  color: var(--text-dim);
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -95,7 +95,7 @@ body[data-workspace='landing'] #btn-home {
 /* URL row */
 .ic-url {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--muted);
   margin: -4px 0 8px;
   white-space: nowrap;
   overflow: hidden;
@@ -163,7 +163,7 @@ body[data-workspace='landing'] #btn-home {
   background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 12%, transparent);
 }
 .ic-tool.disabled {
-  color: var(--text-dim);
+  color: var(--muted);
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -173,7 +173,7 @@ body[data-workspace='landing'] #btn-home {
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--muted);
   cursor: pointer;
   line-height: 1;
 }
@@ -212,7 +212,7 @@ body[data-workspace='landing'] #btn-home {
 }
 .ic-count-val.absent {
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--muted);
   opacity: 0.5;
 }
 
@@ -228,7 +228,7 @@ body[data-workspace='landing'] #btn-home {
   margin-top: 10px;
   font-size: 11px;
   font-style: italic;
-  color: var(--text-dim);
+  color: var(--muted);
 }
 
 /* Add-instance card */
@@ -261,7 +261,7 @@ body[data-workspace='landing'] #btn-home {
   margin-top: 4px;
   border: none;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--muted);
   font-size: 12px;
   cursor: pointer;
   text-decoration: underline;
@@ -283,7 +283,7 @@ body[data-workspace='landing'] #btn-home {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-dim);
+  color: var(--muted);
   padding: 4px 8px;
   border-radius: 6px;
   transition: color 0.12s, background 0.12s;
@@ -338,7 +338,7 @@ body[data-workspace='landing'] #btn-home {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--muted);
   font-size: 18px;
   cursor: pointer;
   line-height: 1;
@@ -349,7 +349,7 @@ body[data-workspace='landing'] #btn-home {
 }
 .export-wizard-close:hover {
   color: var(--text);
-  border-color: var(--text-dim);
+  border-color: var(--muted);
 }
 .export-wizard-body {
   overflow-y: auto;
@@ -376,7 +376,7 @@ body[data-workspace='landing'] #btn-home {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--text-dim);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -386,7 +386,7 @@ body[data-workspace='landing'] #btn-home {
 .wiz-back-btn:hover,
 .wiz-next-btn:hover {
   color: var(--text);
-  border-color: var(--text-dim);
+  border-color: var(--muted);
 }
 .wiz-next-btn {
   color: var(--sn-wasabi, #62d84e);
@@ -406,7 +406,7 @@ body[data-workspace='landing'] #btn-home {
 /* ── Step 1: method cards ────────────────────────────────────────────────────*/
 .wiz-pick-prompt {
   font-size: 13px;
-  color: var(--text-dim);
+  color: var(--muted);
   margin: 0 0 16px;
 }
 .wiz-methods {
@@ -479,7 +479,7 @@ body[data-workspace='landing'] #btn-home {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-dim);
+  color: var(--muted);
   margin-bottom: 2px;
 }
 .wiz-fact-pills {
@@ -517,7 +517,7 @@ body[data-workspace='landing'] #btn-home {
 }
 .wiz-fact-key {
   font-weight: 700;
-  color: var(--text-dim);
+  color: var(--muted);
   white-space: nowrap;
   min-width: 90px;
   font-size: 10px;
