@@ -10,7 +10,7 @@ export const zoom = d3
   .scaleExtent([0.04, 5])
   // Block user-initiated gestures when the viewport is frozen; allow programmatic
   // calls (fitGraph, zoom buttons) which bypass filter() entirely in D3.
-  .filter(e => !uiState.frozenViewport && (!e.ctrlKey || e.type === 'wheel') && !e.button)
+  .filter(e => (!e.ctrlKey || e.type === 'wheel') && !e.button)
   .on('zoom', e => {
     root.attr('transform', e.transform);
     svg.classed('lod-dots', e.transform.k < LOD_THRESHOLD);

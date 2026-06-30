@@ -56,7 +56,7 @@ Settings.registerFeature({
   label: 'Schema Diff',
   description:
     'Adds a Diff view mode that compares the loaded schema against a second JSON export. Shows added, removed, and changed tables (with field-level detail) highlighted on the graph and listed in the sidebar.',
-  default: false,
+  baseline: true,
   category: 'features',
 });
 

@@ -49,6 +49,8 @@
   </div>
   <div class="guide-card">
     <h4>Diff mode inspector <em>(when Schema Diff is active)</em></h4>
-    <p>When a compare schema is loaded, selecting a changed table shows a side-by-side field comparison. Added fields are highlighted in green, removed fields in red, changed fields in amber. Fields that are identical in both schemas are shown without highlighting.</p>
+    <p>When a compare schema is active, selecting any table opens a comparison view in the Inspector.</p>
+    <p><strong>Single compare:</strong> a side-by-side field matrix — added fields highlighted green, removed red, changed amber, identical fields unstyled. A <strong>Relationships</strong> section lists any added or removed edges. When both sides exported app metadata, a <strong>Configuration</strong> section shows owning app, version, and active state per side with a drift status.</p>
+    <p><strong>Multiple compares:</strong> an N-column matrix — one column per instance (Base + each compare). Each field cell is coloured per that instance's status vs Base. A per-instance status strip at the top summarises the table's overall diff status across every compare.</p>
   </div>
 </div>
