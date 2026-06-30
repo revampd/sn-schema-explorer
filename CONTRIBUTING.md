@@ -5,8 +5,7 @@ community tool — not affiliated with ServiceNow, Inc.
 
 ## Prerequisites
 
-- Node.js **20+** (the dev toolchain requires it; the standalone exporter
-  artifact itself runs on Node 18+)
+- Node.js **22+**
 - npm
 
 ## Setup

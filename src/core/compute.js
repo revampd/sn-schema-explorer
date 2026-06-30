@@ -239,15 +239,13 @@ export function computeNeighbourhood({ applyHiddenNodes = true, countOnly = fals
     if (e.type === 'reference') {
       if (!uiState.showRefTo && !uiState.showRefFrom) return false;
     } else {
-      if (
-        !(
-          (e.type === 'extends' && uiState.showExt) ||
-          (e.type === 'm2m' && uiState.showM2M) ||
-          (e.type === 'rel' && uiState.showRel) ||
-          (e.type === 'view' && uiState.showView) ||
-          (e.type === 'cmdb_rel' && uiState.showCmdbRel)
-        )
-      )
+      if (!(
+        (e.type === 'extends' && uiState.showExt) ||
+        (e.type === 'm2m' && uiState.showM2M) ||
+        (e.type === 'rel' && uiState.showRel) ||
+        (e.type === 'view' && uiState.showView) ||
+        (e.type === 'cmdb_rel' && uiState.showCmdbRel)
+      ))
         return false;
     }
     if (!uiState.selectedNode) return true;

@@ -286,7 +286,9 @@ body[data-workspace='landing'] #btn-home {
   color: var(--muted);
   padding: 4px 8px;
   border-radius: 6px;
-  transition: color 0.12s, background 0.12s;
+  transition:
+    color 0.12s,
+    background 0.12s;
 }
 .landing-export-btn:hover {
   color: var(--text);
@@ -311,7 +313,7 @@ body[data-workspace='landing'] #btn-home {
   background: var(--bg-panel, var(--bg));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-lg, 0 24px 64px rgba(0,0,0,.5));
+  box-shadow: var(--shadow-lg, 0 24px 64px rgba(0, 0, 0, 0.5));
   width: 100%;
   max-width: 780px;
   max-height: 88vh;
@@ -345,7 +347,9 @@ body[data-workspace='landing'] #btn-home {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.12s, border-color 0.12s;
+  transition:
+    color 0.12s,
+    border-color 0.12s;
 }
 .export-wizard-close:hover {
   color: var(--text);
@@ -381,7 +385,10 @@ body[data-workspace='landing'] #btn-home {
   font-weight: 600;
   cursor: pointer;
   padding: 4px 10px;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  transition:
+    color 0.12s,
+    border-color 0.12s,
+    background 0.12s;
 }
 .wiz-back-btn:hover,
 .wiz-next-btn:hover {
@@ -415,7 +422,9 @@ body[data-workspace='landing'] #btn-home {
   gap: 14px;
 }
 @media (max-width: 560px) {
-  .wiz-methods { grid-template-columns: 1fr; }
+  .wiz-methods {
+    grid-template-columns: 1fr;
+  }
 }
 .wiz-method {
   text-align: left;
@@ -424,7 +433,9 @@ body[data-workspace='landing'] #btn-home {
   border-radius: var(--radius-md, 10px);
   padding: 16px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -544,7 +555,9 @@ body[data-workspace='landing'] #btn-home {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 10px;
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
   flex: 1;
 }
 .node-auth-opt:has(input:checked) {
