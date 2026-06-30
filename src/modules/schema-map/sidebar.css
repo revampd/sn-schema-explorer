@@ -313,6 +313,11 @@ aside {
   flex-wrap: wrap;
   gap: 4px;
   max-width: 100%;
+  /* Instances with hundreds/thousands of scopes would otherwise grow the pill
+     list to fill (and overflow) the viewport — cap it and scroll. */
+  max-height: 220px;
+  overflow-y: auto;
+  align-content: flex-start;
 }
 .fc-scope-pill {
   display: flex;
