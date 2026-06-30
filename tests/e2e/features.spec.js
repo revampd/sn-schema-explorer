@@ -423,20 +423,16 @@ test.describe('Schema Diff', () => {
       ],
     });
     compare.edges.push({ source: 'x_new', target: 'incident', type: 'reference', field: 'inc' });
-    await page
-      .locator('#file-input')
-      .setInputFiles({
-        name: 'base.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(base)),
-      });
-    await page
-      .locator('#file-input')
-      .setInputFiles({
-        name: 'compare.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(compare)),
-      });
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(base)),
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
     await page
       .locator('.inst-card:not(.add-card)', { hasText: 'base-inst' })
       .locator('[data-tool="schemaExplorer"]')
