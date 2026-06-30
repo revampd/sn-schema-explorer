@@ -389,18 +389,21 @@ test.describe('Schema Diff', () => {
     // No slice → the Changed badge shows the raw count (2 changed tables).
     await expect(page.locator('#diff-n-changed')).toHaveText('2');
 
-    // The Kind menu lists only kinds present here (fields + reference) — not the
-    // unused M2M / Inheritance / etc.
-    await page.locator('#diff-element-filter .sn-dd-btn').click();
-    const kindOpts = page.locator('.sn-dd-menu:visible .sn-dd-opt');
-    await expect(kindOpts.filter({ hasText: 'Fields' })).toHaveCount(1);
-    await expect(kindOpts.filter({ hasText: 'References' })).toHaveCount(1);
-    await expect(kindOpts.filter({ hasText: 'M2M' })).toHaveCount(0);
-    await expect(kindOpts.filter({ hasText: 'CI topology' })).toHaveCount(0);
+    // The Kind row shows a chip only for kinds present here (fields + reference) —
+    // not the unused M2M / CI topology. With no slice, every chip is highlighted.
+    const chips = page.locator('#diff-element-filter .diff-kind-chip');
+    await expect(chips.filter({ hasText: 'Fields' })).toHaveCount(1);
+    await expect(chips.filter({ hasText: 'References' })).toHaveCount(1);
+    await expect(chips.filter({ hasText: 'M2M' })).toHaveCount(0);
+    await expect(chips.filter({ hasText: 'CI topology' })).toHaveCount(0);
+    await expect(chips.filter({ hasText: 'References' })).toHaveClass(/active/);
 
-    // Deselect "References" → task (reference-only change) drops.
-    await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'References' }).click();
+    // Click the "References" chip to deselect → task (reference-only change) drops.
+    await chips.filter({ hasText: 'References' }).click();
     expect(await changedIds()).toEqual(['incident']);
+    await expect(
+      page.locator('#diff-element-filter .diff-kind-chip').filter({ hasText: 'References' })
+    ).not.toHaveClass(/active/);
     // …and the Changed badge tracks the slice as passing/total.
     await expect(page.locator('#diff-n-changed')).toHaveText('1/2');
   });
