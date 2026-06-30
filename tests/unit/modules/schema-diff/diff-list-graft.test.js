@@ -19,7 +19,8 @@ vi.mock('../../../../src/core/table-list.js', () => ({ buildTableList: vi.fn() }
 
 import {
   diffBuildList,
-  countChangedAfterElementFilter,
+  filteredDiffCounts,
+  presentElementTypes,
 } from '../../../../src/modules/schema-diff/build-list.js';
 import {
   diffGraftAddedIntoBase,
@@ -81,6 +82,8 @@ beforeEach(() => {
   document.body.innerHTML = '<div id="diff-list"></div>';
   diffState._diffData = makeDiffData();
   diffState._diffFilter = 'all';
+  diffState._diffElementFilter = null;
+  diffState._diffMatrix = null;
   uiState.filterConditions = [];
   uiState.selectedNode = null;
 });
@@ -144,22 +147,50 @@ describe('diffBuildList', () => {
     diffState._diffElementFilter = null; // reset shared state
   });
 
-  it('countChangedAfterElementFilter mirrors the Kind slice (null when unsliced)', () => {
-    // No element filter → null, so the summary keeps the raw changed count.
+  it('presentElementTypes lists only kinds the comparison actually contains', () => {
+    // changed task → fields + 'ref'; added/removed tables → a 'reference' edge.
+    expect([...presentElementTypes()].sort()).toEqual(['fields', 'ref', 'reference']);
+  });
+
+  it('filteredDiffCounts slices Added/Removed/Changed by the Kind selection', () => {
+    // No slice → null, so the summary keeps the raw counts.
     diffState._diffElementFilter = null;
-    expect(countChangedAfterElementFilter()).toBe(null);
+    expect(filteredDiffCounts()).toBe(null);
 
-    // task touches fields + a 'ref' edge → it passes a matching slice…
-    diffState._diffElementFilter = ['ref'];
-    expect(countChangedAfterElementFilter()).toBe(1);
+    // 'reference' matches the added/removed tables' edge, not the changed table.
+    diffState._diffElementFilter = ['reference'];
+    expect(filteredDiffCounts()).toEqual({ added: 1, removed: 1, changed: 0 });
+
+    // 'fields'/'ref' match the changed table, not the reference-only add/remove.
     diffState._diffElementFilter = ['fields'];
-    expect(countChangedAfterElementFilter()).toBe(1);
+    expect(filteredDiffCounts()).toEqual({ added: 0, removed: 0, changed: 1 });
+    diffState._diffElementFilter = ['ref'];
+    expect(filteredDiffCounts()).toEqual({ added: 0, removed: 0, changed: 1 });
 
-    // …and is excluded by a non-matching slice (count drops to 0).
+    // A kind nothing touches hides everything.
     diffState._diffElementFilter = ['m2m'];
-    expect(countChangedAfterElementFilter()).toBe(0);
+    expect(filteredDiffCounts()).toEqual({ added: 0, removed: 0, changed: 0 });
 
     diffState._diffElementFilter = null; // reset shared state
+  });
+
+  it('the Kind slice also filters the Added/Removed list groups', () => {
+    diffState._diffElementFilter = ['reference']; // matches the add/remove edges only
+    diffBuildList();
+    const ids = group =>
+      [...document.querySelectorAll(`.diff-group[data-group="${group}"] .diff-item`)].map(
+        e => e.dataset.id
+      );
+    expect(ids('added')).toEqual(['incident']);
+    expect(ids('removed')).toEqual(['old_table']);
+    expect(ids('changed')).toEqual([]); // changed table touches fields/ref, not reference
+
+    diffState._diffElementFilter = ['m2m']; // nothing touches m2m
+    diffBuildList();
+    expect(ids('added')).toEqual([]);
+    expect(ids('removed')).toEqual([]);
+
+    diffState._diffElementFilter = null;
   });
 
   it('renders a relationship-change subgroup for changed tables', () => {

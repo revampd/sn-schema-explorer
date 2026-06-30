@@ -15,12 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   row — the same edge rows that changed tables already show, and clickable to
   navigate to the related table. Previously these edges were only visible on the
   canvas and in the Inspector, never in the Added/Removed list groups.
-- **Filter the diff report's Changed list by element type.** A new **Kind**
-  dropdown in the Differences sidebar slices the Changed tables to those whose
-  change touches a chosen element kind — Fields, References, Inheritance, M2M,
-  Named relationship, DB view, or CI topology. Multi-select (a ✓ marks included
-  kinds; "All kinds" resets). Added/Removed rows and the summary counts are
-  unaffected — it's a list-view slice of "what changed".
+- **Filter the diff report by element type.** A new **Kind** dropdown in the
+  Differences sidebar slices the **Added, Removed, and Changed** tables to those
+  that touch a chosen element kind — Fields, References, Inheritance, M2M, Named
+  relationship, DB view, or CI topology. Multi-select (a ✓ marks included kinds;
+  "All kinds" resets). All three summary counts show the sliced total as
+  `passing/total`. The dropdown only offers the kinds actually present in the
+  current comparison.
 - **Export the active comparison/diff from the Schema Map**
   ([#177](https://github.com/revampd/sn-schema-explorer/issues/177)). When a
   comparison is active, the export bar's data row gains comparison controls: an
@@ -184,13 +185,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The diff "Kind" filter now updates the Changed count.** Selecting element
-  kinds slices the Changed list, so the **Changed** summary now shows the sliced
-  total as `passing/total` (e.g. `320/1750`) instead of staying on the full
-  count. (The badge now also re-renders on every Kind change — previously the
-  summary wasn't refreshed when the slice changed, so the count never moved.)
-  Added/Removed are whole-table differences with no element-kind breakdown, so
-  they are intentionally unaffected by the Kind filter.
+- **The diff "Kind" summary counts now track the slice and re-render on change.**
+  Each badge shows the sliced total as `passing/total` and updates on every Kind
+  change — previously the summary wasn't refreshed, so the count never moved.
 - **The diff "Kind" filter dropdown no longer clips its labels.** The open menu
   was pinned to the (narrow) trigger-button width, so element-type labels
   (References, Inheritance, CI topology, …) were truncated to "R…", "In…", "C…".

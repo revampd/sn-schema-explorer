@@ -389,8 +389,16 @@ test.describe('Schema Diff', () => {
     // No slice → the Changed badge shows the raw count (2 changed tables).
     await expect(page.locator('#diff-n-changed')).toHaveText('2');
 
-    // Deselect "References" in the Kind dropdown → task (reference-only change) drops.
+    // The Kind menu lists only kinds present here (fields + reference) — not the
+    // unused M2M / Inheritance / etc.
     await page.locator('#diff-element-filter .sn-dd-btn').click();
+    const kindOpts = page.locator('.sn-dd-menu:visible .sn-dd-opt');
+    await expect(kindOpts.filter({ hasText: 'Fields' })).toHaveCount(1);
+    await expect(kindOpts.filter({ hasText: 'References' })).toHaveCount(1);
+    await expect(kindOpts.filter({ hasText: 'M2M' })).toHaveCount(0);
+    await expect(kindOpts.filter({ hasText: 'CI topology' })).toHaveCount(0);
+
+    // Deselect "References" → task (reference-only change) drops.
     await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'References' }).click();
     expect(await changedIds()).toEqual(['incident']);
     // …and the Changed badge tracks the slice as passing/total.
