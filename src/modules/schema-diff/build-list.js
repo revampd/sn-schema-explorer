@@ -364,14 +364,18 @@ function appendMatrixRows(frag, matrix, filter) {
 
   let rows = [...tables.entries()].map(([id, info]) => ({ id, ...info, node: nodeFor(id) }));
   rows.sort((a, b) => a.id.localeCompare(b.id));
+  // Apply status filter first to get the pre-kind-filter total for the badge.
   rows = rows.filter(r => {
     if (filter === 'added' && !r.anyAdded) return false;
     if (filter === 'removed' && !r.anyRemoved) return false;
     if (filter === 'changed' && !r.anyChanged) return false;
-    // #4 element-type slice — spans Added, Removed, and Changed in matrix mode.
-    if (diffState._diffElementFilter && !elementPasses(matrixAllTypes(r.id))) return false;
     return tablePasses(r.id, r.node?.label, r.node);
   });
+  const totalRows = rows.length;
+  // Then apply the element-type (Kind) slice.
+  if (diffState._diffElementFilter) {
+    rows = rows.filter(r => elementPasses(matrixAllTypes(r.id)));
+  }
 
   const groupLabel =
     filter === 'added' ? 'Added' :
@@ -379,7 +383,9 @@ function appendMatrixRows(frag, matrix, filter) {
     filter === 'changed' ? 'Changed' :
     'Differs across instances';
   const groupKind = filter === 'all' ? 'changed' : filter;
-  const body = makeCollapsibleGroup(frag, 'matrix', groupLabel, rows.length, groupKind);
+  // Show filtered/total count when a Kind slice reduces the visible set.
+  const groupCount = rows.length < totalRows ? `${rows.length}/${totalRows}` : rows.length;
+  const body = makeCollapsibleGroup(frag, 'matrix', groupLabel, groupCount, groupKind);
   if (diffState._collapsedGroups?.includes('matrix')) return;
 
   const shown = rows.length > GROUP_ROW_CAP ? rows.slice(0, GROUP_ROW_CAP) : rows;
