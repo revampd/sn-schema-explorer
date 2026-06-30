@@ -56,6 +56,16 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+.zoom-btn--freeze {
+  font-size: 14px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.zoom-btn--freeze.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* ── MINIMAP ── */
 #minimap {

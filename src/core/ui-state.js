@@ -24,6 +24,7 @@ export const uiState = {
   connectedNodes: new Set(),
   _lastInheritedSeeds: new Set(),
   compactMode: false,
+  frozenViewport: false,
   sortMode: 'name-asc',
   hiddenNodes: new Set(),
   inspSectionState: new Map(),

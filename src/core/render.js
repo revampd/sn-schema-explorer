@@ -394,6 +394,9 @@ export function renderGraph() {
     .call(
       d3
         .drag()
+        // Frozen viewport: block drag (which would reheat the sim and move nodes)
+        // but let the event fall through so the click handler still fires.
+        .filter(() => !uiState.frozenViewport)
         .on('start', (e, d) => {
           if (!e.active) graphState.simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
