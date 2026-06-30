@@ -35,7 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   relationship, DB view, or CI topology. Multi-select (a ✓ marks included kinds;
   "All kinds" resets). All three summary counts show the sliced total as
   `passing/total`. The dropdown only offers the kinds actually present in the
-  current comparison.
+  current comparison, and the relationship sub-rows under each table are
+  filtered to the selected kinds too — e.g. filtering to Inheritance shows only
+  the `extends` edges, not every relationship a qualifying table happens to
+  have.
 - **Export the active comparison/diff from the Schema Map**
   ([#177](https://github.com/revampd/sn-schema-explorer/issues/177)). When a
   comparison is active, the export bar's data row gains comparison controls: an
