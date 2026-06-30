@@ -11,9 +11,21 @@
     <!-- Grid of instance cards + the Add-instance card (rendered by landing/index.js) -->
     <div class="landing-grid" id="landing-instances"></div>
 
-    <details class="landing-setup">
-      <summary>How to export a schema from ServiceNow</summary>
-      <!--INJECT:setup-instructions-->
-    </details>
+    <div class="landing-export-hint">
+      <button class="landing-export-btn" id="btn-export-wizard">How to export a schema from ServiceNow →</button>
+    </div>
+  </div>
+
+  <!-- Export wizard modal -->
+  <div class="export-wizard-overlay" id="export-wizard-overlay" hidden>
+    <div class="export-wizard-box">
+      <div class="export-wizard-header">
+        <span class="export-wizard-title">Export a schema from ServiceNow</span>
+        <button class="export-wizard-close" id="export-wizard-close" aria-label="Close">×</button>
+      </div>
+      <div class="export-wizard-body">
+        <!--INJECT:setup-instructions-->
+      </div>
+    </div>
   </div>
 </div>
