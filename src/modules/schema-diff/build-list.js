@@ -213,25 +213,33 @@ function appendGroupedRows(frag, filter) {
   if (filter === 'all' || filter === 'added') {
     makeGroup(
       'Added',
-      [...d.added].sort().map(id => {
-        const n = d.compareMap.get(id);
-        // A new table's own relationships (it as the edge owner) ride along with
-        // the table — surface them as sub-rows, like a changed table's edges.
-        const addedEdges = d.tableEdges?.get(id)?.addedEdges || [];
-        return { id, nodeLabel: n?.label || id, node: n, addedEdges };
-      }),
+      [...d.added]
+        .sort()
+        // #4 — the Kind slice spans Added too: keep a new table only if the kinds
+        // it touches (its fields + the relationships it owns) match the selection.
+        .filter(id => elementPasses(addedTableTypes(d, id)))
+        .map(id => {
+          const n = d.compareMap.get(id);
+          // A new table's own relationships (it as the edge owner) ride along with
+          // the table — surface them as sub-rows, like a changed table's edges.
+          const addedEdges = d.tableEdges?.get(id)?.addedEdges || [];
+          return { id, nodeLabel: n?.label || id, node: n, addedEdges };
+        }),
       'added'
     );
   }
   if (filter === 'all' || filter === 'removed') {
     makeGroup(
       'Removed',
-      [...d.removed].sort().map(id => {
-        const n = d.baseMap.get(id);
-        // Symmetric: the relationships that vanished with the removed table.
-        const removedEdges = d.tableEdges?.get(id)?.removedEdges || [];
-        return { id, nodeLabel: n?.label || id, node: n, removedEdges };
-      }),
+      [...d.removed]
+        .sort()
+        .filter(id => elementPasses(removedTableTypes(d, id)))
+        .map(id => {
+          const n = d.baseMap.get(id);
+          // Symmetric: the relationships that vanished with the removed table.
+          const removedEdges = d.tableEdges?.get(id)?.removedEdges || [];
+          return { id, nodeLabel: n?.label || id, node: n, removedEdges };
+        }),
       'removed'
     );
   }
@@ -317,13 +325,48 @@ function appendMatrixRows(frag, matrix, filter) {
   }
 }
 
-// The "Changed" summary count under the active element-type (Kind) slice (#4).
-// Mirrors the list filtering so the badge matches the rows: a changed table
-// counts only if the kinds its change touches intersect the selected kinds.
-// Added/Removed are whole-table and have no element-kind breakdown, so they are
-// never sliced — only this Changed total responds to the Kind filter.
-export function countChangedAfterElementFilter() {
-  if (!diffState._diffElementFilter) return null; // no slice → caller keeps the raw count
+// The element kinds a whole-table add/remove "touches": 'fields' if the table
+// carries any fields, plus the edge `type` of each relationship it owns. Used to
+// extend the Kind slice to the Added/Removed groups (which list relationships).
+function tableElementTypes(node, edges) {
+  const t = new Set();
+  if (node?.fields?.length) t.add('fields');
+  for (const e of edges || []) t.add(e.type);
+  return t;
+}
+function addedTableTypes(d, id) {
+  return tableElementTypes(d.compareMap.get(id), d.tableEdges?.get(id)?.addedEdges);
+}
+function removedTableTypes(d, id) {
+  return tableElementTypes(d.baseMap.get(id), d.tableEdges?.get(id)?.removedEdges);
+}
+
+// The element kinds actually present in the current comparison — so the Kind
+// dropdown only offers kinds that can affect the visible list. In single-compare
+// mode this spans Added/Removed/Changed (all list relationships); in N-way mode
+// only Changed is sliceable (the matrix list has no relationship sub-rows yet).
+export function presentElementTypes() {
+  const t = new Set();
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) {
+    for (const diff of matrix)
+      for (const ch of diff.changed.values()) for (const x of changedTypes(ch)) t.add(x);
+    return t;
+  }
+  const d = diffState._diffData;
+  if (!d) return t;
+  for (const ch of d.changed.values()) for (const x of changedTypes(ch)) t.add(x);
+  for (const id of d.added) for (const x of addedTableTypes(d, id)) t.add(x);
+  for (const id of d.removed) for (const x of removedTableTypes(d, id)) t.add(x);
+  return t;
+}
+
+// The summary counts under the active Kind slice. Returns null when no slice is
+// active (caller keeps the raw counts). Each field is null when that category
+// isn't sliced (N-way Added/Removed), else the count of rows passing the slice —
+// mirroring the list filtering so the badges match the visible rows.
+export function filteredDiffCounts() {
+  if (!diffState._diffElementFilter) return null;
   const matrix = diffState._diffMatrix;
   if (matrix && matrix.length > 1) {
     const { tables } = rollupMatrix(matrix);
@@ -335,17 +378,21 @@ export function countChangedAfterElementFilter() {
       }
       return t;
     };
-    let n = 0;
+    let c = 0;
     for (const [id, info] of tables.entries()) {
-      // Mirror appendMatrixRows: the slice only narrows a purely-changed table.
       if (!info.anyChanged) continue;
-      if (info.anyAdded || info.anyRemoved || elementPasses(kindsFor(id))) n++;
+      if (info.anyAdded || info.anyRemoved || elementPasses(kindsFor(id))) c++;
     }
-    return n;
+    // Added/Removed aren't sliced in N-way mode (no relationship rows there).
+    return { added: null, removed: null, changed: c };
   }
   const d = diffState._diffData;
-  if (!d?.changed) return 0;
-  let n = 0;
-  for (const ch of d.changed.values()) if (elementPasses(changedTypes(ch))) n++;
-  return n;
+  if (!d) return { added: 0, removed: 0, changed: 0 };
+  let a = 0;
+  let r = 0;
+  let c = 0;
+  for (const id of d.added) if (elementPasses(addedTableTypes(d, id))) a++;
+  for (const id of d.removed) if (elementPasses(removedTableTypes(d, id))) r++;
+  for (const ch of d.changed.values()) if (elementPasses(changedTypes(ch))) c++;
+  return { added: a, removed: r, changed: c };
 }

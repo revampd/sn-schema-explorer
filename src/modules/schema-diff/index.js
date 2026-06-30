@@ -41,7 +41,7 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { diffBuildList, countChangedAfterElementFilter } from './build-list.js';
+import { diffBuildList, filteredDiffCounts, presentElementTypes } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
 
@@ -284,14 +284,13 @@ function diffUpdateSummary() {
       if (info.anyChanged) nC++;
     }
   }
-  // The Kind (element-type) slice narrows only the Changed total — Added/Removed
-  // are whole-table and have no element-kind breakdown, so they keep their counts.
-  const nCFiltered = countChangedAfterElementFilter();
-  if (nAdded) nAdded.textContent = nA;
-  if (nRemoved) nRemoved.textContent = nR;
-  if (nChanged) {
-    nChanged.textContent = nCFiltered === null ? nC : `${nCFiltered}/${nC}`;
-  }
+  // The Kind (element-type) slice narrows the visible rows; show each badge as
+  // passing/total when its category is sliced (null = not sliced → raw count).
+  const fc = filteredDiffCounts();
+  const fmt = (passing, total) => (passing == null ? `${total}` : `${passing}/${total}`);
+  if (nAdded) nAdded.textContent = fmt(fc?.added, nA);
+  if (nRemoved) nRemoved.textContent = fmt(fc?.removed, nR);
+  if (nChanged) nChanged.textContent = fmt(fc?.changed, nC);
   if (showAllBtn) {
     showAllBtn.classList.toggle('active', diffState._diffShowAll);
     // The label names the GRAPH state — this toggle never touches the report list.
@@ -304,9 +303,10 @@ function diffUpdateSummary() {
   refreshDiffElementFilter();
 }
 
-// ── Element-type slice for the Changed list (#4) ────────────────────────────────
-// A marked-toggle dropdown that narrows the Changed rows to those whose change
-// touches a chosen element kind. null = all kinds (no slice).
+// ── Element-type slice (#4) ─────────────────────────────────────────────────────
+// A marked-toggle dropdown that narrows the Added/Removed/Changed rows to those
+// touching a chosen element kind. null = all kinds (no slice). The menu only
+// offers kinds actually present in the current comparison.
 const ELEMENT_TYPES = [
   { key: 'fields', label: 'Fields' },
   { key: 'reference', label: 'References' },
@@ -319,8 +319,10 @@ const ELEMENT_TYPES = [
 const ALL_ELEM = '__allelem__';
 let _elemDd = null;
 
-function elemSelectedKeys() {
-  return diffState._diffElementFilter || ELEMENT_TYPES.map(t => t.key);
+// The present kinds, in the canonical ELEMENT_TYPES order.
+function presentElementList() {
+  const present = presentElementTypes();
+  return ELEMENT_TYPES.filter(t => present.has(t.key));
 }
 
 function refreshDiffElementFilter() {
@@ -329,33 +331,44 @@ function refreshDiffElementFilter() {
   if (!_elemDd) {
     _elemDd = createDropdown({
       className: 'diff-elem-dd',
-      ariaLabel: 'Filter changed tables by element type',
-      title: 'Show only changed tables whose change touches the chosen element kinds',
+      ariaLabel: 'Filter tables by element type',
+      title: 'Show only tables that touch the chosen element kinds',
       onChange: val => {
         if (val === ALL_ELEM) {
           diffState._diffElementFilter = null;
         } else if (val) {
-          const all = ELEMENT_TYPES.map(t => t.key);
-          const sel = new Set(elemSelectedKeys());
+          // Toggle against the present kinds only; selecting all of them means
+          // "no slice" (null), so the dropdown can't get stuck on a stale kind.
+          const presentKeys = presentElementList().map(t => t.key);
+          const base = diffState._diffElementFilter
+            ? diffState._diffElementFilter.filter(k => presentKeys.includes(k))
+            : presentKeys;
+          const sel = new Set(base);
           if (sel.has(val)) sel.delete(val);
           else sel.add(val);
-          diffState._diffElementFilter = all.every(k => sel.has(k)) ? null : [...sel];
+          diffState._diffElementFilter = presentKeys.every(k => sel.has(k)) ? null : [...sel];
         }
         diffBuildList();
-        // The slice changes the Changed count and re-renders this dropdown's
-        // summary — diffUpdateSummary() ends by calling refreshDiffElementFilter().
+        // The slice changes the counts and re-renders this dropdown's summary —
+        // diffUpdateSummary() ends by calling refreshDiffElementFilter().
         diffUpdateSummary();
       },
     });
   }
   if (_elemDd.el.parentElement !== host) host.appendChild(_elemDd.el);
-  const sel = new Set(elemSelectedKeys());
+  const presentTypes = presentElementList();
+  const presentKeys = presentTypes.map(t => t.key);
+  const sel = new Set(
+    diffState._diffElementFilter
+      ? diffState._diffElementFilter.filter(k => presentKeys.includes(k))
+      : presentKeys
+  );
   const isAll = !diffState._diffElementFilter;
   const summary = isAll ? 'Kind: all' : 'Kind: ' + sel.size;
   const opts = [
     { value: '', label: summary },
     ...(isAll ? [] : [{ value: ALL_ELEM, label: 'All kinds' }]),
-    ...ELEMENT_TYPES.map(t => ({ value: t.key, label: (sel.has(t.key) ? '✓ ' : '') + t.label })),
+    ...presentTypes.map(t => ({ value: t.key, label: (sel.has(t.key) ? '✓ ' : '') + t.label })),
   ];
   _elemDd.setOptions(opts, '');
 }
