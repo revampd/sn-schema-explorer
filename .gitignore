@@ -34,3 +34,6 @@ npm-debug.log*
 .env
 .env.local
 /temp/
+
+# Local benchmarks (may contain customer data)
+/benchmark/

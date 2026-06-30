@@ -121,7 +121,10 @@ function _closeAbout() {
 
 export function initAbout() {
   const chip = document.getElementById('about-chip');
-  chip?.addEventListener('click', _openAbout);
+  chip?.addEventListener('click', () => {
+    // Always re-run the update check on chip click, regardless of the session flag.
+    _run().then(() => _openAbout());
+  });
 
   const closeBtn = document.getElementById('about-close');
   closeBtn?.addEventListener('click', _closeAbout);

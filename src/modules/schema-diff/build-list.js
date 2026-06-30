@@ -203,49 +203,50 @@ function tableRow(id, nodeLabel, kind, { count, statuses, matrix } = {}) {
   return item;
 }
 
+// Edge sub-group shared by single-compare and matrix paths.
+function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges, kind) {
+  addedEdges = edgesPassingFilter(addedEdges);
+  removedEdges = edgesPassingFilter(removedEdges);
+  if (!addedEdges.length && !removedEdges.length) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'diff-edge-subgroup';
+  const hdr = document.createElement('div');
+  hdr.className = 'diff-edge-subgroup-header';
+  const n = addedEdges.length + removedEdges.length;
+  // For a whole-table add/remove the edges aren't "changes" — they're the
+  // table's relationships appearing/disappearing wholesale.
+  const noun = kind === 'changed' ? 'Relationship changes' : 'Relationships';
+  hdr.textContent = `${noun} (${n})`;
+  wrap.appendChild(hdr);
+  const renderEdges = (edges, sign, signCls) => {
+    for (const e of edges) {
+      const s = typeof e.source === 'object' ? e.source.id : e.source;
+      const t = typeof e.target === 'object' ? e.target.id : e.target;
+      const otherId = s === tableId ? t : s;
+      const row = document.createElement('div');
+      row.className = 'diff-edge-item';
+      row.dataset.id = otherId;
+      row.title = otherId;
+      row.append(
+        h('span', { class: `diff-edge-sign ${signCls}` }, sign),
+        h('span', { class: 'diff-edge-type' }, e.type),
+        h(
+          'span',
+          { class: 'diff-edge-target' },
+          `${s} → ${t}${e.field ? ' (' + e.field + ')' : ''}`
+        )
+      );
+      wrap.appendChild(row);
+    }
+  };
+  renderEdges(addedEdges, '+', 'des-added');
+  renderEdges(removedEdges, '−', 'des-removed');
+  host.appendChild(wrap);
+}
+
 // Single-compare: classic Added / Removed / Changed groups (with edge subgroups).
 function appendGroupedRows(frag, filter) {
   const d = diffState._diffData;
-
-  function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges, kind) {
-    addedEdges = edgesPassingFilter(addedEdges);
-    removedEdges = edgesPassingFilter(removedEdges);
-    if (!addedEdges.length && !removedEdges.length) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'diff-edge-subgroup';
-    const hdr = document.createElement('div');
-    hdr.className = 'diff-edge-subgroup-header';
-    const n = addedEdges.length + removedEdges.length;
-    // For a whole-table add/remove the edges aren't "changes" — they're the
-    // table's relationships appearing/disappearing wholesale.
-    const noun = kind === 'changed' ? 'Relationship changes' : 'Relationships';
-    hdr.textContent = `${noun} (${n})`;
-    wrap.appendChild(hdr);
-    const renderEdges = (edges, sign, signCls) => {
-      for (const e of edges) {
-        const s = typeof e.source === 'object' ? e.source.id : e.source;
-        const t = typeof e.target === 'object' ? e.target.id : e.target;
-        const otherId = s === tableId ? t : s;
-        const row = document.createElement('div');
-        row.className = 'diff-edge-item';
-        row.dataset.id = otherId;
-        row.title = otherId;
-        row.append(
-          h('span', { class: `diff-edge-sign ${signCls}` }, sign),
-          h('span', { class: 'diff-edge-type' }, e.type),
-          h(
-            'span',
-            { class: 'diff-edge-target' },
-            `${s} → ${t}${e.field ? ' (' + e.field + ')' : ''}`
-          )
-        );
-        wrap.appendChild(row);
-      }
-    };
-    renderEdges(addedEdges, '+', 'des-added');
-    renderEdges(removedEdges, '−', 'des-removed');
-    host.appendChild(wrap);
-  }
 
   function makeGroup(label, items, kind) {
     items = items.filter(it => tablePasses(it.id, it.nodeLabel, it.node));
@@ -340,44 +341,75 @@ function appendMatrixRows(frag, matrix, filter) {
   const baseMap = matrix[0].baseMap;
   const nodeFor = id => baseMap.get(id) || matrix.map(m => m.compareMap.get(id)).find(Boolean);
 
-  // Union of the element-type kinds a table's change touches across all compares.
-  const matrixChangedTypes = id => {
+  // Union of element-type kinds a table touches across ALL diffs — changed entries,
+  // plus fields/edges of wholly-added or wholly-removed tables.
+  const matrixAllTypes = id => {
     const t = new Set();
     for (const diff of matrix) {
       const ch = diff.changed.get(id);
       if (ch) for (const x of changedTypes(ch)) t.add(x);
+      if (diff.added.has(id)) {
+        const n = diff.compareMap.get(id);
+        if (n?.fields?.length) t.add('fields');
+        for (const e of diff.tableEdges?.get(id)?.addedEdges || []) t.add(e.type);
+      }
+      if (diff.removed.has(id)) {
+        const n = diff.baseMap.get(id);
+        if (n?.fields?.length) t.add('fields');
+        for (const e of diff.tableEdges?.get(id)?.removedEdges || []) t.add(e.type);
+      }
     }
     return t;
   };
 
   let rows = [...tables.entries()].map(([id, info]) => ({ id, ...info, node: nodeFor(id) }));
   rows.sort((a, b) => a.id.localeCompare(b.id));
+  // Apply status filter first to get the pre-kind-filter total for the badge.
   rows = rows.filter(r => {
     if (filter === 'added' && !r.anyAdded) return false;
     if (filter === 'removed' && !r.anyRemoved) return false;
     if (filter === 'changed' && !r.anyChanged) return false;
-    // #4 element-type slice — only narrows the CHANGED aspect; whole-table
-    // added/removed rows are unaffected (like the single-compare groups).
-    if (diffState._diffElementFilter && r.anyChanged && !r.anyAdded && !r.anyRemoved) {
-      if (!elementPasses(matrixChangedTypes(r.id))) return false;
-    }
     return tablePasses(r.id, r.node?.label, r.node);
   });
+  const totalRows = rows.length;
+  // Then apply the element-type (Kind) slice.
+  if (diffState._diffElementFilter) {
+    rows = rows.filter(r => elementPasses(matrixAllTypes(r.id)));
+  }
 
-  const body = makeCollapsibleGroup(
-    frag,
-    'matrix',
-    'Differs across instances',
-    rows.length,
-    'changed'
-  );
+  const groupLabel =
+    filter === 'added' ? 'Added' :
+    filter === 'removed' ? 'Removed' :
+    filter === 'changed' ? 'Changed' :
+    'Differs across instances';
+  const groupKind = filter === 'all' ? 'changed' : filter;
+  // Show filtered/total count when a Kind slice reduces the visible set.
+  const groupCount = rows.length < totalRows ? `${rows.length}/${totalRows}` : rows.length;
+  const body = makeCollapsibleGroup(frag, 'matrix', groupLabel, groupCount, groupKind);
   if (diffState._collapsedGroups?.includes('matrix')) return;
 
   const shown = rows.length > GROUP_ROW_CAP ? rows.slice(0, GROUP_ROW_CAP) : rows;
   for (const r of shown) {
-    body.appendChild(
-      tableRow(r.id, r.node?.label, overallKind(r), { statuses: r.statuses, matrix })
-    );
+    const kind = overallKind(r);
+    body.appendChild(tableRow(r.id, r.node?.label, kind, { statuses: r.statuses, matrix }));
+
+    // Collect added/removed edges for this table across all diffs, deduped by key.
+    const seenAdded = new Map();
+    const seenRemoved = new Map();
+    for (const diff of matrix) {
+      const keyFn = diff.edgeDiffKey;
+      const ch = diff.changed.get(r.id);
+      const te = diff.tableEdges?.get(r.id);
+      for (const e of ch?.addedEdges || te?.addedEdges || []) {
+        const k = keyFn(e);
+        if (!seenAdded.has(k)) seenAdded.set(k, e);
+      }
+      for (const e of ch?.removedEdges || te?.removedEdges || []) {
+        const k = keyFn(e);
+        if (!seenRemoved.has(k)) seenRemoved.set(k, e);
+      }
+    }
+    appendEdgeSubgroup(body, r.id, [...seenAdded.values()], [...seenRemoved.values()], kind);
   }
   if (rows.length > GROUP_ROW_CAP) appendMoreFooter(body, rows.length - GROUP_ROW_CAP);
 }
@@ -399,9 +431,8 @@ function removedTableTypes(d, id) {
 }
 
 // The element kinds actually present in the current comparison — so the Kind
-// dropdown only offers kinds that can affect the visible list. In single-compare
-// mode this spans Added/Removed/Changed (all list relationships); in N-way mode
-// only Changed is sliceable (the matrix list has no relationship sub-rows yet).
+// dropdown only offers kinds that can affect the visible list. Both single-compare
+// and N-way mode now include edge types from added/removed tables (tableEdges).
 // Memoized by the active diff reference (matrix array or single _diffData) — it
 // only changes when a new comparison is computed, but it's read on every summary
 // refresh, and the scan is O(n + e) over the whole diff.
@@ -412,8 +443,18 @@ export function presentElementTypes() {
   if (key && _presentCache.key === key) return _presentCache.val;
   const t = new Set();
   if (matrix && matrix.length > 1) {
-    for (const diff of matrix)
+    for (const diff of matrix) {
       for (const ch of diff.changed.values()) for (const x of changedTypes(ch)) t.add(x);
+      for (const te of diff.tableEdges?.values() || []) {
+        for (const e of [...(te.addedEdges || []), ...(te.removedEdges || [])]) t.add(e.type);
+      }
+      for (const id of diff.added) {
+        if (diff.compareMap.get(id)?.fields?.length) t.add('fields');
+      }
+      for (const id of diff.removed) {
+        if (diff.baseMap.get(id)?.fields?.length) t.add('fields');
+      }
+    }
   } else if (key) {
     const d = diffState._diffData;
     for (const ch of d.changed.values()) for (const x of changedTypes(ch)) t.add(x);
@@ -438,16 +479,27 @@ export function filteredDiffCounts() {
       for (const diff of matrix) {
         const ch = diff.changed.get(id);
         if (ch) for (const x of changedTypes(ch)) t.add(x);
+        if (diff.added.has(id)) {
+          const n = diff.compareMap.get(id);
+          if (n?.fields?.length) t.add('fields');
+          for (const e of diff.tableEdges?.get(id)?.addedEdges || []) t.add(e.type);
+        }
+        if (diff.removed.has(id)) {
+          const n = diff.baseMap.get(id);
+          if (n?.fields?.length) t.add('fields');
+          for (const e of diff.tableEdges?.get(id)?.removedEdges || []) t.add(e.type);
+        }
       }
       return t;
     };
-    let c = 0;
+    let a = 0, r = 0, c = 0;
     for (const [id, info] of tables.entries()) {
-      if (!info.anyChanged) continue;
-      if (info.anyAdded || info.anyRemoved || elementPasses(kindsFor(id))) c++;
+      if (!elementPasses(kindsFor(id))) continue;
+      if (info.anyAdded) a++;
+      if (info.anyRemoved) r++;
+      if (info.anyChanged) c++;
     }
-    // Added/Removed aren't sliced in N-way mode (no relationship rows there).
-    return { added: null, removed: null, changed: c };
+    return { added: a, removed: r, changed: c };
   }
   const d = diffState._diffData;
   if (!d) return { added: 0, removed: 0, changed: 0 };
