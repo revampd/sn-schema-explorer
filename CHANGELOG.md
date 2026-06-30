@@ -24,6 +24,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matching the behaviour already present in single-compare mode. Edges that appear
   in more than one diff are deduplicated. The Kind dropdown now also offers edge
   types in N-schema mode.
+- **Schema Diff: Kind filter now applies to Added and Removed rows in N-schema
+  mode.** Previously the element-type slice (Fields, References, DB view, …) only
+  narrowed the Changed rows; Added and Removed tables were always shown regardless
+  of the active Kind. All three categories are now filtered consistently.
+- **Schema Diff: group header label and colour reflect the active status filter in
+  N-schema mode.** Selecting Added / Removed / Changed now colours and labels the
+  group accordingly (green "Added", red "Removed", amber "Changed") instead of
+  always showing the neutral "Differs across instances" style.
+- **Schema Diff: group header count shows filtered/total when a Kind slice is
+  active** (e.g. "363/1837"), matching the pattern already used by the stat badges.
+- **Schema Diff: Added and Removed stat badges show filtered/total in N-schema
+  mode.** When a Kind slice is active all three badges (ADDED, REMOVED, CHANGED)
+  now display the x/y fraction.
+- **Schema Diff: update check re-runs on About chip click.** Clicking the version
+  chip in the footer now always triggers a fresh update check, bypassing the
+  once-per-session guard.
 
 ### Changed
 
