@@ -29,16 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   row — the same edge rows that changed tables already show, and clickable to
   navigate to the related table. Previously these edges were only visible on the
   canvas and in the Inspector, never in the Added/Removed list groups.
-- **Filter the diff report by element type.** A new **Kind** dropdown in the
-  Differences sidebar slices the **Added, Removed, and Changed** tables to those
-  that touch a chosen element kind — Fields, References, Inheritance, M2M, Named
-  relationship, DB view, or CI topology. Multi-select (a ✓ marks included kinds;
-  "All kinds" resets). All three summary counts show the sliced total as
-  `passing/total`. The dropdown only offers the kinds actually present in the
-  current comparison, and the relationship sub-rows under each table are
-  filtered to the selected kinds too — e.g. filtering to Inheritance shows only
-  the `extends` edges, not every relationship a qualifying table happens to
-  have.
+- **Filter the diff report by element type.** A row of **Kind** toggle chips in
+  the Differences sidebar (aligned with the "Graph" toggle) slices the **Added,
+  Removed, and Changed** tables to those that touch a highlighted element kind —
+  Fields, References, Inheritance, M2M, Named relationship, DB view, or CI
+  topology. Click a chip to toggle that kind; an **All** chip restores every
+  kind. All three summary counts show the sliced total as `passing/total`. Only
+  the kinds actually present in the current comparison get a chip, and the
+  relationship sub-rows under each table are filtered to the highlighted kinds
+  too — e.g. filtering to Inheritance shows only the `extends` edges, not every
+  relationship a qualifying table happens to have.
 - **Export the active comparison/diff from the Schema Map**
   ([#177](https://github.com/revampd/sn-schema-explorer/issues/177)). When a
   comparison is active, the export bar's data row gains comparison controls: an

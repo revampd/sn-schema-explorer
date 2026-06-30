@@ -176,6 +176,41 @@
 .diff-toggle-row.visible {
   display: flex;
 }
+/* Kind toggle chips sit on the left of the row and wrap; the Graph button stays
+   on the right. They share the Graph button's pill look (see .diff-show-all-btn). */
+.diff-element-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.diff-kind-chip {
+  background: none;
+  border: 1px solid var(--sn-border);
+  color: var(--muted);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 9px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s,
+    background 0.12s;
+}
+.diff-kind-chip:hover {
+  border-color: var(--diff-changed);
+  color: var(--diff-changed);
+}
+/* Highlighted chip = that kind is currently shown (included in the slice). */
+.diff-kind-chip.active {
+  border-color: var(--diff-changed);
+  color: var(--diff-changed);
+  background: color-mix(in srgb, var(--diff-changed) 14%, transparent);
+}
+.diff-kind-chip.dkc-all {
+  font-style: italic;
+}
 .diff-show-all-btn {
   background: none;
   border: 1px solid var(--sn-border);
@@ -843,12 +878,4 @@ path.diff-edge-removed {
 }
 .node-group.cfg-app-dim {
   opacity: 0.28;
-}
-
-/* The "Kind" element-type filter (#diff-element-filter): its trigger button is
-   narrow (short "Kind: all" summary), so pin the open menu to a wider min-width
-   so element labels (References/Inheritance/CI topology) aren't clipped. The
-   inline width set in core/dropdown.js is a floor; min-width overrides it. */
-.sn-dd-menu.diff-elem-dd {
-  min-width: 160px;
 }

@@ -21,10 +21,10 @@
     <!-- Table filtering is handled by the header search bar (Tbl mode), which
          also filters the diff list — no separate inline search needed. -->
     <div class="diff-toggle-row" id="diff-toggle-row">
-      <!-- Element-type slice for Changed rows (#4): show only tables whose change
-           touches a chosen kind (fields / references / inheritance / …). -->
+      <!-- Element-type slice (#4): toggle chips that show only tables touching a
+           chosen kind (fields / references / inheritance / …). Rendered in JS. -->
       <div class="diff-element-filter" id="diff-element-filter"
-           title="Slice the Changed list by what changed (fields, references, inheritance, …)"></div>
+           title="Toggle which element kinds the list shows (fields, references, inheritance, …)"></div>
       <!-- Graph display toggle — controls the canvas, not the report list. -->
       <button class="diff-show-all-btn" id="diff-show-all-btn"
               title="Whether unchanged tables are drawn on the graph (the report always lists only changes)">Graph: changed only</button>

@@ -11,7 +11,6 @@ import {
   onFocusChange,
   notifyFocusChange,
 } from '../../core/state.js';
-import { createDropdown } from '../../core/dropdown.js';
 import { registerCompareProvider, refreshHeaderCompare } from '../../core/header-compare.js';
 // Re-export so existing importers keep resolving refreshHeaderCompare here.
 export { refreshHeaderCompare };
@@ -311,9 +310,10 @@ function diffUpdateSummary() {
 }
 
 // ── Element-type slice (#4) ─────────────────────────────────────────────────────
-// A marked-toggle dropdown that narrows the Added/Removed/Changed rows to those
-// touching a chosen element kind. null = all kinds (no slice). The menu only
-// offers kinds actually present in the current comparison.
+// A row of toggle chips (one per element kind present in the comparison) that
+// narrows the Added/Removed/Changed rows to those touching the highlighted
+// kinds. null = all kinds (no slice → every chip highlighted). Only kinds
+// actually present in the current comparison get a chip.
 const ELEMENT_TYPES = [
   { key: 'fields', label: 'Fields' },
   { key: 'reference', label: 'References' },
@@ -323,8 +323,7 @@ const ELEMENT_TYPES = [
   { key: 'view', label: 'DB view' },
   { key: 'cmdb_rel', label: 'CI topology' },
 ];
-const ALL_ELEM = '__allelem__';
-let _elemDd = null;
+const ALL_KIND = '__all__';
 
 // The present kinds, in the canonical ELEMENT_TYPES order.
 function presentElementList() {
@@ -332,52 +331,59 @@ function presentElementList() {
   return ELEMENT_TYPES.filter(t => present.has(t.key));
 }
 
+function setKindFilter(next) {
+  diffState._diffElementFilter = next;
+  diffBuildList();
+  // Re-renders the chips + counts (diffUpdateSummary ends by calling
+  // refreshDiffElementFilter).
+  diffUpdateSummary();
+}
+
+// Toggle one kind in/out of the slice. Selecting every present kind means "no
+// slice" (null), so the control can't get stuck on a stale kind.
+function toggleKind(key) {
+  const presentKeys = presentElementList().map(t => t.key);
+  const base = diffState._diffElementFilter
+    ? diffState._diffElementFilter.filter(k => presentKeys.includes(k))
+    : presentKeys;
+  const sel = new Set(base);
+  if (sel.has(key)) sel.delete(key);
+  else sel.add(key);
+  setKindFilter(presentKeys.every(k => sel.has(k)) ? null : [...sel]);
+}
+
 function refreshDiffElementFilter() {
   const host = document.getElementById('diff-element-filter');
   if (!host) return;
-  if (!_elemDd) {
-    _elemDd = createDropdown({
-      className: 'diff-elem-dd',
-      ariaLabel: 'Filter tables by element type',
-      title: 'Show only tables that touch the chosen element kinds',
-      onChange: val => {
-        if (val === ALL_ELEM) {
-          diffState._diffElementFilter = null;
-        } else if (val) {
-          // Toggle against the present kinds only; selecting all of them means
-          // "no slice" (null), so the dropdown can't get stuck on a stale kind.
-          const presentKeys = presentElementList().map(t => t.key);
-          const base = diffState._diffElementFilter
-            ? diffState._diffElementFilter.filter(k => presentKeys.includes(k))
-            : presentKeys;
-          const sel = new Set(base);
-          if (sel.has(val)) sel.delete(val);
-          else sel.add(val);
-          diffState._diffElementFilter = presentKeys.every(k => sel.has(k)) ? null : [...sel];
-        }
-        diffBuildList();
-        // The slice changes the counts and re-renders this dropdown's summary —
-        // diffUpdateSummary() ends by calling refreshDiffElementFilter().
-        diffUpdateSummary();
-      },
-    });
-  }
-  if (_elemDd.el.parentElement !== host) host.appendChild(_elemDd.el);
   const presentTypes = presentElementList();
   const presentKeys = presentTypes.map(t => t.key);
-  const sel = new Set(
-    diffState._diffElementFilter
-      ? diffState._diffElementFilter.filter(k => presentKeys.includes(k))
-      : presentKeys
-  );
   const isAll = !diffState._diffElementFilter;
-  const summary = isAll ? 'Kind: all' : 'Kind: ' + sel.size;
-  const opts = [
-    { value: '', label: summary },
-    ...(isAll ? [] : [{ value: ALL_ELEM, label: 'All kinds' }]),
-    ...presentTypes.map(t => ({ value: t.key, label: (sel.has(t.key) ? '✓ ' : '') + t.label })),
-  ];
-  _elemDd.setOptions(opts, '');
+  const sel = new Set(
+    isAll ? presentKeys : diffState._diffElementFilter.filter(k => presentKeys.includes(k))
+  );
+  host.textContent = '';
+  if (!presentTypes.length) return;
+  // "All" reset chip — shown only while a slice is active, to restore every kind.
+  if (!isAll) {
+    const all = document.createElement('button');
+    all.type = 'button';
+    all.className = 'diff-kind-chip dkc-all';
+    all.dataset.kind = ALL_KIND;
+    all.textContent = 'All';
+    all.title = 'Show all kinds';
+    host.appendChild(all);
+  }
+  for (const t of presentTypes) {
+    const on = sel.has(t.key);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'diff-kind-chip' + (on ? ' active' : '');
+    btn.dataset.kind = t.key;
+    btn.textContent = t.label;
+    btn.title = `Toggle ${t.label}`;
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    host.appendChild(btn);
+  }
 }
 
 // ── Canvas overlays ───────────────────────────────────────────────────────────
@@ -519,6 +525,18 @@ export function selectDiffTable(id) {
       const item = e.target.closest('.diff-item');
       if (!item) return;
       selectDiffTable(item.dataset.id);
+    });
+  }
+
+  // Kind chips — toggle an element kind in/out of the slice (delegated, so it
+  // survives the chip re-render on every refresh).
+  const elemHost = document.getElementById('diff-element-filter');
+  if (elemHost) {
+    elemHost.addEventListener('click', e => {
+      const chip = e.target.closest('.diff-kind-chip');
+      if (!chip) return;
+      if (chip.dataset.kind === ALL_KIND) setKindFilter(null);
+      else toggleKind(chip.dataset.kind);
     });
   }
 
