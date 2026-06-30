@@ -24,8 +24,8 @@ import {
   setFillInspectorHook,
 } from '../../core/inspector.js';
 import { syncSidebarForMode } from '../../core/sidebar-sync.js';
-import { setViewMode, onViewModeChange } from '../../core/view-mode.js';
-import { getWorkspace, setWorkspace, onWorkspaceChange } from '../../core/workspace.js';
+import { onViewModeChange } from '../../core/view-mode.js';
+import { getWorkspace, onWorkspaceChange } from '../../core/workspace.js';
 import { refreshToolSwitcher } from '../../core/tool-switcher.js';
 import { setDiffBaseHandler } from '../../core/header-instance.js';
 import {
@@ -34,7 +34,6 @@ import {
   pushHistory,
 } from '../history/index.js';
 import { injectCiRelEdges, selectInstanceForGraph } from '../load/index.js';
-import { registerTool, refreshLanding } from '../landing/index.js';
 import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
@@ -563,31 +562,12 @@ onViewModeChange((mode, prevMode) => {
 
 Settings.onChange('schemaDiff', () => {
   diffSyncVisibility();
-  refreshLanding(); // reflect the Diff card icon's enabled state on the landing page
 });
 diffSyncVisibility();
 
-// ── Landing tool: launch Schema Diff with an instance as the base ─────────────
-// The icon enables only when Schema Diff is on AND ≥2 schema-capable instances
-// are registered; the compare instance is then chosen from the diff sidebar.
-registerTool({
-  key: 'schemaDiff',
-  label: 'Compare on the Schema Map',
-  icon: '⇄',
-  requires: ['schema'],
-  minInstances: 2,
-  enabled: () => Settings.isEnabled('schemaDiff'),
-  disabledHint: 'Enable Schema Diff in Settings, and register a second instance',
-  enter: baseId => {
-    // #141: Diff is a layer on the map. Open the base on the Schema Map; the user
-    // picks the compare instance from the header Compare dropdown.
-    diffUngraftAddedFromBase();
-    if (!selectInstanceForGraph(baseId)) return;
-    setWorkspace('schema-explorer');
-    setViewMode('force');
-    refreshHeaderCompare();
-  },
-});
+// Note: there is no dedicated "Compare on the Schema Map" landing card — the
+// comparison is now driven entirely from the header Compare control in the Schema
+// Map (open any instance via its "Open in Schema Map" card, then pick compares).
 
 const schemaInstanceCount = () =>
   instancesState.instances.filter(e => e.capabilities && e.capabilities.schema).length;

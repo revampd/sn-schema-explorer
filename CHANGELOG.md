@@ -68,6 +68,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Removed the redundant "Compare on the Schema Map" landing card.** Comparison
+  is now driven entirely from the header **Compare** control: open any instance
+  via its **Open in Schema Map** card, then pick one or more compares from the
+  header. The old card only opened the base and pointed you at that same header
+  control, so it added a step without adding capability. (Schema Diff still has
+  its header tool-switcher entry; the Settings feature toggle is unchanged.)
 - **Background exporter splits at 5 MB (was 10 MB).** The ServiceNow background
   script now writes a single attachment only up to 5 MB and switches to the
   multi-part (manifest + parts) format above that, with each part capped at
