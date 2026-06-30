@@ -341,12 +341,23 @@ function appendMatrixRows(frag, matrix, filter) {
   const baseMap = matrix[0].baseMap;
   const nodeFor = id => baseMap.get(id) || matrix.map(m => m.compareMap.get(id)).find(Boolean);
 
-  // Union of the element-type kinds a table's change touches across all compares.
-  const matrixChangedTypes = id => {
+  // Union of element-type kinds a table touches across ALL diffs — changed entries,
+  // plus fields/edges of wholly-added or wholly-removed tables.
+  const matrixAllTypes = id => {
     const t = new Set();
     for (const diff of matrix) {
       const ch = diff.changed.get(id);
       if (ch) for (const x of changedTypes(ch)) t.add(x);
+      if (diff.added.has(id)) {
+        const n = diff.compareMap.get(id);
+        if (n?.fields?.length) t.add('fields');
+        for (const e of diff.tableEdges?.get(id)?.addedEdges || []) t.add(e.type);
+      }
+      if (diff.removed.has(id)) {
+        const n = diff.baseMap.get(id);
+        if (n?.fields?.length) t.add('fields');
+        for (const e of diff.tableEdges?.get(id)?.removedEdges || []) t.add(e.type);
+      }
     }
     return t;
   };
@@ -357,11 +368,8 @@ function appendMatrixRows(frag, matrix, filter) {
     if (filter === 'added' && !r.anyAdded) return false;
     if (filter === 'removed' && !r.anyRemoved) return false;
     if (filter === 'changed' && !r.anyChanged) return false;
-    // #4 element-type slice — only narrows the CHANGED aspect; whole-table
-    // added/removed rows are unaffected (like the single-compare groups).
-    if (diffState._diffElementFilter && r.anyChanged && !r.anyAdded && !r.anyRemoved) {
-      if (!elementPasses(matrixChangedTypes(r.id))) return false;
-    }
+    // #4 element-type slice — spans Added, Removed, and Changed in matrix mode.
+    if (diffState._diffElementFilter && !elementPasses(matrixAllTypes(r.id))) return false;
     return tablePasses(r.id, r.node?.label, r.node);
   });
 
@@ -434,6 +442,12 @@ export function presentElementTypes() {
       for (const te of diff.tableEdges?.values() || []) {
         for (const e of [...(te.addedEdges || []), ...(te.removedEdges || [])]) t.add(e.type);
       }
+      for (const id of diff.added) {
+        if (diff.compareMap.get(id)?.fields?.length) t.add('fields');
+      }
+      for (const id of diff.removed) {
+        if (diff.baseMap.get(id)?.fields?.length) t.add('fields');
+      }
     }
   } else if (key) {
     const d = diffState._diffData;
@@ -459,17 +473,25 @@ export function filteredDiffCounts() {
       for (const diff of matrix) {
         const ch = diff.changed.get(id);
         if (ch) for (const x of changedTypes(ch)) t.add(x);
+        if (diff.added.has(id)) {
+          const n = diff.compareMap.get(id);
+          if (n?.fields?.length) t.add('fields');
+          for (const e of diff.tableEdges?.get(id)?.addedEdges || []) t.add(e.type);
+        }
+        if (diff.removed.has(id)) {
+          const n = diff.baseMap.get(id);
+          if (n?.fields?.length) t.add('fields');
+          for (const e of diff.tableEdges?.get(id)?.removedEdges || []) t.add(e.type);
+        }
       }
       return t;
     };
-    let c = 0;
-    for (const [id, info] of tables.entries()) {
-      if (!info.anyChanged) continue;
-      if (info.anyAdded || info.anyRemoved || elementPasses(kindsFor(id))) c++;
+    let total = 0;
+    for (const [id] of tables.entries()) {
+      if (elementPasses(kindsFor(id))) total++;
     }
-    // Added/Removed badge counts aren't sliced in N-way mode (element-type filter
-    // only narrows the Changed aspect; Added/Removed rows always show).
-    return { added: null, removed: null, changed: c };
+    // In matrix mode all differing rows live in one group — return total as changed.
+    return { added: null, removed: null, changed: total };
   }
   const d = diffState._diffData;
   if (!d) return { added: 0, removed: 0, changed: 0 };
