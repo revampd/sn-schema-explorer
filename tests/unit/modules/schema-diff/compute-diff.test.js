@@ -161,6 +161,34 @@ describe('edgeDiffKey', () => {
   });
 });
 
+// ── 8b. tableEdges exposes a new table's own relationships ────────────────────
+describe('tableEdges for added/removed tables', () => {
+  it('carries an added table’s owned edge even though it is not in `changed`', () => {
+    // incident is new in compare and owns a reference to existing sys_user.
+    const base = makeSchema([makeNode('sys_user')]);
+    const compare = makeSchema(
+      [makeNode('sys_user'), makeNode('incident')],
+      [makeEdge('incident', 'sys_user', 'reference', 'caller_id')]
+    );
+    const { added, changed, tableEdges } = computeDiff(base, compare);
+    expect(added.has('incident')).toBe(true);
+    expect(changed.has('incident')).toBe(false); // not on both sides → never "changed"
+    expect(tableEdges.get('incident').addedEdges).toHaveLength(1);
+    expect(tableEdges.get('incident').addedEdges[0].field).toBe('caller_id');
+  });
+
+  it('carries a removed table’s vanished edge', () => {
+    const base = makeSchema(
+      [makeNode('sys_user'), makeNode('legacy')],
+      [makeEdge('legacy', 'sys_user', 'reference', 'owner')]
+    );
+    const compare = makeSchema([makeNode('sys_user')]);
+    const { removed, tableEdges } = computeDiff(base, compare);
+    expect(removed.has('legacy')).toBe(true);
+    expect(tableEdges.get('legacy').removedEdges).toHaveLength(1);
+  });
+});
+
 // ── 9. baseMap / compareMap populated ────────────────────────────────────────
 describe('output maps', () => {
   it('baseMap and compareMap are keyed by node id', () => {

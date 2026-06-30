@@ -54,6 +54,24 @@ function makeDiffData() {
       ['task', { id: 'task', label: 'Task' }],
     ]),
     allAddedEdges: [{ source: 'incident', target: 'task', type: 'extends' }],
+    // Per-table edges: the added table `incident` owns a new reference; the
+    // removed table `old_table` owned a reference that vanished with it.
+    tableEdges: new Map([
+      [
+        'incident',
+        {
+          addedEdges: [{ source: 'incident', target: 'task', type: 'reference', field: 'parent' }],
+          removedEdges: [],
+        },
+      ],
+      [
+        'old_table',
+        {
+          addedEdges: [],
+          removedEdges: [{ source: 'old_table', target: 'task', type: 'reference', field: 'old' }],
+        },
+      ],
+    ]),
   };
 }
 
@@ -75,6 +93,27 @@ describe('diffBuildList', () => {
     );
     expect(headers).toEqual(['Added (1)', 'Removed (1)', 'Changed (1)']);
     expect(document.querySelectorAll('.diff-item').length).toBe(3);
+  });
+
+  it('shows an added table’s own relationships as a sub-group', () => {
+    diffState._diffFilter = 'added';
+    diffBuildList();
+    const addedGroup = document.querySelector('.diff-group[data-group="added"]');
+    const sub = addedGroup.querySelector('.diff-edge-subgroup-header');
+    expect(sub.textContent).toBe('Relationships (1)'); // not "Relationship changes"
+    const edge = addedGroup.querySelector('.diff-edge-item');
+    expect(edge.querySelector('.diff-edge-sign').textContent).toBe('+');
+    diffState._diffFilter = 'all';
+  });
+
+  it('shows a removed table’s vanished relationships as a sub-group', () => {
+    diffState._diffFilter = 'removed';
+    diffBuildList();
+    const removedGroup = document.querySelector('.diff-group[data-group="removed"]');
+    const sub = removedGroup.querySelector('.diff-edge-subgroup-header');
+    expect(sub.textContent).toBe('Relationships (1)');
+    expect(removedGroup.querySelector('.diff-edge-sign').textContent).toBe('−');
+    diffState._diffFilter = 'all';
   });
 
   it('shows the field-delta count on changed rows', () => {
@@ -125,10 +164,11 @@ describe('diffBuildList', () => {
 
   it('renders a relationship-change subgroup for changed tables', () => {
     diffBuildList();
-    expect(document.querySelector('.diff-edge-subgroup-header').textContent).toBe(
+    const changedGroup = document.querySelector('.diff-group[data-group="changed"]');
+    expect(changedGroup.querySelector('.diff-edge-subgroup-header').textContent).toBe(
       'Relationship changes (1)'
     );
-    const edgeRow = document.querySelector('.diff-edge-item');
+    const edgeRow = changedGroup.querySelector('.diff-edge-item');
     expect(edgeRow.dataset.id).toBe('cmdb_ci');
   });
 

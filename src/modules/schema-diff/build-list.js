@@ -160,13 +160,17 @@ function tableRow(id, nodeLabel, kind, { count, statuses, matrix } = {}) {
 function appendGroupedRows(frag, filter) {
   const d = diffState._diffData;
 
-  function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges) {
+  function appendEdgeSubgroup(host, tableId, addedEdges, removedEdges, kind) {
     if (!addedEdges.length && !removedEdges.length) return;
     const wrap = document.createElement('div');
     wrap.className = 'diff-edge-subgroup';
     const hdr = document.createElement('div');
     hdr.className = 'diff-edge-subgroup-header';
-    hdr.textContent = 'Relationship changes (' + (addedEdges.length + removedEdges.length) + ')';
+    const n = addedEdges.length + removedEdges.length;
+    // For a whole-table add/remove the edges aren't "changes" — they're the
+    // table's relationships appearing/disappearing wholesale.
+    const noun = kind === 'changed' ? 'Relationship changes' : 'Relationships';
+    hdr.textContent = `${noun} (${n})`;
     wrap.appendChild(hdr);
     const renderEdges = (edges, sign, signCls) => {
       for (const e of edges) {
@@ -201,7 +205,7 @@ function appendGroupedRows(frag, filter) {
     for (const it of items) {
       body.appendChild(tableRow(it.id, it.nodeLabel, kind, { count: it.count }));
       if (it.addedEdges || it.removedEdges) {
-        appendEdgeSubgroup(body, it.id, it.addedEdges || [], it.removedEdges || []);
+        appendEdgeSubgroup(body, it.id, it.addedEdges || [], it.removedEdges || [], kind);
       }
     }
   }
@@ -211,7 +215,10 @@ function appendGroupedRows(frag, filter) {
       'Added',
       [...d.added].sort().map(id => {
         const n = d.compareMap.get(id);
-        return { id, nodeLabel: n?.label || id, node: n };
+        // A new table's own relationships (it as the edge owner) ride along with
+        // the table — surface them as sub-rows, like a changed table's edges.
+        const addedEdges = d.tableEdges?.get(id)?.addedEdges || [];
+        return { id, nodeLabel: n?.label || id, node: n, addedEdges };
       }),
       'added'
     );
@@ -221,7 +228,9 @@ function appendGroupedRows(frag, filter) {
       'Removed',
       [...d.removed].sort().map(id => {
         const n = d.baseMap.get(id);
-        return { id, nodeLabel: n?.label || id, node: n };
+        // Symmetric: the relationships that vanished with the removed table.
+        const removedEdges = d.tableEdges?.get(id)?.removedEdges || [];
+        return { id, nodeLabel: n?.label || id, node: n, removedEdges };
       }),
       'removed'
     );

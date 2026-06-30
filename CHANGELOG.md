@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Added/Removed tables now list their relationships in the diff report.** A
+  newly-added table shows the relationships it introduces (and a removed table
+  the ones that vanish with it) as a **Relationships** sub-group under the table
+  row — the same edge rows that changed tables already show, and clickable to
+  navigate to the related table. Previously these edges were only visible on the
+  canvas and in the Inspector, never in the Added/Removed list groups.
 - **Filter the diff report's Changed list by element type.** A new **Kind**
   dropdown in the Differences sidebar slices the Changed tables to those whose
   change touches a chosen element kind — Fields, References, Inheritance, M2M,
