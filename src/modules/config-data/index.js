@@ -14,7 +14,9 @@ import {
   aggregateCapabilities,
   METADATA_SECTIONS,
   getInstance,
+  diffState,
 } from '../../core/state.js';
+import { setCompareIds } from '../../core/focus-state.js';
 import { Settings } from '../settings/index.js';
 import {
   setWorkspace,
@@ -51,10 +53,10 @@ registerWorkspace({ key: 'config-data', root: '#config-data' });
 
 // ── View state ────────────────────────────────────────────────────────────
 // Columns mirror the Schema Map model (#1): a BASE instance (the header instance
-// dropdown = instancesState.selectedId) plus COMPARES (the header Compare
-// multi-select). `compareIds: null` means "compare against all other instances"
-// (the default); an explicit array is the chosen subset.
-const view = { section: null, search: '', filter: 'all', showDates: false, compareIds: null };
+// dropdown = instancesState.selectedId) plus COMPARES. The compare selection is
+// SHARED with the Schema Map via diffState._compareIds, so picking compares in
+// either tool carries to the other. Default = none (just the base column).
+const view = { section: null, search: '', filter: 'all', showDates: false };
 
 // The base column — the header instance dropdown. Falls back to the first
 // registered instance when nothing is loaded yet.
@@ -62,14 +64,12 @@ function baseId() {
   return instancesState.selectedId || instancesState.instances[0]?.id || null;
 }
 
-// The compare columns (ids), excluding the base; stale ids dropped. Default
-// (null) = every other registered instance.
+// The compare columns (ids) — the shared diffState._compareIds, minus the base
+// and any stale ids. Empty by default (the user picks compares from the header).
 function compareIdList() {
   const b = baseId();
-  const others = instancesState.instances.map(e => e.id).filter(id => id !== b);
-  if (view.compareIds === null) return others;
-  const set = new Set(view.compareIds);
-  return others.filter(id => set.has(id));
+  const valid = new Set(instancesState.instances.map(e => e.id));
+  return diffState._compareIds.filter(id => id !== b && valid.has(id));
 }
 
 // The instances shown as columns: base first, then the compares in registry order.
@@ -109,14 +109,13 @@ function hasComparable() {
 setConfigBaseHandler(id => {
   if (!id) return;
   instancesState.selectedId = id;
-  // The new base can't also be a compare; drop it from an explicit subset.
-  if (Array.isArray(view.compareIds)) view.compareIds = view.compareIds.filter(x => x !== id);
+  // The new base can't also be a compare; drop it from the shared selection.
+  setCompareIds(diffState._compareIds.filter(x => x !== id));
   renderCompare();
-  refreshHeaderCompare();
 });
 
-// Header Compare provider — the compare columns. Symmetric N-way, so there is no
-// base↔primary swap (omit `swap`).
+// Header Compare provider — the compare columns, SHARED with the Schema Map via
+// diffState._compareIds (setCompareIds). Symmetric N-way, so no base↔primary swap.
 registerCompareProvider({
   eligible: () => getWorkspace() === 'config-data' && instancesState.instances.length >= 2,
   getSelected: () => compareIdList(),
@@ -129,14 +128,14 @@ registerCompareProvider({
     const cur = new Set(compareIdList());
     if (cur.has(id)) cur.delete(id);
     else cur.add(id);
-    // Store in registry order, excluding the base.
-    view.compareIds = instancesState.instances
-      .map(e => e.id)
-      .filter(x => x !== baseId() && cur.has(x));
+    // Store in registry order, excluding the base. Shared with the Schema Map.
+    setCompareIds(
+      instancesState.instances.map(e => e.id).filter(x => x !== baseId() && cur.has(x))
+    );
     renderCompare();
   },
   onClear: () => {
-    view.compareIds = [];
+    setCompareIds([]);
     renderCompare();
   },
 });

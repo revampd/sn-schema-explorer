@@ -165,6 +165,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Configuration Data and the Schema Map share one comparison selection.**
+  Following the move to the shared header controls, three rough edges are fixed:
+  Config Data now opens with the compare set to **none** (just the base column)
+  instead of auto-comparing against everything; switching to the **Schema Map**
+  via the header switcher now **loads the selected instance's graph** (so the
+  Compare control + diff overlay appear instead of an empty map); and a compare
+  selection made in Config Data **carries to the Schema Map** (and back) —
+  `diffState._compareIds` is the shared selection, materialised into the diff once
+  a graph is loaded.
 - **The Application Scope filter is usable on instances with many scopes.** The
   scope-pill list in the advanced filter is now capped in height and scrolls,
   instead of growing to fill (and overflow) the whole viewport on instances with
