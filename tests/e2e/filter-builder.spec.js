@@ -18,6 +18,7 @@ test('adding a condition via the portalled picker updates the badge and rows', a
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 
   await page.locator('#scope-filter-btn').click();
@@ -30,4 +31,34 @@ test('adding a condition via the portalled picker updates the badge and rows', a
 
   await expect(page.locator('#filter-body .fc-row')).toHaveCount(1);
   await expect(page.locator('#filter-badge')).toHaveText('1');
+});
+
+test('the Has Edge condition uses the custom edge-type dropdown', async ({ page }) => {
+  await page.goto(APP_URL);
+  await page.waitForLoadState('domcontentloaded');
+  await page.locator('#file-input').setInputFiles({
+    name: 'schema.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
+  });
+  await page.locator('[data-tool="schemaExplorer"]').click();
+  await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
+
+  await page.locator('#scope-filter-btn').click();
+  await page.locator('#filter-body .fc-add-btn').click();
+  await page.locator('.fc-picker .fc-picker-item', { hasText: 'Has Edge' }).click();
+
+  // The edge-type picker is the custom dropdown (core/dropdown.js), not a <select>.
+  const dd = page.locator('#filter-body .fc-row .fc-select.sn-dd');
+  await expect(dd).toBeVisible();
+  await expect(page.locator('#filter-body .fc-row select')).toHaveCount(0);
+
+  await dd.locator('.sn-dd-btn').click();
+  // The open menu is portalled to <body> (direct child).
+  const menu = page.locator('body > .sn-dd-menu');
+  await expect(menu.locator('.sn-dd-opt').first()).toBeVisible();
+  const optCount = await menu.locator('.sn-dd-opt').count();
+  expect(optCount).toBeGreaterThan(1);
+  await menu.locator('.sn-dd-opt').nth(1).click();
+  await expect(dd.locator('.sn-dd-btn')).toHaveAttribute('aria-expanded', 'false'); // closed
 });

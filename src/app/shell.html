@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title><!--INJECT:title--></title>
+<!--INJECT:d3-->
+<style><!--INJECT:css--></style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <!-- Mobile sidebar toggle -->
+  <button class="btn btn-icon mob-only" id="btn-sidebar-toggle" title="Tables">☰</button>
+
+  <div class="logo">
+    <span class="logo-tag" style="font-size:15px;font-weight:700;color:var(--text)">Schema Explorer</span>
+  </div>
+
+  <div class="header-btns">
+    <!-- Home, instance picker, and the tool switcher (replaces the old view-mode
+         segment). Home is text-only; the switcher + instance dropdown are
+         rendered by core/tool-switcher.js + core/header-instance.js. -->
+    <button class="btn desk-only" id="btn-home" title="Back to the landing page">Home</button>
+    <!-- View switcher first, pinned right after Home so it stays in the SAME spot
+         across views — the instance/compare/swap context controls follow it and may
+         show/hide without moving it. -->
+    <div class="tool-switcher desk-only" id="tool-switcher" role="group" aria-label="Tool" style="display:none"></div>
+    <div class="header-instance desk-only" id="header-instance" style="display:none"></div>
+    <button class="btn desk-only" id="header-swap" title="Swap Base and Compare" aria-label="Swap Base and Compare" style="display:none" disabled>⇄</button>
+    <div class="header-instance desk-only" id="header-compare" style="display:none"></div>
+    <!-- Spring spacer: everything after it is the GLOBAL action cluster, anchored
+         to the right so the same actions sit in the same place across views AND on
+         the landing page. A dedicated spacer (not a .header-sep) survives the
+         workspace CSS that hides separators off the Schema Explorer. -->
+    <div class="header-spring desk-only"></div>
+    <!-- Search + Filter ride with the right-anchored cluster (experiment). -->
+    <div class="search-wrap">
+      <input id="search-box" type="text" placeholder="search tables…" autocomplete="off" spellcheck="false">
+      <div class="search-mode-toggle" id="search-mode-seg" role="group" aria-label="Search mode" title="Click to switch between table-name and field-name search">
+        <button class="smt-btn active" data-sm="tables" id="sms-tables" title="Search by table name">Tbl</button>
+        <button class="smt-btn"        data-sm="fields" id="sms-fields" title="Search by field name">Fld</button>
+      </div>
+    </div>
+    <button class="filter-open-btn" id="scope-filter-btn" title="Open filter builder" style="display:none">Filter<span class="filter-badge" id="filter-badge" style="display:none">0</span></button>
+    <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
+    <!-- History back / forward -->
+    <button class="btn desk-only btn-nav-disabled" id="btn-hist-back"
+            title="Go back (Alt+←)" disabled>◀</button>
+    <button class="btn desk-only btn-nav-disabled" id="btn-hist-fwd"
+            title="Go forward (Alt+→)" disabled>▶</button>
+    <!-- Desktop text buttons -->
+    <button class="btn desk-only btn-nav-disabled" id="btn-refresh" title="Re-render preserving selection and filters" disabled>Refresh</button>
+    <button class="btn desk-only btn-nav-disabled" id="btn-reset" disabled>Fit</button>
+<!--INJECT:export-toolbar-->
+    <div class="header-sep desk-only" style="width:1px;height:18px;align-self:center;background:var(--border);flex-shrink:0;opacity:.5"></div>
+    <!-- Reference, Guide, Settings — icon-only -->
+    <button class="btn desk-only" id="btn-ref-guide" title="Data Model Reference">Reference</button>
+    <button class="btn desk-only" id="btn-user-guide" title="User Guide">Guide</button>
+    <button class="btn desk-only" id="btn-settings" title="Settings">Settings</button>
+    <!-- Mobile icon buttons -->
+    <button class="btn btn-icon mob-only" id="btn-fit-m" title="Fit view">⊡</button>
+    <button class="btn btn-icon mob-only" id="btn-inspector-toggle" title="Inspector">ℹ</button>
+  </div>
+
+  <div class="header-stats">
+    <span><span class="stat-val" id="stat-nodes">0</span> nds</span>
+    <span><span class="stat-val" id="stat-edges">0</span> edg</span>
+    <span class="hide-tablet"><span class="stat-val" id="stat-rendered">0</span> vis</span>
+    <span class="hide-tablet"><span class="stat-val" id="stat-focus">—</span></span>
+  </div>
+</header>
+
+<!-- Export bar — grid row below the header, toggled by the Export button -->
+<div id="export-bar">
+  <div class="export-bar-inner">
+    <!-- Config Data exports — CSV / JSON of the active section comparison (Config workspace only) -->
+    <div class="export-row export-row--config">
+      <span class="export-scale-label">Export <span id="export-cd-section">comparison</span> as</span>
+      <div class="export-fmts" role="group" aria-label="Configuration data export format">
+        <button class="export-fmt-btn" id="epb-cd-csv"  data-fmt="csv"  data-cat="config">↓ CSV</button>
+        <button class="export-fmt-btn" id="epb-cd-json" data-fmt="json" data-cat="config">↓ JSON</button>
+      </div>
+      <span id="export-cd-hint" class="export-nbhd-hint" hidden></span>
+    </div>
+    <!-- Row 1: data exports — JSON and Markdown with schema/neighbourhood scope (Schema Map only) -->
+    <div class="export-row export-row--data">
+      <div class="export-scope-seg" role="group" aria-label="Data export scope">
+        <button class="export-scope-btn active" id="export-data-scope-full"
+                data-scope="full"          data-cat="data"
+                title="Export the entire loaded schema">Full schema</button>
+        <button class="export-scope-btn"         id="export-data-scope-nbhd"
+                data-scope="neighbourhood" data-cat="data"
+                title="Export only the selected table and its visible neighbours">Neighbourhood</button>
+        <button class="export-scope-btn export-scope-cmp" id="export-data-scope-cmp"
+                data-scope="comparison" data-cat="data" hidden
+                title="Export only the comparison/diff (no schema dump)">Comparison</button>
+      </div>
+      <div class="export-fmts" role="group" aria-label="Data export format">
+        <button class="export-fmt-btn" id="epb-json"     data-fmt="json"    data-cat="data">↓ JSON</button>
+        <button class="export-fmt-btn" id="epb-markdown" data-fmt="markdown" data-cat="data">↓ Markdown</button>
+        <button class="export-fmt-btn" id="epb-jsonld"   data-fmt="jsonld"  data-cat="data">↓ JSON-LD</button>
+        <button class="export-fmt-btn" id="epb-turtle"   data-fmt="turtle"  data-cat="data">↓ OWL/Turtle</button>
+        <button class="export-fmt-btn" id="epb-openapi"  data-fmt="openapi" data-cat="data">↓ OpenAPI</button>
+      </div>
+      <span id="export-nbhd-hint" class="export-nbhd-hint" hidden>Select a table first</span>
+    </div>
+    <!-- Comparison controls — shown only while a comparison is active (#177).
+         The embedded toggle folds the diff into Full/Neighbourhood exports; the
+         multi-select chooses which active compares are included. -->
+    <div class="export-row export-comparison-controls" id="export-comparison-controls" hidden>
+      <label class="sn-toggle" id="export-include-comparison-wrap"
+             title="Fold the comparison into the Full / Neighbourhood schema export">
+        <input type="checkbox" id="export-include-comparison">
+        <span class="sn-toggle-track"></span>
+        <span class="sn-toggle-label">Include comparison</span>
+      </label>
+      <span class="export-scale-label">Compares:</span>
+      <div class="export-compare-picker" id="export-compare-picker"
+           role="group" aria-label="Compares to include in the export"></div>
+    </div>
+    <!-- Separator (only between the data + image rows on the Schema Map) -->
+    <div class="export-row-sep export-row-sep--datadiv"></div>
+    <!-- Row 2: image exports — PNG and SVG with viewport/full-canvas scope -->
+    <div class="export-row export-row--image">
+      <div class="export-scope-seg" role="group" aria-label="Image export scope">
+        <button class="export-scope-btn active" id="export-img-scope-view"
+                data-scope="view" data-cat="image"
+                title="Export only what is currently visible in the viewport">Current view</button>
+        <button class="export-scope-btn"         id="export-img-scope-full"
+                data-scope="full" data-cat="image"
+                title="Export the entire canvas — all nodes, regardless of scroll position">Full canvas</button>
+      </div>
+      <div class="export-fmts" role="group" aria-label="Image export format">
+        <button class="export-fmt-btn" id="epb-png" data-fmt="png" data-cat="image">↓ PNG</button>
+        <button class="export-fmt-btn" id="epb-svg" data-fmt="svg" data-cat="image">↓ SVG</button>
+      </div>
+      <label class="sn-toggle"
+             title="Draw legends into the exported PNG/SVG — the edge types currently shown, plus the diff colour key while a comparison is active">
+        <input type="checkbox" id="export-include-legend">
+        <span class="sn-toggle-track"></span>
+        <span class="sn-toggle-label">Legend</span>
+      </label>
+    </div>
+    <!-- Row 2: PNG resolution + background colour -->
+    <div class="export-settings-row">
+      <div class="export-scale-inner" title="PNG output scale — higher means sharper text on slides, larger file">
+        <span class="export-scale-label">PNG resolution</span>
+        <div class="export-scale-slider-wrap">
+          <input type="range" id="export-scale-slider" class="export-scale-slider"
+                 min="1" max="50" step="1" value="2" title="PNG export scale">
+          <span id="export-scale-val" class="export-scale-val">2×</span>
+        </div>
+        <span id="export-scale-info" class="export-scale-info"></span>
+      </div>
+      <div class="export-bg-inner" title="Background fill for PNG and SVG exports">
+        <span class="export-scale-label">Background</span>
+        <div class="export-bg-controls">
+          <button id="export-bg-swatch-btn" class="export-bg-swatch"
+                  title="Pick export background color" aria-expanded="false"></button>
+          <input type="text" id="export-bg-hex" class="export-bg-hex"
+                 placeholder="#rrggbb" maxlength="7" spellcheck="false"
+                 title="Hex color value — type #rrggbb or paste any 3/6-digit hex">
+        </div>
+      </div>
+    </div>
+    <!-- Color picker — expands inline when swatch is clicked -->
+    <div id="export-color-picker" class="export-color-picker" hidden>
+      <canvas id="export-cp-sv" class="export-cp-sv" width="240" height="130"></canvas>
+      <input type="range" id="export-cp-hue" class="export-cp-hue"
+             min="0" max="359" value="0" title="Hue">
+      <div class="export-cp-alpha-wrap">
+        <input type="range" id="export-cp-alpha" class="export-cp-alpha"
+               min="0" max="100" step="1" value="100" title="Opacity">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar — grid row below the export bar, toggled by the Filter button -->
+<div id="filter-bar">
+  <div id="filter-body" class="filter-body"></div>
+</div>
+
+<!--INJECT:schema-map-sidebar-->
+
+<!-- CANVAS -->
+<div id="canvas">
+  <svg id="graph" touch-action="none">
+    <defs>
+      <marker id="arrow-ref"      markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref)" opacity=".7"/></marker>
+      <marker id="arrow-ref-to"   markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref-to)" opacity=".9"/></marker>
+      <marker id="arrow-ref-from" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ref-from)" opacity=".9"/></marker>
+      <marker id="arrow-ext"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-ext)" opacity=".8"/></marker>
+      <marker id="arrow-m2m"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-m2m)" opacity=".8"/></marker>
+      <marker id="arrow-rel"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-rel)" opacity=".8"/></marker>
+      <marker id="arrow-view" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-view)" opacity=".8"/></marker>
+      <marker id="arrow-cmdbrel" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto" overflow="visible"><path d="M0,0 L0,6 L8,3 z" fill="var(--edge-cmdbrel)" opacity=".85"/></marker>
+    </defs>
+    <g id="graph-root"></g>
+  </svg>
+
+<!--INJECT:schema-map-overlays-->
+</div><!-- /#canvas -->
+
+<!-- WORKSPACE REGIONS (siblings of #canvas; hidden unless their workspace is active) -->
+<!--INJECT:landing-root-->
+<!--INJECT:config-data-->
+
+<!-- INSPECTOR -->
+<div id="inspector">
+  <div class="resize-handle" id="inspector-resize" title="Drag to resize"></div>
+  <div class="sheet-handle"><div class="sheet-handle-bar"></div></div>
+  <div class="panel-title">
+    <button class="panel-toggle" id="btn-inspector-collapse" title="Collapse inspector">‹</button>
+    <span class="panel-title-text">Inspector</span>
+    <button class="panel-close" id="btn-inspector-close">×</button>
+  </div>
+  <div class="inspector-empty" id="inspector-empty">
+    Tap a table node to inspect its fields, references &amp; dependencies.
+  </div>
+  <div id="inspector-content"></div>
+</div>
+
+<!-- SCRIM -->
+<div id="scrim"></div>
+
+<!--INJECT:context-menu-->
+
+<!--INJECT:reference-modal-->
+
+<!--INJECT:settings-modal-->
+
+<!--INJECT:guide-modal-->
+
+<footer>
+  <span class="footer-instance" id="footer-instance" title="Click to view full instance details">
+    <span class="footer-instance-dot">●</span>
+    <span class="footer-instance-name" id="footer-instance-name"></span>
+    <span class="footer-instance-build" id="footer-instance-build"></span>
+  </span>
+  <!--INJECT:footer-disclaimer-->
+  <button class="about-chip" id="about-chip" title="About Schema Explorer"><!--INJECT:build-version--></button>
+</footer>
+
+<!-- About modal -->
+<div class="insti-overlay" id="about-overlay">
+  <div class="insti-modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="insti-head">
+      <h2 id="about-title">About Schema Explorer</h2>
+      <button class="insti-close" id="about-close" aria-label="Close">✕</button>
+    </div>
+    <div class="insti-body" id="about-body"></div>
+  </div>
+</div>
+
+<!-- Instance info modal — shows full _instance + coverage stats when the
+     footer pill is clicked. Hidden by default; populated in showInstanceInfo(). -->
+<div class="insti-overlay" id="insti-overlay">
+  <div class="insti-modal" role="dialog" aria-modal="true" aria-labelledby="insti-title">
+    <div class="insti-head">
+      <h2 id="insti-title">Instance</h2>
+      <button class="insti-close" id="insti-close" aria-label="Close">✕</button>
+    </div>
+    <div class="insti-body" id="insti-body"></div>
+  </div>
+</div>
+
+<!--INJECT:js-->
+</body>
+</html>

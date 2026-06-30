@@ -1,0 +1,414 @@
+/* ── INSPECTOR ── */
+#inspector {
+  grid-area: inspector;
+  background: var(--sn-infinite);
+  border-left: 1px solid var(--sn-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 20;
+  min-width: 0;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inspector-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 20px;
+  text-align: center;
+  line-height: 1.7;
+}
+
+#inspector-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: none;
+}
+
+.insp-name {
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: calc(15px * var(--font-scale, 1));
+  font-weight: 700;
+  color: var(--sn-wasabi);
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+.insp-label {
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale, 1));
+  margin-bottom: 14px;
+}
+.insp-section {
+  margin-bottom: 12px;
+}
+/* Inherited reference sections — subtle left border + title tint to
+     signal "this comes from an ancestor, not this table directly" */
+.insp-section-inherited > .insp-section-title {
+  opacity: 0.75;
+  font-style: italic;
+}
+.insp-section-inherited {
+  border-left: 2px solid rgba(99, 223, 78, 0.2);
+  padding-left: 6px;
+}
+.edge-list-item.inherited {
+  opacity: 0.8;
+}
+
+/* Collapsible section header */
+.insp-section-title {
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: calc(9px * var(--font-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+  margin-bottom: 0;
+}
+.insp-section-title:hover {
+  color: var(--text);
+}
+.insp-section-title:hover .insp-toggle {
+  color: var(--sn-wasabi);
+}
+
+/* +/− toggle indicator */
+.insp-toggle {
+  font-size: calc(14px * var(--font-scale, 1));
+  font-weight: 300;
+  line-height: 1;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition:
+    transform 0.2s,
+    color 0.15s;
+  margin-left: 6px;
+}
+.insp-section-title.open .insp-toggle {
+  transform: rotate(45deg);
+  color: var(--sn-wasabi);
+}
+
+/* Collapsible body — animates height via max-height trick.
+     The ceiling is set very high (60 000px) so even a table with 400+ fields
+     at ~26px/row (~10 000px) is never clipped. overflow switches to visible
+     once open so content isn't hard-cropped if the ceiling is somehow hit. */
+.insp-section-body {
+  overflow: hidden;
+  max-height: 0;
+  transition:
+    max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s;
+  padding-top: 0;
+}
+.insp-section-body.open {
+  max-height: 60000px;
+  overflow: visible;
+  padding-top: 8px;
+}
+.insp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: calc(10px * var(--font-scale, 1));
+}
+.insp-key {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.insp-val {
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+.insp-val.accent {
+  color: var(--accent);
+}
+
+.edge-list-item {
+  padding: 6px 8px;
+  background: var(--panel);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: calc(10px * var(--font-scale, 1));
+  border-left: 2px solid var(--ref-edge);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.edge-list-item:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.edge-list-item.ext {
+  border-left-color: #2a6496;
+}
+.edge-list-item.m2m {
+  border-left-color: #06d6a0;
+}
+.edge-list-item.rel {
+  border-left-color: #ff9f5a;
+}
+.edge-list-item.view {
+  border-left-color: #ffd166;
+}
+.el-target {
+  color: var(--accent2);
+}
+.el-field {
+  color: var(--muted);
+  font-size: calc(9px * var(--font-scale, 1));
+  margin-top: 1px;
+}
+
+/* ── INSPECTOR FIELD LIST ── */
+.insp-fields-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.insp-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px;
+  background: var(--panel);
+  border-radius: 4px;
+  border-left: 2px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.insp-field-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.insp-field-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.insp-field-name {
+  color: var(--text);
+  font-size: calc(10px * var(--font-scale, 1));
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.insp-field-label {
+  color: var(--muted);
+  font-size: calc(9px * var(--font-scale, 1));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
+.insp-field-type {
+  font-size: calc(9px * var(--font-scale, 1));
+  flex-shrink: 0;
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Right-side meta column (source badge + type badge) */
+.insp-field-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+/* Source-ancestor badge next to inherited fields */
+.insp-field-source {
+  font-size: calc(9px * var(--font-scale, 1));
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  background: rgba(99, 223, 78, 0.1);
+  color: var(--sn-wasabi);
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.insp-field-source:hover {
+  background: rgba(99, 223, 78, 0.2);
+}
+
+/* Path-to-field link button on each field row */
+.insp-field-pflink {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 3px;
+  font-size: calc(12px * var(--font-scale, 1));
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.insp-field-row:hover .insp-field-pflink {
+  opacity: 1;
+}
+.insp-field-pflink:hover {
+  color: var(--sn-wasabi);
+  border-color: var(--sn-wasabi);
+}
+
+/* Inherited fields — dimmer to distinguish from own fields */
+.insp-field-inherited {
+  opacity: 0.72;
+  border-left-color: rgba(255, 255, 255, 0.06);
+}
+.insp-field-inherited .insp-field-name {
+  color: var(--muted);
+}
+.insp-field-row--custom {
+  border-left-color: var(--custom-highlight);
+}
+.insp-custom-badge {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 7.5px;
+  font-family: inherit;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--custom-highlight);
+  background: rgba(196, 149, 106, 0.12);
+  border: 1px solid rgba(196, 149, 106, 0.3);
+  border-radius: 3px;
+  padding: 0 4px;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+/* Source ancestor sub-header inside the Inherited Fields section */
+.insp-inherit-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 7px;
+  background: rgba(99, 223, 78, 0.04);
+  border-left: 2px solid var(--sn-wasabi);
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 6px;
+}
+.insp-inherit-source:first-child {
+  margin-top: 0;
+}
+.insp-inherit-source:hover {
+  background: rgba(99, 223, 78, 0.08);
+}
+.insp-inherit-source-label {
+  font-size: calc(10px * var(--font-scale, 1));
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.insp-inherit-source-id {
+  font-size: calc(9px * var(--font-scale, 1));
+  color: var(--muted);
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── SHEET HANDLE (mobile) ── */
+.sheet-handle {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 4px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+}
+.sheet-handle-bar {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ── COPY-FIELD TOAST ── */
+.insp-copy-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  background: rgba(22, 22, 26, 0.95);
+  border: 1px solid var(--sn-border, #3a3a40);
+  border-left: 3px solid var(--sn-wasabi, #63df4e);
+  color: var(--text, #e8e8e8);
+  font-size: calc(11px * var(--font-scale, 1));
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.insp-copy-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}

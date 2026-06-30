@@ -1,0 +1,286 @@
+/* ── Landing page (v1.0.3 front door) ───────────────────────────────────────
+ * The landing workspace region. Shown when uiState.workspace === 'landing'
+ * (the default). A grid of instance cards + an Add-instance card. The graph
+ * chrome is hidden by styles/workspace.css while this workspace is active. */
+
+.landing {
+  grid-column: 1 / -1;
+  grid-row: 2 / 5; /* content rows; header + footer stay visible */
+  overflow: auto;
+  background: var(--bg);
+  z-index: 5;
+}
+
+/* The Home button is redundant while already on the landing page. */
+body[data-workspace='landing'] #btn-home {
+  display: none;
+}
+
+.landing-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+.landing-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.landing-eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.landing-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.landing-sub {
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Instance card grid */
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  border-radius: 10px;
+}
+.landing-grid.dragover {
+  outline: 2px dashed var(--sn-wasabi, #62d84e);
+  outline-offset: 6px;
+}
+
+.inst-card {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+}
+.inst-card.restored {
+  opacity: 0.6;
+}
+
+/* Card header: title + tool icons + rename/remove */
+.ic-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.ic-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+/* URL row */
+.ic-url {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: -4px 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Release badge + export date */
+.ic-release-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ic-release-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sn-wasabi, #62d84e) 30%, transparent);
+  border-radius: 4px;
+  padding: 2px 7px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.ic-export-date {
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+.ic-title-edit {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--sn-wasabi);
+  border-radius: 5px;
+  padding: 1px 6px;
+  outline: none;
+  font-family: inherit;
+}
+.ic-tool {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sn-wasabi, #62d84e);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.ic-tool:hover:not(.disabled) {
+  border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 12%, transparent);
+}
+.ic-tool.disabled {
+  color: var(--text-dim);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ic-act {
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  line-height: 1;
+}
+.ic-act:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Count grid: 5-column labels + values */
+.ic-count-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  row-gap: 3px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.ic-count-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-align: center;
+}
+.ic-count-label.absent {
+  color: color-mix(in srgb, var(--muted) 40%, transparent);
+}
+.ic-count-val {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--sn-wasabi, #62d84e);
+  text-align: center;
+  line-height: 1.2;
+}
+.ic-count-val.absent {
+  font-size: 13px;
+  color: var(--text-dim);
+  opacity: 0.5;
+}
+
+/* Tool icons row — footer */
+.ic-tools {
+  display: flex;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.ic-note {
+  margin-top: 10px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* Add-instance card */
+.add-card {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  color: var(--sn-wasabi, #62d84e);
+  cursor: pointer;
+  gap: 6px;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.add-card:hover {
+  border-color: var(--sn-wasabi, #62d84e);
+  background: color-mix(in srgb, var(--sn-wasabi, #62d84e) 8%, transparent);
+}
+.add-plus {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 300;
+}
+.add-label {
+  font-weight: 700;
+  color: var(--sn-wasabi, #62d84e);
+}
+.add-demo {
+  margin-top: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.add-demo:hover {
+  color: var(--text);
+}
+
+/* Setup-instructions accordion */
+.landing-setup {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+.landing-setup > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.landing-setup > summary:hover {
+  color: var(--text);
+}

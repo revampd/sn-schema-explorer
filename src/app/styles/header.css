@@ -1,0 +1,552 @@
+/* ── HEADER ── */
+header {
+  grid-area: header;
+  background: var(--sn-infinite);
+  border-bottom: 1px solid var(--sn-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: var(--header-h);
+  z-index: 30;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+header > * {
+  align-self: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.logo svg {
+  display: block;
+  align-self: center;
+}
+.logo-tag {
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sn-muted);
+  border-left: 1px solid var(--sn-border);
+  padding-left: 10px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.header-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Search wrapper holds the input + mode toggle as one unit.
+     Position is relative so the toggle can sit absolutely inside the input. */
+.search-wrap {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  flex-shrink: 1;
+  /* Keep a floor so the wrap can't collapse to zero (which would drop the
+     absolute-positioned Tbl/Fld toggle onto the logo) when the header is busy. */
+  min-width: 150px;
+}
+/* Tables/Fields toggle — compact pill that lives INSIDE the search input
+     on its right edge. Visually distinct from the view-mode segmented
+     control (which uses a wider pill style with prominent labels). */
+.search-mode-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 2px;
+  pointer-events: auto;
+}
+.smt-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+.smt-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.smt-btn.active {
+  background: var(--sn-wasabi);
+  color: #000;
+}
+/* Filter button — sits to the right of the search-wrap, appears once data loads */
+.filter-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  white-space: nowrap;
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.filter-open-btn:hover {
+  border-color: var(--sn-wasabi);
+  color: var(--sn-wasabi);
+}
+.filter-open-btn.has-filters {
+  border-color: var(--sn-wasabi);
+  color: var(--sn-wasabi);
+}
+/* Badge inside the Filter button */
+.filter-open-btn .filter-badge {
+  margin-left: 0;
+  font-size: 9px;
+  min-width: 14px;
+  height: 14px;
+}
+
+/* ── Export bar — scope + format panel below the header ── */
+#export-bar {
+  grid-area: exportbar;
+  display: none;
+  overflow: visible;
+  position: relative;
+  z-index: 31; /* sits above filter bar */
+  background: var(--sn-panel);
+  border-bottom: 1px solid var(--border);
+}
+#export-bar.open {
+  display: block;
+}
+/* ── View-aware export rows ───────────────────────────────────────────────
+ * The bar surfaces in three workspaces and trims its rows to what makes sense:
+ *   Schema Map    → data row + image row + settings (default markup)
+ *   Path Finder   → image row + settings only (no data formats, view scope only)
+ *   Config Data   → CSV / JSON row only
+ * Visibility is pure CSS off body[data-view] / body[data-workspace]. */
+/* Hidden by default (scoped to beat `.export-row { display: flex }` at equal
+   specificity); only the Config Data workspace re-shows it below. */
+#export-bar .export-row--config {
+  display: none;
+}
+/* Path Finder: images only — drop the data row + its divider, and the
+   full-canvas scope (only "Current view" is meaningful for the DAG). */
+body[data-view='path'] #export-bar .export-row--data,
+body[data-view='path'] #export-bar .export-comparison-controls,
+body[data-view='path'] #export-bar .export-row-sep--datadiv {
+  display: none !important;
+}
+body[data-view='path'] #export-bar #export-img-scope-full {
+  display: none;
+}
+/* Config Data: just the CSV / JSON row. */
+body[data-workspace='config-data'] #export-bar .export-row--config {
+  display: flex;
+}
+body[data-workspace='config-data'] #export-bar .export-row--data,
+body[data-workspace='config-data'] #export-bar .export-comparison-controls,
+body[data-workspace='config-data'] #export-bar .export-row--image,
+body[data-workspace='config-data'] #export-bar .export-row-sep,
+body[data-workspace='config-data'] #export-bar .export-settings-row,
+body[data-workspace='config-data'] #export-bar #export-color-picker {
+  display: none !important;
+}
+
+/* The comparison controls carry `.export-row` (flex) but are JS-gated via the
+   [hidden] attr — which UA styles can't enforce against an author flex rule. */
+#export-bar .export-comparison-controls[hidden],
+#export-bar .export-scope-btn[hidden],
+#export-bar #export-include-comparison-wrap[hidden] {
+  display: none !important;
+}
+
+/* Comparison multi-select chips (#177) — which compares fold into the export. */
+.export-compare-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.export-compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--sn-border, var(--border));
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--muted);
+  user-select: none;
+}
+.export-compare-chip.active {
+  color: var(--text);
+  border-color: var(--diff-changed, #4dd0e1);
+  background: color-mix(in srgb, var(--diff-changed, #4dd0e1) 12%, transparent);
+}
+.export-compare-chip input {
+  margin: 0;
+  accent-color: var(--diff-changed, #4dd0e1);
+}
+.export-bar-inner {
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Each export row: scope toggle + format buttons */
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+/* Thin separator between data-exports row and image-exports row */
+.export-row-sep {
+  height: 1px;
+  background: var(--sn-border);
+  opacity: 0.4;
+  margin: 0 2px;
+}
+/* Scope segmented control */
+.export-scope-seg {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--sn-border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.export-scope-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  padding: 4px 12px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.export-scope-btn.active {
+  background: var(--sn-wasabi);
+  color: #000;
+  font-weight: 600;
+}
+.export-scope-btn:not(.active):hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+/* Format download buttons */
+.export-fmts {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.export-fmt-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--sn-border);
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 4px 14px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.export-fmt-btn:hover:not(:disabled) {
+  border-color: var(--sn-wasabi);
+  color: var(--sn-wasabi);
+  background: var(--sn-wasabi-dim);
+}
+.export-fmt-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+/* "Select a table first" hint in neighbourhood scope */
+.export-nbhd-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.export-nbhd-hint:not([hidden]) {
+  display: inline;
+}
+/* Row 2: PNG resolution + background controls */
+.export-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.export-scale-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.export-bg-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Color picker in panel — constrained width, no position:fixed needed */
+#export-color-picker {
+  max-width: 280px;
+}
+
+/* ── Filter bar — ServiceNow-style condition builder panel ── */
+#filter-bar {
+  grid-area: filterbar;
+  display: none; /* hidden by default; collapsing the auto grid row */
+  /* overflow visible so the picker dropdown can escape below */
+  overflow: visible;
+  position: relative;
+  z-index: 30;
+  background: var(--sn-panel);
+  border-bottom: 1px solid var(--border);
+}
+#filter-bar.open {
+  display: flex;
+  align-items: flex-start;
+}
+/* filter-body: full-width column of condition rows */
+#filter-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 8px 16px;
+  gap: 0;
+  min-width: 0;
+}
+#search-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family:
+    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 11px;
+  /* Reserve room on the right for the embedded toggle (~62px) */
+  padding: 5px 70px 5px 10px;
+  width: 220px;
+  min-width: 0;
+  outline: none;
+  transition: border-color 0.2s;
+  flex-shrink: 1;
+}
+#search-box:focus {
+  border-color: var(--sn-wasabi);
+}
+#search-box::placeholder {
+  color: var(--muted);
+}
+
+.header-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Grow to fill the header (don't shrink buttons) so the .header-spring inside
+     has free space to consume — that's what right-anchors the global-action
+     cluster consistently across views and the landing page. */
+  flex: 1 0 auto;
+}
+/* Uniform control height across the header cluster, so the text buttons (Home,
+   swap, Refresh, Fit, Reference, Guide, Settings) line up with the 26px instance
+   / compare dropdowns and the tool switcher — no more 24-vs-26px stagger when the
+   row's contents change across views/modules. (Mobile icon buttons keep their own
+   square size — they're hidden on desktop anyway.) */
+.header-btns .btn:not(.btn-icon) {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+/* Flex spring: pushes the global-action cluster (history, refresh, fit, export,
+   reference, guide, settings) to the right so those actions hold the same position
+   across views and on the landing page, independent of the variable instance /
+   compare / swap / switcher controls to its left. Zero-width, never hidden. */
+.header-spring {
+  margin-left: auto;
+}
+/* Path Finder has its own source/target inputs — the table search + Filter aren't
+   relevant there, so hide them in that view. */
+body[data-view='path'] .search-wrap,
+body[data-view='path'] #scope-filter-btn {
+  display: none !important;
+}
+
+.btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--sn-border);
+  border-radius: 9999px;
+  color: var(--text);
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-weight: 500;
+  font-size: 10px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.btn:hover {
+  border-color: var(--sn-wasabi);
+  color: var(--sn-wasabi);
+  background: var(--sn-wasabi-dim);
+}
+.btn-nav-disabled,
+.btn-nav-disabled:hover {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: var(--sn-border) !important;
+  color: var(--muted) !important;
+  background: none !important;
+}
+.btn.active {
+  border-color: var(--sn-wasabi);
+  background: var(--sn-wasabi-dim);
+  color: var(--sn-wasabi);
+  font-weight: 700;
+}
+
+/* Header tool switcher (replaces the old view-mode segmented control) */
+.tool-switcher {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--sn-border);
+  border-radius: 16px;
+  overflow: hidden;
+  align-self: center;
+  height: 26px;
+}
+.ts-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 11px;
+  line-height: 1;
+  transition: all 0.15s;
+  border-right: 1px solid var(--sn-border);
+  white-space: nowrap;
+}
+.ts-btn:last-child {
+  border-right: none;
+}
+.ts-btn .ts-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.ts-btn:hover {
+  color: var(--sn-wasabi);
+  background: rgba(99, 223, 78, 0.06);
+}
+.ts-btn.active {
+  background: var(--sn-wasabi-dim);
+  color: var(--sn-wasabi);
+  font-weight: 600;
+}
+
+/* Header instance dropdown */
+.header-instance {
+  align-self: center;
+  min-width: 120px;
+  max-width: 190px;
+  flex-shrink: 1;
+}
+.header-instance .sn-dd-btn {
+  height: 26px;
+  border-radius: 13px;
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+/* Icon-only nav buttons (Reference, Guide, Settings) */
+.btn-icon-nav {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-style: normal;
+  color: #fff;
+}
+
+/* hidden by default — shown on small screens */
+.mob-only {
+  display: none !important;
+}
+
+.header-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.stat-val {
+  color: var(--sn-wasabi);
+  font-weight: 700;
+}

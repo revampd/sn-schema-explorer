@@ -1,0 +1,399 @@
+/* UI typography
+     ──────────────
+     The official "ServiceNow Sans" webfont is hosted on servicenow.com but
+     its CDN blocks cross-origin loads, so it cannot be hotlinked from a
+     standalone HTML file. To keep this tool fully self-contained and
+     offline-friendly we rely on the OS's modern system sans-serif stack
+     (San Francisco on Apple, Segoe UI on Windows, Roboto/Inter on Linux/
+     ChromeOS, etc.). The 'ServiceNow Sans' name is left in the font-family
+     stacks below in case anyone installs the font locally — the browser
+     simply falls through to the system fonts otherwise.
+
+     Monospace contexts (table IDs, field names, dot-walks) use the system
+     monospace stack (ui-monospace → Cascadia Code / SF Mono / Consolas /
+     Menlo / DejaVu Sans Mono). 'JetBrains Mono' is listed first as a
+     courtesy for users who have it installed locally; no network request
+     is made for it. */
+
+:root {
+  /* ServiceNow Infinite Blue palette */
+  --sn-infinite: #032d42;
+  --sn-deep: #021e2d;
+  --sn-surface: #042b3e;
+  --sn-panel: #0a3448;
+  --sn-border: rgba(255, 255, 255, 0.1);
+  --sn-wasabi: #63df4e;
+  --sn-wasabi-dim: rgba(99, 223, 78, 0.12);
+  --custom-highlight: #c4956a;
+  --sn-blue: #0ea5e9;
+  --sn-indigo: #6366f1;
+  --sn-purple: #a855f7;
+  --sn-teal: #2a4f62;
+  --sn-text: #e0eaf0;
+  --sn-muted: rgba(255, 255, 255, 0.45);
+
+  /* App variable mappings */
+  --bg: var(--sn-deep);
+  --surface: var(--sn-surface);
+  --panel: var(--sn-panel);
+  --border: var(--sn-border);
+  --accent: var(--sn-wasabi);
+  --accent2: var(--sn-blue);
+  --accent3: #ff9f5a;
+  --text: var(--sn-text);
+  --muted: var(--sn-muted);
+  --core-node: var(--sn-wasabi);
+  --ref-edge: var(--sn-blue);
+  --ext-edge: #2a6496;
+  --node-fill: rgba(4, 43, 62, 0.9);
+  --node-stroke: rgba(255, 255, 255, 0.12);
+  /* Edge type colours */
+  --edge-ref-to: #00c896;
+  --edge-ref-from: #c46aff;
+  --edge-ref: #7b61ff;
+  --edge-ext: #2a6496;
+  --edge-m2m: #06d6a0;
+  --edge-rel: #ff9f5a;
+  --edge-view: #ffd166;
+  /* CI topology — runtime CMDB class-to-class relationships from
+       cmdb_rel_type_suggest. Visually distinct from schema-level edges
+       (dashed double line, cool teal) because these represent runtime
+       data relationships, not dot-walkable schema connections. */
+  --edge-cmdbrel: #4dd0e1;
+  --edge-warn: #fbbf24;
+  --header-h: 50px;
+  --sidebar-w: 260px;
+  --inspector-w: 280px;
+  --sidebar-collapsed: 28px;
+  --inspector-collapsed: 28px;
+  --font-scale: 1;
+  /* Schema Diff colours */
+  --diff-added: #4ade80;
+  --diff-removed: #f87171;
+  --diff-changed: #fbbf24;
+  --diff-added-dim: rgba(74, 222, 128, 0.13);
+  --diff-removed-dim: rgba(248, 113, 113, 0.13);
+  --diff-changed-dim: rgba(251, 191, 36, 0.13);
+
+  /* Surface / shape tokens (reconciler-style theming) — translucent "glass"
+     cards, soft shadows, and a small radius scale shared across surfaces. */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-full: 9999px;
+  --shadow-md: 0 4px 14px -3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 14px 30px -8px rgba(0, 0, 0, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-blur: 10px;
+
+  /* Scrollbar theme — single source of truth (see global rules below). Any
+     scrollable surface inherits this automatically; override these vars on a
+     specific element only when it genuinely needs a different size/colour. */
+  --sb-size: 4px;
+  --sb-thumb: rgba(255, 255, 255, 0.15);
+  --sb-thumb-hover: var(--sn-wasabi);
+}
+
+/* ── Global scrollbar theme ────────────────────────────────────────────────
+   Themes every scrollable element by default (Firefox + WebKit/Blink), so new
+   features never have to re-declare scrollbar styles. To hide a scrollbar,
+   set `scrollbar-width: none` + `::-webkit-scrollbar { display: none }` on that
+   element (more specific, so it wins over these `*` rules). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) transparent;
+}
+*::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: var(--sb-size);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
+}
+
+/* ── Shared theming utilities ──────────────────────────────────────────────
+   Reusable component primitives adapted from the cross-instance reconciler.
+   Pure presentation — safe to apply to any surface. */
+
+/* Translucent card surface with a soft border + blur. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* Small uppercase monospace section label (sits above a heading). */
+.eyebrow {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ── Shared toggle switch ─────────────────────────────────────────────────── */
+.sn-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sn-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.sn-toggle-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--sn-border);
+  border-radius: 10px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+.sn-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+.sn-toggle input:checked + .sn-toggle-track {
+  background: rgba(99, 223, 78, 0.2);
+  border-color: var(--sn-wasabi);
+}
+.sn-toggle input:checked + .sn-toggle-track::after {
+  transform: translateX(14px);
+  background: var(--sn-wasabi);
+}
+.sn-toggle input:focus-visible + .sn-toggle-track {
+  outline: 2px solid var(--sn-wasabi);
+  outline-offset: 1px;
+}
+.sn-toggle-label {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+/* ── Custom dropdown (core/dropdown.js) ───────────────────────────────────── */
+/* Replaces the former native `.sn-select`: all single-selects in the app are now
+   custom dropdowns so their open option list is themed (a native <select> popup
+   is OS-drawn and unstyleable). */
+/* A fully app-themed single-select: unlike a native <select>, its open option
+   list is our own markup, so both states match the theme. */
+.sn-dd {
+  position: relative;
+}
+.sn-dd-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 5px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.sn-dd-btn:focus-visible {
+  outline: none;
+  border-color: var(--sn-wasabi);
+}
+.sn-dd-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sn-dd-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sn-dd-label.sn-dd-placeholder {
+  color: var(--muted);
+}
+.sn-dd-chev {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.12s ease;
+}
+.sn-dd-btn[aria-expanded='true'] .sn-dd-chev {
+  transform: rotate(180deg);
+}
+.sn-dd-menu {
+  /* position:fixed + portalled to <body> (see core/dropdown.js) so the open list
+     escapes clipping/overflow ancestors. left/top/width are set in JS on open. */
+  position: fixed;
+  z-index: 200;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--sn-infinite, #13161e);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+}
+.sn-dd-opt {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sn-dd-opt.is-active {
+  background: rgba(255, 255, 255, 0.06);
+}
+.sn-dd-opt.is-selected {
+  color: var(--sn-wasabi);
+  font-weight: 600;
+}
+.sn-dd-opt.is-disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* Pill badge — monospace, rounded-full. Pair with a `.pill-*` colour modifier. */
+.pill-badge {
+  display: inline-block;
+  white-space: nowrap;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.pill-on {
+  background: var(--sn-wasabi-dim);
+  color: var(--sn-wasabi);
+}
+.pill-warn {
+  background: rgba(251, 191, 36, 0.14);
+  color: var(--edge-warn);
+}
+.pill-err {
+  background: rgba(248, 113, 113, 0.14);
+  color: var(--diff-removed);
+}
+.pill-info {
+  background: rgba(82, 184, 255, 0.14);
+  color: #52b8ff;
+}
+.pill-muted {
+  background: rgba(156, 163, 175, 0.16);
+  color: var(--muted);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    'ServiceNow Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: calc(12px * var(--font-scale, 1));
+  display: grid;
+  grid-template-rows: var(--header-h) auto auto 1fr 22px;
+  grid-template-columns: var(--sidebar-w) 1fr var(--inspector-w);
+  transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  grid-template-areas:
+    'header    header    header'
+    'exportbar exportbar exportbar'
+    'filterbar filterbar filterbar'
+    'sidebar   canvas    inspector'
+    'footer    footer    footer';
+  height: 100vh;
+}
+/* While the user is dragging a resize handle we suppress the grid
+     transition so the columns track the cursor 1:1 instead of easing. */
+body.resizing {
+  transition: none !important;
+  cursor: col-resize;
+  user-select: none;
+}
+body.resizing * {
+  user-select: none !important;
+}
+
+/* Resize handles — thin invisible bars sitting on the inner edges of the
+     sidebar and inspector. They live inside the aside/#inspector so they
+     follow column width changes without taking grid space. */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 25;
+  background: transparent;
+  transition: background 0.15s;
+}
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--sn-wasabi);
+  opacity: 0.35;
+}
+#sidebar-resize {
+  right: -3px;
+} /* inner-right edge of sidebar */
+#inspector-resize {
+  left: -3px;
+} /* inner-left  edge of inspector */
+/* Hide handles when the corresponding panel is collapsed */
+body.sidebar-collapsed #sidebar-resize,
+body.inspector-collapsed #inspector-resize {
+  display: none;
+}

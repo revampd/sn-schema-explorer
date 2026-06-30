@@ -1,0 +1,881 @@
+/* ── SCHEMA DIFF ─────────────────────────────────────────────── */
+#diff-sidebar {
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+/* Base / Compare instance pickers (replaces the old compare-file drop zone) */
+.diff-picker {
+  margin: 10px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.diff-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diff-picker-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  width: 56px;
+  flex-shrink: 0;
+}
+.diff-picker-control {
+  flex: 1;
+  min-width: 0;
+}
+/* Swap base ↔ compare. Sits between the two picker rows, aligned under the
+   controls (past the fixed-width label gutter). */
+.diff-picker-swap-row {
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 64px;
+  margin: -2px 0;
+}
+.diff-swap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.diff-swap-btn:hover:not(:disabled) {
+  color: var(--sn-wasabi);
+  border-color: var(--sn-wasabi);
+}
+.diff-swap-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.diff-picker-empty {
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+/* Export method mismatch warning banner */
+.diff-mode-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  flex-shrink: 0;
+  margin: 0 12px 8px;
+  padding: 7px 10px;
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 5px;
+  font-size: 9.5px;
+  line-height: 1.45;
+  color: var(--diff-changed);
+}
+.dmw-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.dmw-text {
+  flex: 1;
+  min-width: 0;
+}
+.dmw-modes {
+  display: block;
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8.5px;
+  opacity: 0.75;
+}
+.dmw-modes em {
+  font-style: normal;
+}
+.dmw-acl-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 8.5px;
+  opacity: 0.72;
+  font-style: italic;
+}
+.diff-summary {
+  display: none;
+  flex-shrink: 0;
+  margin: 0 12px 8px;
+  gap: 4px;
+}
+.diff-summary.visible {
+  display: flex;
+  flex-wrap: wrap;
+}
+.diff-stat {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+}
+.diff-stat:hover {
+  opacity: 0.85;
+}
+.diff-stat.active {
+  border-color: currentColor;
+}
+.diff-stat-n {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.diff-stat-label {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.diff-stat.ds-added {
+  color: var(--diff-added);
+  background: var(--diff-added-dim);
+}
+.diff-stat.ds-removed {
+  color: var(--diff-removed);
+  background: var(--diff-removed-dim);
+}
+.diff-stat.ds-changed {
+  color: var(--diff-changed);
+  background: var(--diff-changed-dim);
+}
+.diff-toggle-row {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 6px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.diff-toggle-row.visible {
+  display: flex;
+}
+/* Kind toggle chips sit on the left of the row and wrap; the Graph button stays
+   on the right. They share the Graph button's pill look (see .diff-show-all-btn). */
+.diff-element-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.diff-kind-chip {
+  background: none;
+  border: 1px solid var(--sn-border);
+  color: var(--muted);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 9px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s,
+    background 0.12s;
+}
+.diff-kind-chip:hover {
+  border-color: var(--diff-changed);
+  color: var(--diff-changed);
+}
+/* Highlighted chip = that kind is currently shown (included in the slice). */
+.diff-kind-chip.active {
+  border-color: var(--diff-changed);
+  color: var(--diff-changed);
+  background: color-mix(in srgb, var(--diff-changed) 14%, transparent);
+}
+.diff-kind-chip.dkc-all {
+  font-style: italic;
+}
+.diff-show-all-btn {
+  background: none;
+  border: 1px solid var(--sn-border);
+  color: var(--muted);
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 9px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+}
+.diff-show-all-btn:hover,
+.diff-show-all-btn.active {
+  border-color: var(--diff-changed);
+  color: var(--diff-changed);
+}
+.diff-list {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  flex-direction: column;
+}
+.diff-list.visible {
+  display: flex;
+}
+.diff-group-header {
+  padding: 6px 12px 3px;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.diff-group-header.dgh-added {
+  color: var(--diff-added);
+}
+.diff-group-header.dgh-removed {
+  color: var(--diff-removed);
+}
+.diff-group-header.dgh-changed {
+  color: var(--diff-changed);
+}
+/* Collapsible groups — the header toggles its body open/closed. */
+.diff-group-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+.diff-group-caret {
+  font-size: 8px;
+  display: inline-block;
+  transition: transform 0.12s;
+}
+.diff-group.collapsed .diff-group-caret {
+  transform: rotate(-90deg);
+}
+.diff-group.collapsed .diff-group-body {
+  display: none;
+}
+.diff-group-more {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.diff-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+  flex-shrink: 0;
+}
+.diff-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.diff-item.selected {
+  background: rgba(255, 255, 255, 0.07);
+}
+.diff-item--focused {
+  outline: 1px solid rgba(0, 229, 255, 0.3);
+  outline-offset: -1px;
+  background: rgba(0, 229, 255, 0.05);
+}
+.diff-item-pill {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.diff-item-pill.dp-added {
+  background: var(--diff-added);
+}
+.diff-item-pill.dp-removed {
+  background: var(--diff-removed);
+}
+.diff-item-pill.dp-changed {
+  background: var(--diff-changed);
+}
+.diff-item-names {
+  flex: 1;
+  min-width: 0;
+}
+.diff-item-id {
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.diff-item-label {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.diff-item-count {
+  font-size: 9px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* N-column roll-up (#150): per-instance status strip on a diff list row. */
+.diff-item-cols {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.dic-chip {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.dic-chip.dic-added {
+  background: var(--diff-added);
+}
+.dic-chip.dic-removed {
+  background: var(--diff-removed);
+}
+.dic-chip.dic-changed {
+  background: var(--diff-changed);
+}
+.dic-chip.dic-same {
+  background: rgba(255, 255, 255, 0.12);
+}
+.dic-chip.dic-absent {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Edge sub-group inside a diff sidebar item */
+.diff-edge-subgroup {
+  padding: 3px 12px 3px 28px;
+  flex-shrink: 0;
+}
+.diff-edge-subgroup-header {
+  font-size: 7.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+  margin-top: 4px;
+}
+.diff-edge-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  font-size: 9px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.diff-edge-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+/* Clickable relationship rows in the diff inspector panel */
+.diff-field-row[data-id] {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+.diff-field-row[data-id]:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.diff-edge-sign {
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 8px;
+  text-align: center;
+}
+.diff-edge-sign.des-added {
+  color: var(--diff-added);
+}
+.diff-edge-sign.des-removed {
+  color: var(--diff-removed);
+}
+.diff-edge-type {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8px;
+  color: var(--muted);
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.diff-edge-target {
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Diff node overlays on canvas */
+.node-group.diff-added rect.node-rect {
+  stroke: var(--diff-added) !important;
+  stroke-width: 2px !important;
+}
+.node-group.diff-removed rect.node-rect {
+  stroke: var(--diff-removed) !important;
+  stroke-width: 2px !important;
+  opacity: 0.55;
+}
+.node-group.diff-changed rect.node-rect {
+  stroke: var(--diff-changed) !important;
+  stroke-width: 2px !important;
+}
+.node-group.diff-added circle {
+  fill: var(--diff-added) !important;
+}
+.node-group.diff-removed circle {
+  fill: var(--diff-removed) !important;
+}
+.node-group.diff-changed circle {
+  fill: var(--diff-changed) !important;
+}
+
+/* Diff edge overlays on canvas */
+path.diff-edge-added {
+  stroke: var(--diff-added) !important;
+  stroke-opacity: 0.9 !important;
+  stroke-width: 2px !important;
+}
+path.diff-edge-removed {
+  stroke: var(--diff-removed) !important;
+  stroke-opacity: 0.75 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 5 3;
+}
+
+/* Pill labels on diff edges */
+.diff-edge-pill {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8px;
+  pointer-events: none;
+}
+.diff-edge-pill rect {
+  rx: 3;
+  ry: 3;
+}
+
+/* Diff inspector side-by-side panel */
+.diff-insp-banner {
+  padding: 6px 10px;
+  font-size: 9px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.diff-insp-banner.dib-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.diff-insp-banner.dib-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.diff-insp-banner.dib-changed {
+  background: var(--diff-changed-dim);
+  color: var(--diff-changed);
+}
+/* Match the single inspector's section header (insp-section-title): same weight,
+   tracking, and the underline divider — so the comparison inspector reads like
+   the single-instance one. */
+.diff-insp-section-title {
+  font-size: calc(9px * var(--font-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  margin: 12px 0 6px;
+}
+/* Properties matrix rows in the comparison inspector. */
+.diff-props-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.diff-props-key {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+.diff-props-cell {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-props-cell.dfr-changed {
+  background: var(--diff-changed-dim);
+  color: var(--diff-changed);
+}
+.diff-sbs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.diff-sbs-col-header {
+  font-size: 8px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+}
+.diff-sbs-col-header.dsc-base {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+.diff-sbs-col-header.dsc-compare {
+  color: var(--diff-changed);
+  background: var(--diff-changed-dim);
+}
+.diff-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  margin-bottom: 2px;
+}
+.diff-field-row.dfr-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.diff-field-row.dfr-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.diff-field-row.dfr-changed {
+  background: var(--diff-changed-dim);
+  color: var(--diff-changed);
+}
+.diff-field-row.dfr-same {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+.diff-field-row.dfr-base {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+
+/* N-column comparison (#150): the per-instance status strip above the matrix. */
+.diff-col-strip {
+  margin: 6px 0 8px;
+}
+.diff-col-chip {
+  padding: 4px 7px;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+/* Column status colour (#150) — shared by the status-strip chips and the field
+   matrix column headers. `same` (identical) is NEUTRAL: no change means no status
+   colour. Only added (green) / removed (red) / changed (amber) carry colour, so an
+   identical column never looks like it was added. */
+.cstat-base {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg);
+}
+.cstat-same {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+.cstat-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.cstat-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.cstat-changed {
+  background: var(--diff-changed-dim);
+  color: var(--diff-changed);
+}
+.cstat-absent {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+.diff-col-name {
+  font-size: 9px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-col-status {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+.diff-rel-group-head {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 6px 0 3px;
+}
+/* Inline friendly relationship-type label (e.g. "Reference to"). */
+.diff-rel-kind {
+  font-size: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
+  margin-right: 5px;
+}
+/* N-column relationship presence matrix (#150): row-label column + a ✓/— cell
+   per instance, mirroring the fields matrix. */
+.diff-rel-matrix-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.diff-rel-matrix-row[data-id] {
+  cursor: pointer;
+}
+.diff-rel-matrix-row[data-id]:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+}
+.diff-rel-rowhead {
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 4px;
+}
+.diff-rel-cell {
+  text-align: center;
+  font-size: 10px;
+  padding: 3px 4px;
+  border-radius: 3px;
+}
+.diff-rel-cell.dfr-added {
+  background: var(--diff-added-dim);
+  color: var(--diff-added);
+}
+.diff-rel-cell.dfr-removed {
+  background: var(--diff-removed-dim);
+  color: var(--diff-removed);
+}
+.diff-rel-cell.dfr-same {
+  color: var(--muted);
+}
+.diff-rel-cell.dfr-base {
+  color: var(--fg);
+}
+/* "inherited" tag on a field that comes from a parent table (matches the single
+   inspector's inheritance treatment). */
+.diff-field-inh {
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  margin-left: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  vertical-align: middle;
+}
+.diff-field-name {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-field-label {
+  font-size: 8px;
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.diff-field-text {
+  flex: 1;
+  min-width: 0;
+}
+.diff-field-type {
+  font-size: 8px;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+.diff-field-absent {
+  font-style: italic;
+  opacity: 0.4;
+  font-size: 9px;
+  padding: 3px 6px;
+}
+/* Highlight applied to path nodes/edges in the graph */
+.pf-highlight rect {
+  stroke: var(--sn-wasabi) !important;
+  stroke-width: 2.5px !important;
+}
+.edge-pf-highlight {
+  stroke-opacity: 1 !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 0 4px var(--sn-wasabi));
+}
+
+/* ── Config-drift layer (#139): inspector section + canvas badge ──────────── */
+:root {
+  --cfg-state: #60a5fa; /* state mismatch — distinct from drift amber */
+}
+.cfg-insp-app {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+.cfg-insp-app-name {
+  font-weight: 600;
+  font-size: 11px;
+}
+.cfg-insp-chip {
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--sn-border);
+  color: var(--muted);
+}
+.cfg-insp-status {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+.cfgs-sync {
+  color: var(--diff-added);
+  background: var(--diff-added-dim);
+}
+.cfgs-drift {
+  color: var(--diff-changed);
+  background: var(--diff-changed-dim);
+}
+.cfgs-missing {
+  color: var(--diff-removed);
+  background: var(--diff-removed-dim);
+}
+.cfgs-active,
+.cfgs-inactive {
+  color: var(--cfg-state);
+  background: rgba(96, 165, 250, 0.13);
+}
+.cfg-insp-cell-head {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+.cfg-insp-cell {
+  padding: 4px 6px;
+}
+.cfg-insp-ver {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.cfg-insp-act {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* ── Unified Differences report (#150/#149) — config app rows ──────────────── */
+/* Group header for the config section of the unified list. */
+.diff-group-header.dgh-config {
+  color: var(--muted);
+}
+/* Type tag (table | app) leading each unified-list row. */
+.diff-type-tag {
+  font-size: 7px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 1px 4px;
+  margin-right: 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.dtt-table {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+.dtt-app {
+  background: rgba(96, 165, 250, 0.15);
+  color: var(--cfg-state);
+}
+/* App-row pill colours (reused by the unified list). */
+.dcp-drift {
+  background: var(--diff-changed);
+}
+.dcp-missing {
+  background: var(--diff-removed);
+}
+.dcp-active {
+  background: var(--cfg-state);
+}
+.dcp-sync {
+  background: var(--diff-added);
+}
+.dci-status {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* App-table highlight on the canvas when a config app is picked. */
+.node-group.cfg-app-hi rect.node-rect {
+  stroke: var(--sn-accent, #2dd4bf) !important;
+  stroke-width: 2.5px !important;
+}
+.node-group.cfg-app-dim {
+  opacity: 0.28;
+}

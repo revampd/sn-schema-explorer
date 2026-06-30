@@ -1,0 +1,1538 @@
+import {
+  graphState,
+  uiState,
+  diffState,
+  isComparing,
+  isStructureLayerOn,
+} from '../../core/state.js';
+import { Dom } from '../../core/dom.js';
+import { diffToExport, diffToMarkdown, diffToTurtleComment, toYaml } from './diff-export.js';
+import { svg, root, zoom } from '../../core/canvas.js';
+import { Settings } from '../settings/index.js';
+import {
+  _nodeToMarkdown,
+  _schemaToJsonLd,
+  _schemaToTurtle,
+  _schemaToOpenApi,
+  _normaliseHex,
+  _hsvToRgb,
+  _rgbToHsv,
+  _rgbToHex,
+} from './serialisers.js';
+
+// Re-export the pure serialisers so existing importers (and the unit tests in
+// tests/unit/export-serialisers.test.js) keep resolving them from this module.
+export {
+  _nodeToMarkdown,
+  _nodeToJsonLd,
+  _schemaToJsonLd,
+  _schemaToTurtle,
+  _schemaToOpenApi,
+  _normaliseHex,
+  _hsvToRgb,
+  _rgbToHsv,
+  _rgbToHex,
+} from './serialisers.js';
+
+export function syncPair(desktopId, mobileId, val) {
+  [desktopId, mobileId].forEach(id => document.getElementById(id)?.classList.toggle('active', val));
+}
+
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 500);
+}
+
+function exportTimestamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-` +
+    `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`
+  );
+}
+
+function exportSlug() {
+  if (uiState.selectedNode) return uiState.selectedNode.replace(/[^a-z0-9_-]+/gi, '_');
+  return 'schema';
+}
+
+// ── Comparison/diff export (#177) ──────────────────────────────────────────────
+// When a comparison is active, the data exporters can fold the diff in (embedded)
+// or emit it on its own (the 'comparison' data scope). The user picks which
+// compares to include via the export bar; null = every active compare.
+let _includeComparison = false; // embedded toggle (Full / Neighbourhood scope)
+let _includedCompareIds = null; // subset of active compares; null = all
+
+export function getIncludeComparison() {
+  return _includeComparison;
+}
+export function setIncludeComparison(on) {
+  _includeComparison = !!on;
+}
+export function getIncludedCompareIds() {
+  return _includedCompareIds;
+}
+export function setIncludedCompareIds(ids) {
+  _includedCompareIds = ids && ids.length ? ids.slice() : ids === null ? null : [];
+}
+
+function _baseLabel() {
+  const inst = graphState.graphData?._instance;
+  return inst?.instance_name || inst?.instance_url || null;
+}
+
+/** The current comparison as a serialisable object, honoring the include subset.
+ *  Returns null when not comparing or the chosen subset has no differences. */
+function _activeComparison() {
+  if (!isComparing() || !diffState._diffMatrix?.length) return null;
+  return diffToExport(diffState._diffMatrix, {
+    includedIds: _includedCompareIds,
+    baseLabel: _baseLabel(),
+  });
+}
+
+function _comparisonSlug() {
+  return _baseLabel() ? _baseLabel().replace(/[^a-z0-9_-]+/gi, '_') : 'schema';
+}
+
+export function exportSchemaJSON() {
+  if (!graphState.graphData) return;
+  const clean = {
+    nodes: graphState.graphData.nodes.map(n => {
+      const { x, y, vx, vy, fx, fy, index, ...rest } = n;
+      return rest;
+    }),
+    edges: graphState.graphData.edges.map(e => {
+      const { index, ...rest } = e;
+      return {
+        ...rest,
+        source: rest.source?.id ?? rest.source,
+        target: rest.target?.id ?? rest.target,
+      };
+    }),
+  };
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) clean.comparison = cmp;
+  }
+  const blob = new Blob([JSON.stringify(clean)], { type: 'application/json' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.json`);
+}
+
+export function exportNeighbourhoodJSON() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert("Select a table first — there's no neighbourhood to export without one.");
+    return;
+  }
+  const visible = new Set(uiState.connectedNodes);
+  visible.add(uiState.selectedNode);
+  for (const h of uiState.hiddenNodes) visible.delete(h);
+  const nodes = graphState.graphData.nodes
+    .filter(n => visible.has(n.id))
+    .map(n => {
+      const { x, y, vx, vy, fx, fy, index, ...rest } = n;
+      return rest;
+    });
+  const edges = graphState.graphData.edges
+    .map(e => {
+      const s = e.source?.id ?? e.source;
+      const t = e.target?.id ?? e.target;
+      return { src: s, tgt: t, edge: e };
+    })
+    .filter(({ src, tgt }) => visible.has(src) && visible.has(tgt))
+    .map(({ src, tgt, edge }) => {
+      const { index, ...rest } = edge;
+      return { ...rest, source: src, target: tgt };
+    });
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    source: 'sn_schema_explorer.neighbourhood',
+    rootTable: uiState.selectedNode,
+    hopDepth: uiState.hopDepth,
+    viewMode: uiState.viewMode,
+    nodes,
+    edges,
+  };
+  const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.json`);
+}
+
+// ── Markdown export ───────────────────────────────────────────────────────────
+
+function _markdownHeader(scope, data) {
+  const instance = data?._instance?.instance_name || data?._instance?.instance_url || '';
+  const date = new Date().toISOString().slice(0, 10);
+  const lines = [
+    `# ServiceNow Schema Export`,
+    '',
+    `> Generated by [SN Schema Explorer](https://github.com/revampd/sn-schema-explorer) on ${date}` +
+      (instance ? ` — instance: ${instance}` : ''),
+    '',
+    scope === 'neighbourhood'
+      ? `**Scope:** neighbourhood of \`${uiState.selectedNode}\` (${uiState.hopDepth} hop${uiState.hopDepth !== 1 ? 's' : ''})`
+      : `**Scope:** full schema`,
+    '',
+    '---',
+    '',
+  ];
+  return lines.join('\n');
+}
+
+// ── Node/edge collection helpers ─────────────────────────────────────────────
+
+/**
+ * Return a sorted array of nodes for the given scope.
+ * scope: 'full' | 'neighbourhood'
+ * Returns null if neighbourhood scope requested but nothing is selected.
+ */
+function _collectNodes(scope, data) {
+  if (!data) data = graphState.graphData;
+  if (!data) return null;
+  if (scope === 'neighbourhood') {
+    if (!uiState.selectedNode) return null;
+    const visible = new Set(uiState.connectedNodes);
+    visible.add(uiState.selectedNode);
+    for (const h of uiState.hiddenNodes) visible.delete(h);
+    return data.nodes.filter(n => visible.has(n.id)).sort((a, b) => a.id.localeCompare(b.id));
+  }
+  return data.nodes.filter(n => !n._diffOnly).sort((a, b) => a.id.localeCompare(b.id));
+}
+
+export function exportNeighbourhoodMarkdown() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert("Select a table first — there's no neighbourhood to export without one.");
+    return;
+  }
+  const data = graphState.graphData;
+  const nodes = _collectNodes('neighbourhood', data);
+  if (!nodes) return;
+  let md = _markdownHeader('neighbourhood', data);
+  md += nodes.map(n => _nodeToMarkdown(n, data)).join('\n---\n\n');
+  const blob = new Blob([md], { type: 'text/markdown' });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.md`);
+}
+
+export function exportSchemaMarkdown() {
+  if (!graphState.graphData) return;
+  const data = graphState.graphData;
+  const nodes = _collectNodes('full', data);
+  let md = _markdownHeader('full', data);
+  md += nodes.map(n => _nodeToMarkdown(n, data)).join('\n---\n\n');
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) md += '\n\n---\n\n' + diffToMarkdown(cmp);
+  }
+  const blob = new Blob([md], { type: 'text/markdown' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.md`);
+}
+
+// ── JSON-LD export ────────────────────────────────────────────────────────────
+
+export function exportSchemaJsonLd() {
+  if (!graphState.graphData) return;
+  const data = graphState.graphData;
+  const nodes = _collectNodes('full', data);
+  let jsonld = _schemaToJsonLd(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) {
+      const doc = JSON.parse(jsonld);
+      doc['sn:comparison'] = cmp; // best-effort: unmapped term, ignored by strict consumers
+      jsonld = JSON.stringify(doc);
+    }
+  }
+  const blob = new Blob([jsonld], { type: 'application/ld+json' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.jsonld`);
+}
+
+export function exportNeighbourhoodJsonLd() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert("Select a table first — there's no neighbourhood to export without one.");
+    return;
+  }
+  const data = graphState.graphData;
+  const nodes = _collectNodes('neighbourhood', data);
+  if (!nodes) return;
+  const blob = new Blob([_schemaToJsonLd(nodes, data, { scope: 'neighbourhood' })], {
+    type: 'application/ld+json',
+  });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.jsonld`);
+}
+
+// ── OWL / Turtle export ───────────────────────────────────────────────────────
+
+export function exportSchemaTurtle() {
+  if (!graphState.graphData) return;
+  const data = graphState.graphData;
+  const nodes = _collectNodes('full', data);
+  let ttl = _schemaToTurtle(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) ttl = ttl + '\n' + diffToTurtleComment(cmp);
+  }
+  const blob = new Blob([ttl], { type: 'text/turtle;charset=utf-8' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.ttl`);
+}
+
+export function exportNeighbourhoodTurtle() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert("Select a table first — there's no neighbourhood to export without one.");
+    return;
+  }
+  const data = graphState.graphData;
+  const nodes = _collectNodes('neighbourhood', data);
+  if (!nodes) return;
+  const blob = new Blob([_schemaToTurtle(nodes, data)], { type: 'text/turtle;charset=utf-8' });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.ttl`);
+}
+
+// ── OpenAPI / YAML export ─────────────────────────────────────────────────────
+
+export function exportSchemaOpenApi() {
+  if (!graphState.graphData) return;
+  const data = graphState.graphData;
+  const nodes = _collectNodes('full', data);
+  let yaml = _schemaToOpenApi(nodes, data);
+  if (_includeComparison) {
+    const cmp = _activeComparison();
+    if (cmp) yaml = yaml.replace(/\n*$/, '\n') + 'x-comparison:\n' + toYaml(cmp, 1) + '\n';
+  }
+  const blob = new Blob([yaml], { type: 'application/yaml' });
+  downloadBlob(blob, `sn_schema_${exportTimestamp()}.yaml`);
+}
+
+export function exportNeighbourhoodOpenApi() {
+  if (!graphState.graphData || !uiState.selectedNode) {
+    alert("Select a table first — there's no neighbourhood to export without one.");
+    return;
+  }
+  const data = graphState.graphData;
+  const nodes = _collectNodes('neighbourhood', data);
+  if (!nodes) return;
+  const blob = new Blob([_schemaToOpenApi(nodes, data)], { type: 'application/yaml' });
+  downloadBlob(blob, `sn_neighbourhood_${exportSlug()}_${exportTimestamp()}.yaml`);
+}
+
+// ── Standalone comparison exports (the 'comparison' data scope, #177) ──────────
+// Emit ONLY the diff (no schema dump). Available for every data format; the
+// semantic formats (JSON-LD / Turtle / OpenAPI) get a best-effort wrapper, since
+// a diff-only ontology / API spec is not a conventional artifact.
+
+function _noComparison() {
+  alert(
+    'No comparison to export. Pick one or more instances in the Compare control, then choose the compares to include.'
+  );
+}
+
+export function exportComparisonJSON() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const blob = new Blob([JSON.stringify(cmp)], { type: 'application/json' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.json`);
+}
+
+export function exportComparisonMarkdown() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const date = new Date().toISOString().slice(0, 10);
+  const md =
+    `# ServiceNow Schema Comparison\n\n> Generated by [SN Schema Explorer](https://github.com/revampd/sn-schema-explorer) on ${date}\n\n---\n\n` +
+    diffToMarkdown(cmp);
+  const blob = new Blob([md], { type: 'text/markdown' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.md`);
+}
+
+export function exportComparisonJsonLd() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const doc = {
+    '@context': { sn: 'https://servicenow.com/schema#' },
+    '@id': 'https://servicenow.com/schema/comparison',
+    '@type': 'sn:Comparison',
+    'sn:exportedAt': new Date().toISOString(),
+    'sn:comparison': cmp,
+  };
+  const blob = new Blob([JSON.stringify(doc)], { type: 'application/ld+json' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.jsonld`);
+}
+
+export function exportComparisonTurtle() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const ttl =
+    '# ServiceNow Schema Comparison (diff-only export)\n' +
+    `# Generated on ${new Date().toISOString()}\n\n` +
+    diffToTurtleComment(cmp);
+  const blob = new Blob([ttl], { type: 'text/turtle;charset=utf-8' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.ttl`);
+}
+
+export function exportComparisonOpenApi() {
+  const cmp = _activeComparison();
+  if (!cmp) return _noComparison();
+  const yaml =
+    'openapi: 3.0.3\n' +
+    "info:\n  title: ServiceNow schema comparison\n  version: '1.0'\n" +
+    'paths: {}\n' +
+    'x-comparison:\n' +
+    toYaml(cmp, 1) +
+    '\n';
+  const blob = new Blob([yaml], { type: 'application/yaml' });
+  downloadBlob(blob, `sn_comparison_${_comparisonSlug()}_${exportTimestamp()}.yaml`);
+}
+
+// Edge-type legend items — mirrors the on-canvas legend (#edge-legend in
+// schema-map/canvas-overlays.html). Single source for drawing the legend into
+// image exports. `cssClass` matches the edge element class so we can detect
+// which types are actually drawn; `stroke`/`dash` reproduce the swatch.
+const EDGE_LEGEND_ITEMS = [
+  { key: 'ref-to', cssClass: 'edge-ref-to', label: 'Reference to', stroke: '#00c896', dash: '' },
+  {
+    key: 'ref-from',
+    cssClass: 'edge-ref-from',
+    label: 'Referenced by',
+    stroke: '#c46aff',
+    dash: '',
+  },
+  { key: 'ext', cssClass: 'edge-extends', label: 'Inheritance', stroke: '#2a6496', dash: '4 2' },
+  { key: 'm2m', cssClass: 'edge-m2m', label: 'M2M junction', stroke: '#06d6a0', dash: '2 3' },
+  {
+    key: 'rel',
+    cssClass: 'edge-rel',
+    label: 'Named relationship',
+    stroke: '#ff9f5a',
+    dash: '5 2 2 2',
+  },
+  { key: 'view', cssClass: 'edge-view', label: 'DB view member', stroke: '#ffd166', dash: '7 2' },
+  {
+    key: 'cmdbrel',
+    cssClass: 'edge-cmdbrel',
+    label: 'CI topology',
+    stroke: '#4dd0e1',
+    dash: '2 2 6 2',
+  },
+];
+
+// Which edge-type legend items are actually drawn in the live graph SVG —
+// i.e. an edge with that class exists and is not hidden. Disabled types are
+// hidden, so presence here means "currently shown". Returns items in
+// EDGE_LEGEND_ITEMS order.
+export function _presentEdgeTypes(svgEl) {
+  if (!svgEl) return [];
+  return EDGE_LEGEND_ITEMS.filter(item => {
+    const els = svgEl.querySelectorAll('.' + item.cssClass);
+    for (let i = 0; i < els.length; i++) {
+      if (els[i].style.display !== 'none' && !els[i].closest('[style*="display: none"]')) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+// Build a native-SVG edge-type legend group for export. `items` is a subset of
+// EDGE_LEGEND_ITEMS; `box` gives the top-left {x, y} in the export coordinate
+// space. Returns { group, width, height }.
+export function _buildEdgeLegendGroup(doc, items, box) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const PAD = 10;
+  const HEADER_H = 16;
+  const ROW_H = 16;
+  const SWATCH_W = 22;
+  const width = 150;
+  const height = PAD * 2 + HEADER_H + items.length * ROW_H;
+  const x = box.x;
+  const y = box.y;
+
+  const group = doc.createElementNS(NS, 'g');
+  group.setAttribute('transform', `translate(${x},${y})`);
+
+  const bg = doc.createElementNS(NS, 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('rx', 6);
+  bg.setAttribute('ry', 6);
+  bg.setAttribute('fill', 'rgba(10,15,25,0.85)');
+  bg.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+  bg.setAttribute('stroke-width', '1');
+  group.appendChild(bg);
+
+  const header = doc.createElementNS(NS, 'text');
+  header.setAttribute('x', PAD);
+  header.setAttribute('y', PAD + 8);
+  header.setAttribute('fill', '#8aa0b8');
+  header.setAttribute('font-family', "'Syne', sans-serif");
+  header.setAttribute('font-size', '8');
+  header.setAttribute('letter-spacing', '0.1em');
+  header.textContent = 'EDGE TYPES';
+  group.appendChild(header);
+
+  items.forEach((item, i) => {
+    const rowY = PAD + HEADER_H + i * ROW_H + ROW_H / 2;
+    const line = doc.createElementNS(NS, 'line');
+    line.setAttribute('x1', PAD);
+    line.setAttribute('y1', rowY);
+    line.setAttribute('x2', PAD + SWATCH_W);
+    line.setAttribute('y2', rowY);
+    line.setAttribute('stroke', item.stroke);
+    line.setAttribute('stroke-width', '1.5');
+    if (item.dash) line.setAttribute('stroke-dasharray', item.dash);
+    group.appendChild(line);
+
+    const label = doc.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD + SWATCH_W + 8);
+    label.setAttribute('y', rowY + 3);
+    label.setAttribute('fill', item.stroke);
+    label.setAttribute('font-family', "'JetBrains Mono', monospace");
+    label.setAttribute('font-size', '10');
+    label.textContent = item.label;
+    group.appendChild(label);
+  });
+
+  return { group, width, height };
+}
+
+// Diff-overlay legend items — mirrors the on-canvas diff colouring
+// (schema-diff/index.css). Colours are the literal values of --diff-* so the
+// exported image is self-contained. Drawn into image exports while a comparison
+// is active so the added/removed/changed colours are interpretable.
+const DIFF_LEGEND_ITEMS = [
+  { key: 'added', label: 'Added', color: '#4ade80' },
+  { key: 'removed', label: 'Removed', color: '#f87171' },
+  { key: 'changed', label: 'Changed', color: '#fbbf24' },
+];
+
+// Which diff statuses are actually present in the active (primary) comparison —
+// the canvas colours key off `_diffData` (low-cardinality). Returns items in
+// DIFF_LEGEND_ITEMS order; empty when not comparing.
+export function _presentDiffStatuses() {
+  const d = diffState._diffData;
+  if (!d) return [];
+  const out = [];
+  if (d.added && d.added.size) out.push(DIFF_LEGEND_ITEMS[0]);
+  if (d.removed && d.removed.size) out.push(DIFF_LEGEND_ITEMS[1]);
+  if (d.changed && d.changed.size) out.push(DIFF_LEGEND_ITEMS[2]);
+  return out;
+}
+
+// Build a native-SVG diff legend group for export. Mirrors _buildEdgeLegendGroup
+// but uses filled swatches. `items` is a subset of DIFF_LEGEND_ITEMS; `box` is the
+// top-left {x, y}. Returns { group, width, height }.
+export function _buildDiffLegendGroup(doc, items, box) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const PAD = 10;
+  const HEADER_H = 16;
+  const ROW_H = 16;
+  const SWATCH_W = 14;
+  const SWATCH_H = 10;
+  const width = 130;
+  const height = PAD * 2 + HEADER_H + items.length * ROW_H;
+
+  const group = doc.createElementNS(NS, 'g');
+  group.setAttribute('transform', `translate(${box.x},${box.y})`);
+
+  const bg = doc.createElementNS(NS, 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('rx', 6);
+  bg.setAttribute('ry', 6);
+  bg.setAttribute('fill', 'rgba(10,15,25,0.85)');
+  bg.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+  bg.setAttribute('stroke-width', '1');
+  group.appendChild(bg);
+
+  const header = doc.createElementNS(NS, 'text');
+  header.setAttribute('x', PAD);
+  header.setAttribute('y', PAD + 8);
+  header.setAttribute('fill', '#8aa0b8');
+  header.setAttribute('font-family', "'Syne', sans-serif");
+  header.setAttribute('font-size', '8');
+  header.setAttribute('letter-spacing', '0.1em');
+  header.textContent = 'DIFFERENCES';
+  group.appendChild(header);
+
+  items.forEach((item, i) => {
+    const rowY = PAD + HEADER_H + i * ROW_H + ROW_H / 2;
+    const swatch = doc.createElementNS(NS, 'rect');
+    swatch.setAttribute('x', PAD);
+    swatch.setAttribute('y', rowY - SWATCH_H / 2);
+    swatch.setAttribute('width', SWATCH_W);
+    swatch.setAttribute('height', SWATCH_H);
+    swatch.setAttribute('rx', 2);
+    swatch.setAttribute('ry', 2);
+    swatch.setAttribute('fill', item.color);
+    group.appendChild(swatch);
+
+    const label = doc.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD + SWATCH_W + 8);
+    label.setAttribute('y', rowY + 3);
+    label.setAttribute('fill', item.color);
+    label.setAttribute('font-family', "'JetBrains Mono', monospace");
+    label.setAttribute('font-size', '10');
+    label.textContent = item.label;
+    group.appendChild(label);
+  });
+
+  return { group, width, height };
+}
+
+export function buildExportSvg(opts) {
+  opts = opts || {};
+  const scope = opts.scope || 'viewport';
+  const svgEl = document.getElementById('graph');
+  if (!svgEl) return null;
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+  let exportWidth, exportHeight;
+  if (scope === 'full') {
+    const liveRoot = document.getElementById('graph-root');
+    if (liveRoot) {
+      let bb;
+      try {
+        bb = liveRoot.getBBox();
+      } catch (_) {
+        bb = null;
+      }
+      if (bb && bb.width > 0 && bb.height > 0) {
+        const MARGIN = 40;
+        const x = Math.floor(bb.x - MARGIN);
+        const y = Math.floor(bb.y - MARGIN);
+        const w = Math.ceil(bb.width + MARGIN * 2);
+        const h = Math.ceil(bb.height + MARGIN * 2);
+        clone.setAttribute('viewBox', x + ' ' + y + ' ' + w + ' ' + h);
+        clone.setAttribute('width', w);
+        clone.setAttribute('height', h);
+        exportWidth = w;
+        exportHeight = h;
+        const cloneRoot = clone.querySelector('#graph-root');
+        if (cloneRoot) cloneRoot.removeAttribute('transform');
+      }
+    }
+  }
+  if (!exportWidth) {
+    const rect = svgEl.getBoundingClientRect();
+    exportWidth = Math.round(rect.width);
+    exportHeight = Math.round(rect.height);
+    clone.setAttribute('width', exportWidth);
+    clone.setAttribute('height', exportHeight);
+  }
+  const STYLE_PROPS = [
+    'fill',
+    'fill-opacity',
+    'stroke',
+    'stroke-width',
+    'stroke-opacity',
+    'stroke-dasharray',
+    'stroke-linecap',
+    'stroke-linejoin',
+    'opacity',
+    'font-family',
+    'font-size',
+    'font-weight',
+    'text-anchor',
+    'dominant-baseline',
+  ];
+  const CONTAINER_SKIP = new Set([
+    'fill',
+    'fill-opacity',
+    'stroke',
+    'stroke-width',
+    'stroke-opacity',
+    'color',
+  ]);
+  const CONTAINER_TAGS = new Set(['g', 'svg', 'defs', 'marker', 'symbol', 'pattern']);
+
+  const liveEls = svgEl.querySelectorAll('*');
+  const cloneEls = clone.querySelectorAll('*');
+  for (let i = 0; i < liveEls.length; i++) {
+    const liveEl = liveEls[i];
+    const cloneEl = cloneEls[i];
+    if (!cloneEl) continue;
+    const tag = liveEl.tagName.toLowerCase();
+    const isContainer = CONTAINER_TAGS.has(tag);
+    const cs = getComputedStyle(liveEl);
+    let inline = '';
+    for (const p of STYLE_PROPS) {
+      if (isContainer && CONTAINER_SKIP.has(p)) continue;
+      const v = cs.getPropertyValue(p);
+      if (!v) continue;
+      if (v === 'normal') continue;
+      inline += `${p}:${v};`;
+    }
+    if (liveEl.style.display === 'none') inline += 'display:none;';
+    if (liveEl.style.visibility === 'hidden') inline += 'visibility:hidden;';
+    if (inline) cloneEl.setAttribute('style', inline);
+  }
+
+  const _exportBg = getExportBgColor();
+  if (_exportBg !== 'transparent') {
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const vb = clone.getAttribute('viewBox');
+    if (vb) {
+      const parts = vb.split(/\s+/).map(Number);
+      bg.setAttribute('x', parts[0]);
+      bg.setAttribute('y', parts[1]);
+      bg.setAttribute('width', parts[2]);
+      bg.setAttribute('height', parts[3]);
+    } else {
+      bg.setAttribute('width', '100%');
+      bg.setAttribute('height', '100%');
+    }
+    bg.setAttribute(
+      'fill',
+      _exportBg || getComputedStyle(document.getElementById('canvas')).backgroundColor || '#0b1220'
+    );
+    clone.insertBefore(bg, clone.firstChild);
+  }
+  // 'transparent' → no rect inserted; PNG canvas default is transparent,
+  // SVG renders without a background element.
+
+  // Legends — drawn as native SVG (not foreignObject, which PNG rasterisation
+  // handles unreliably) into the export's screen-space, so they ignore the
+  // graph-root pan/zoom transform. Both are gated by the single "Legend" toggle
+  // and stacked bottom-left: the edge-type legend at the bottom, the diff legend
+  // above it (only while a comparison is painting). Only present items are shown.
+  if (getExportIncludeLegend()) {
+    const doc = clone.ownerDocument || document;
+    const PAD = 16;
+    const GAP = 8;
+    let originX, cursorY;
+    const vb = clone.getAttribute('viewBox');
+    if (vb) {
+      const p = vb.split(/\s+/).map(Number);
+      originX = p[0] + PAD;
+      cursorY = p[1] + p[3] - PAD; // bottom edge of the legend stack
+    } else {
+      originX = PAD;
+      cursorY = exportHeight - PAD;
+    }
+    const edgeItems = _presentEdgeTypes(svgEl);
+    if (edgeItems.length) {
+      const h = _buildEdgeLegendGroup(doc, edgeItems, { x: 0, y: 0 }).height;
+      cursorY -= h;
+      clone.appendChild(_buildEdgeLegendGroup(doc, edgeItems, { x: originX, y: cursorY }).group);
+      cursorY -= GAP;
+    }
+    const diffItems = isStructureLayerOn() ? _presentDiffStatuses() : [];
+    if (diffItems.length) {
+      const h = _buildDiffLegendGroup(doc, diffItems, { x: 0, y: 0 }).height;
+      cursorY -= h;
+      clone.appendChild(_buildDiffLegendGroup(doc, diffItems, { x: originX, y: cursorY }).group);
+    }
+  }
+
+  return {
+    svg: new XMLSerializer().serializeToString(clone),
+    width: exportWidth,
+    height: exportHeight,
+  };
+}
+
+const PNG_SCALE_KEY = 'snse:pngExportScale';
+export function getPngExportScale() {
+  const raw = localStorage.getItem(PNG_SCALE_KEY);
+  const n = parseInt(raw, 10);
+  const max = Settings.getMaxPngScale();
+  if (n >= 1 && n <= max) return n;
+  return Math.min(2, max);
+}
+export function setPngExportScale(n) {
+  n = Math.max(1, Math.min(Settings.getMaxPngScale(), Math.round(n)));
+  try {
+    localStorage.setItem(PNG_SCALE_KEY, String(n));
+  } catch (e) {
+    console.warn('Export: localStorage write failed', e);
+  }
+  const slider = document.getElementById('export-scale-slider');
+  if (slider) slider.value = n;
+  const valEl = document.getElementById('export-scale-val');
+  if (valEl) valEl.textContent = n + '×';
+  _updateScaleInfo(n);
+}
+
+const EXPORT_BG_KEY = 'snse:exportBgColor';
+
+export function getExportBgColor() {
+  // null → use canvas computed background (default behaviour)
+  // hex string → user-chosen solid color
+  // 'transparent' → no background rect
+  return localStorage.getItem(EXPORT_BG_KEY) || null;
+}
+
+export function setExportBgColor(value) {
+  try {
+    localStorage.setItem(EXPORT_BG_KEY, value);
+  } catch (e) {
+    console.warn('Export: localStorage write failed', e);
+  }
+  _syncBgUI();
+}
+
+const INCLUDE_LEGEND_KEY = 'snse:exportIncludeLegend';
+
+export function getExportIncludeLegend() {
+  return localStorage.getItem(INCLUDE_LEGEND_KEY) === '1';
+}
+
+export function setExportIncludeLegend(on) {
+  try {
+    localStorage.setItem(INCLUDE_LEGEND_KEY, on ? '1' : '0');
+  } catch (e) {
+    console.warn('Export: localStorage write failed', e);
+  }
+  const cb = document.getElementById('export-include-legend');
+  if (cb) cb.checked = !!on;
+}
+
+// ── Custom HSV color picker ───────────────────────────────────────────────────
+
+let _cpH = 200,
+  _cpS = 0.7,
+  _cpV = 0.15; // HSV state (h: 0–359, s/v: 0–1)
+let _cpA = 1; // opacity 0–1 (0 = transparent)
+let _cpDragging = false;
+
+function _updateAlphaSliderBg() {
+  const wrap = document.querySelector('.export-cp-alpha-wrap');
+  if (!wrap) return;
+  const { r, g, b } = _hsvToRgb(_cpH, _cpS, _cpV);
+  wrap.style.setProperty('--alpha-color', `rgb(${r},${g},${b})`);
+}
+
+function _drawSVCanvas() {
+  const canvas = document.getElementById('export-cp-sv');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width,
+    H = canvas.height;
+  // Saturation gradient: white → pure hue
+  const { r, g, b } = _hsvToRgb(_cpH, 1, 1);
+  const satGrad = ctx.createLinearGradient(0, 0, W, 0);
+  satGrad.addColorStop(0, '#fff');
+  satGrad.addColorStop(1, `rgb(${r},${g},${b})`);
+  ctx.fillStyle = satGrad;
+  ctx.fillRect(0, 0, W, H);
+  // Value gradient: transparent → black (top → bottom)
+  const valGrad = ctx.createLinearGradient(0, 0, 0, H);
+  valGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  valGrad.addColorStop(1, '#000');
+  ctx.fillStyle = valGrad;
+  ctx.fillRect(0, 0, W, H);
+  // Cursor ring
+  const cx = _cpS * W,
+    cy = (1 - _cpV) * H;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.strokeStyle = _cpV > 0.45 && _cpS < 0.85 ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function _cpSyncOutput() {
+  const { r, g, b } = _hsvToRgb(_cpH, _cpS, _cpV);
+  const hex = _rgbToHex(r, g, b);
+  const swBtn = document.getElementById('export-bg-swatch-btn');
+  const hexEl = document.getElementById('export-bg-hex');
+  let stored;
+  if (_cpA <= 0) {
+    stored = 'transparent';
+    if (swBtn) {
+      swBtn.classList.add('transparent-mode');
+      swBtn.style.background = '';
+    }
+    if (hexEl) {
+      hexEl.value = '';
+      hexEl.placeholder = 'transparent';
+      hexEl.classList.remove('invalid');
+    }
+  } else {
+    const a = parseFloat(_cpA.toFixed(3));
+    stored = a >= 1 ? hex : `rgba(${r},${g},${b},${a})`;
+    if (swBtn) {
+      swBtn.style.background = `rgba(${r},${g},${b},${_cpA})`;
+      swBtn.classList.remove('transparent-mode');
+    }
+    if (hexEl) {
+      hexEl.value = hex;
+      hexEl.classList.remove('invalid');
+      hexEl.placeholder = '#rrggbb';
+    }
+  }
+  _updateAlphaSliderBg();
+  try {
+    localStorage.setItem(EXPORT_BG_KEY, stored);
+  } catch (e) {
+    console.warn('Export: localStorage write failed', e);
+  }
+}
+
+function _cpSyncFromHex(raw) {
+  const alphaSlider = document.getElementById('export-cp-alpha');
+  // transparent / null / empty
+  if (!raw || raw === 'transparent') {
+    _cpA = 0;
+    if (alphaSlider) alphaSlider.value = 0;
+    _updateAlphaSliderBg();
+    return true;
+  }
+  // rgba(r,g,b,a) or rgb(r,g,b)
+  const m = String(raw).match(
+    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([0-9.]+))?\s*\)$/
+  );
+  if (m) {
+    const { h, s, v: val } = _rgbToHsv(+m[1], +m[2], +m[3]);
+    _cpH = h;
+    _cpS = s;
+    _cpV = val;
+    _cpA = m[4] != null ? Math.min(1, Math.max(0, parseFloat(m[4]))) : 1;
+    const hueSlider = document.getElementById('export-cp-hue');
+    if (hueSlider) hueSlider.value = Math.round(_cpH);
+    if (alphaSlider) alphaSlider.value = Math.round(_cpA * 100);
+    _drawSVCanvas();
+    _updateAlphaSliderBg();
+    return true;
+  }
+  // #rrggbb hex
+  const n = _normaliseHex(raw);
+  if (!n) return false;
+  const v = parseInt(n.slice(1), 16);
+  const { h, s, v: val } = _rgbToHsv((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
+  _cpH = h;
+  _cpS = s;
+  _cpV = val;
+  _cpA = 1;
+  const hueSlider = document.getElementById('export-cp-hue');
+  if (hueSlider) hueSlider.value = Math.round(_cpH);
+  if (alphaSlider) alphaSlider.value = 100;
+  _drawSVCanvas();
+  _updateAlphaSliderBg();
+  return true;
+}
+
+function _cpOpen() {
+  const picker = document.getElementById('export-color-picker');
+  const swBtn = document.getElementById('export-bg-swatch-btn');
+  if (!picker) return;
+  picker.hidden = false;
+  if (swBtn) swBtn.setAttribute('aria-expanded', 'true');
+  // Sync canvas resolution to its actual rendered width (avoids blur)
+  const canvas = document.getElementById('export-cp-sv');
+  if (canvas && canvas.clientWidth > 0) {
+    const w = canvas.clientWidth;
+    canvas.width = w;
+    canvas.height = Math.round((w * 130) / 240);
+  }
+  const stored = getExportBgColor();
+  if (!stored) {
+    // First use — default dark bg at full opacity
+    _cpA = 1;
+    const alphaSlider = document.getElementById('export-cp-alpha');
+    if (alphaSlider) alphaSlider.value = 100;
+    _cpSyncFromHex('#0b1220');
+  } else {
+    _cpSyncFromHex(stored);
+  }
+}
+
+function _cpClose() {
+  const picker = document.getElementById('export-color-picker');
+  const swBtn = document.getElementById('export-bg-swatch-btn');
+  if (picker) picker.hidden = true;
+  if (swBtn) swBtn.setAttribute('aria-expanded', 'false');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _syncBgUI() {
+  const swBtn = document.getElementById('export-bg-swatch-btn');
+  const hexInput = document.getElementById('export-bg-hex');
+  if (!swBtn) return;
+  const stored = getExportBgColor();
+  if (hexInput) hexInput.classList.remove('invalid');
+  if (!stored || stored === 'transparent') {
+    swBtn.classList.add('transparent-mode');
+    swBtn.style.background = '';
+    if (hexInput) {
+      hexInput.value = '';
+      hexInput.placeholder = 'transparent';
+    }
+  } else if (/^rgba?\(/.test(stored)) {
+    swBtn.classList.remove('transparent-mode');
+    swBtn.style.background = stored;
+    if (hexInput) {
+      const m = stored.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if (m) hexInput.value = _rgbToHex(+m[1], +m[2], +m[3]);
+    }
+  } else {
+    swBtn.classList.remove('transparent-mode');
+    swBtn.style.background = stored;
+    if (hexInput) {
+      hexInput.value = stored;
+      hexInput.placeholder = '#rrggbb';
+    }
+  }
+  // Keep picker in sync if open
+  const picker = document.getElementById('export-color-picker');
+  if (picker && !picker.hidden) _cpSyncFromHex(stored || '#0b1220');
+}
+
+function detectCanvasLimit() {
+  const candidates = [268435456, 67108864, 16777216, 8388608];
+  const probe = document.createElement('canvas');
+  for (const area of candidates) {
+    const side = Math.ceil(Math.sqrt(area));
+    probe.width = side;
+    probe.height = side;
+    const ctx = probe.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = 'rgb(1,0,0)';
+    ctx.fillRect(0, 0, 1, 1);
+    try {
+      if (ctx.getImageData(0, 0, 1, 1).data[0] === 1) return area;
+    } catch (_) {}
+  }
+  return 4194304;
+}
+// Guarded so the module can be imported in a non-DOM context (unit tests for the
+// pure serialisers). In the browser this is unchanged; in Node it skips the
+// canvas probe and uses a conservative default.
+const PNG_MAX_PIXELS = typeof document !== 'undefined' ? detectCanvasLimit() : 4194304;
+// Seed the Settings max-scale default based on what this browser can actually handle.
+// Only affects first-time users; stored preferences are always respected.
+if (typeof document !== 'undefined') Settings.initMaxPngScale(PNG_MAX_PIXELS);
+export function rasteriseSvgToPng(svgText, logicalW, logicalH, requestedScale, filename) {
+  let scale = requestedScale;
+  let capped = false;
+  while (scale > 1 && logicalW * scale * (logicalH * scale) > PNG_MAX_PIXELS) {
+    scale--;
+    capped = true;
+  }
+  const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = Math.round(logicalW * scale);
+    c.height = Math.round(logicalH * scale);
+    const ctx = c.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    c.toBlob(blob => {
+      if (!blob) {
+        alert('PNG export failed — the browser could not generate the image.');
+        return;
+      }
+      downloadBlob(blob, filename);
+      if (capped) {
+        console.info(
+          '[export] PNG was capped at ' +
+            scale +
+            '× to stay under the browser canvas size limit (' +
+            PNG_MAX_PIXELS.toLocaleString() +
+            ' pixels).'
+        );
+      }
+    }, 'image/png');
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    alert('PNG export failed — the browser could not rasterise the SVG.');
+  };
+  img.src = url;
+}
+
+export function exportViewSVG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'viewport' });
+  if (!result) return;
+  const blob = new Blob([result.svg], { type: 'image/svg+xml;charset=utf-8' });
+  downloadBlob(blob, `sn_view_${exportSlug()}_${exportTimestamp()}.svg`);
+}
+
+export function exportViewPNG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'viewport' });
+  if (!result) return;
+  rasteriseSvgToPng(
+    result.svg,
+    result.width,
+    result.height,
+    getPngExportScale(),
+    `sn_view_${exportSlug()}_${exportTimestamp()}.png`
+  );
+}
+
+export function exportFullSVG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'full' });
+  if (!result) return;
+  const blob = new Blob([result.svg], { type: 'image/svg+xml;charset=utf-8' });
+  downloadBlob(blob, `sn_full_${exportSlug()}_${exportTimestamp()}.svg`);
+}
+
+export function exportFullPNG() {
+  if (!graphState.graphData) return;
+  const result = buildExportSvg({ scope: 'full' });
+  if (!result) return;
+  rasteriseSvgToPng(
+    result.svg,
+    result.width,
+    result.height,
+    getPngExportScale(),
+    `sn_full_${exportSlug()}_${exportTimestamp()}.png`
+  );
+}
+
+function _updateScaleInfo(scale) {
+  const infoEl = document.getElementById('export-scale-info');
+  if (!infoEl) return;
+  const cv = Dom.canvas;
+  if (!cv || !cv.clientWidth || !cv.clientHeight) {
+    infoEl.textContent = '';
+    return;
+  }
+  const w = Math.round(cv.clientWidth * scale);
+  const h = Math.round(cv.clientHeight * scale);
+  const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  let text = `→ ${fmt(w)} × ${fmt(h)} px`;
+  if (w * h > PNG_MAX_PIXELS) {
+    let cappedScale = scale;
+    while (
+      cappedScale > 1 &&
+      cv.clientWidth * cappedScale * cv.clientHeight * cappedScale > PNG_MAX_PIXELS
+    ) {
+      cappedScale--;
+    }
+    text += `  (capped at ${cappedScale}×)`;
+    infoEl.classList.add('export-scale-capped');
+  } else {
+    infoEl.classList.remove('export-scale-capped');
+  }
+  infoEl.textContent = text;
+}
+
+// ── Export bar (panel below header) ──────────────────────────────────────────
+
+let _dataScope = 'full'; // 'full' | 'neighbourhood' | 'comparison' — for data formats
+let _imageScope = 'view'; // 'view' | 'full'            — for PNG / SVG
+
+// Data-export dispatch: scope → format → handler. The 'comparison' scope (#177)
+// emits only the diff; it's only selectable while a comparison is active.
+const _DATA_EXPORTS = {
+  full: {
+    json: exportSchemaJSON,
+    markdown: exportSchemaMarkdown,
+    jsonld: exportSchemaJsonLd,
+    turtle: exportSchemaTurtle,
+    openapi: exportSchemaOpenApi,
+  },
+  neighbourhood: {
+    json: exportNeighbourhoodJSON,
+    markdown: exportNeighbourhoodMarkdown,
+    jsonld: exportNeighbourhoodJsonLd,
+    turtle: exportNeighbourhoodTurtle,
+    openapi: exportNeighbourhoodOpenApi,
+  },
+  comparison: {
+    json: exportComparisonJSON,
+    markdown: exportComparisonMarkdown,
+    jsonld: exportComparisonJsonLd,
+    turtle: exportComparisonTurtle,
+    openapi: exportComparisonOpenApi,
+  },
+};
+
+function _syncScopeUI() {
+  const isNbhd = _dataScope === 'neighbourhood';
+  const isImgFull = _imageScope === 'full';
+  const hasSelect = !!uiState.selectedNode;
+
+  // Data scope toggle — three-way (full / neighbourhood / comparison), mutually
+  // exclusive. The comparison button's visibility is managed in _syncComparisonUI.
+  document
+    .getElementById('export-data-scope-full')
+    ?.classList.toggle('active', _dataScope === 'full');
+  document
+    .getElementById('export-data-scope-nbhd')
+    ?.classList.toggle('active', _dataScope === 'neighbourhood');
+  // Image scope toggle
+  document.getElementById('export-img-scope-view')?.classList.toggle('active', !isImgFull);
+  document.getElementById('export-img-scope-full')?.classList.toggle('active', isImgFull);
+
+  // Data format buttons — disabled when neighbourhood scope but nothing selected
+  const dataDisabled = isNbhd && !hasSelect;
+  for (const id of ['epb-json', 'epb-markdown', 'epb-jsonld', 'epb-turtle', 'epb-openapi']) {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = dataDisabled;
+  }
+  // Hint text
+  const hint = document.getElementById('export-nbhd-hint');
+  if (hint) hint.hidden = !(isNbhd && !hasSelect);
+
+  _syncComparisonUI();
+}
+
+// The active compares, as {id,label}, from the diff matrix (selection order).
+function _activeCompareList() {
+  return (diffState._diffMatrix || []).map(d => ({
+    id: d._compareId,
+    label: d._compareLabel || d._compareId,
+  }));
+}
+
+function _isIncluded(id) {
+  return _includedCompareIds === null || _includedCompareIds.includes(id);
+}
+
+// Show/hide the comparison affordances and render the compare picker. Gated on an
+// active comparison; resets the 'comparison' scope when comparing stops.
+function _syncComparisonUI() {
+  const comparing = isComparing() && !!diffState._diffMatrix?.length;
+  const cmpScopeBtn = document.getElementById('export-data-scope-cmp');
+  const controls = document.getElementById('export-comparison-controls');
+  if (cmpScopeBtn) cmpScopeBtn.hidden = !comparing;
+  if (controls) controls.hidden = !comparing;
+
+  // Fall back to Full when the comparison goes away mid-session.
+  if (!comparing && _dataScope === 'comparison') {
+    _dataScope = 'full';
+    document.getElementById('export-data-scope-full')?.classList.add('active');
+    document.getElementById('export-data-scope-cmp')?.classList.remove('active');
+  }
+  if (cmpScopeBtn) cmpScopeBtn.classList.toggle('active', _dataScope === 'comparison');
+  if (!comparing) return;
+
+  // The embedded toggle only applies to Full / Neighbourhood — the Comparison
+  // scope IS the diff, so hide it there.
+  const includeWrap = document.getElementById('export-include-comparison-wrap');
+  if (includeWrap) includeWrap.hidden = _dataScope === 'comparison';
+  const includeCb = document.getElementById('export-include-comparison');
+  if (includeCb) includeCb.checked = _includeComparison;
+
+  const picker = document.getElementById('export-compare-picker');
+  if (picker) {
+    picker.textContent = '';
+    for (const c of _activeCompareList()) {
+      const chip = document.createElement('label');
+      chip.className = 'export-compare-chip' + (_isIncluded(c.id) ? ' active' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = _isIncluded(c.id);
+      cb.dataset.compareId = c.id;
+      const span = document.createElement('span');
+      span.textContent = c.label;
+      chip.appendChild(cb);
+      chip.appendChild(span);
+      picker.appendChild(chip);
+    }
+  }
+}
+
+// Toggle one compare's membership, normalising "all selected" back to null.
+function _toggleIncludedCompare(id, on) {
+  const all = _activeCompareList().map(c => c.id);
+  let set = _includedCompareIds === null ? all.slice() : _includedCompareIds.slice();
+  if (on) {
+    if (!set.includes(id)) set.push(id);
+  } else {
+    set = set.filter(x => x !== id);
+  }
+  // Canonicalise: every compare selected → null ("all").
+  _includedCompareIds = all.every(x => set.includes(x)) ? null : set;
+  _syncComparisonUI();
+}
+
+// Config Data export handler — injected by modules/config-data so the bar can
+// trigger a CSV / JSON download of the active section comparison without the
+// export module importing the config workspace (avoids a circular import).
+let _configExportHook = null;
+export function setConfigExportHook(fn) {
+  _configExportHook = fn;
+}
+
+export function exportBarOpen() {
+  if (!Dom.exportBar) return;
+  const maxScale = Settings.getMaxPngScale();
+  const slider = document.getElementById('export-scale-slider');
+  if (slider) {
+    slider.max = maxScale;
+    const persisted = getPngExportScale();
+    slider.value = persisted;
+    const valEl = document.getElementById('export-scale-val');
+    if (valEl) valEl.textContent = persisted + '×';
+    _updateScaleInfo(persisted);
+  }
+  const legendCb = document.getElementById('export-include-legend');
+  if (legendCb) legendCb.checked = getExportIncludeLegend();
+  _syncBgUI();
+  _syncScopeUI();
+  Dom.exportBar.classList.add('open');
+  Dom.btnExport.setAttribute('aria-expanded', 'true');
+}
+
+export function exportBarClose() {
+  if (!Dom.exportBar) return;
+  Dom.exportBar.classList.remove('open');
+  Dom.btnExport.setAttribute('aria-expanded', 'false');
+  _cpClose();
+}
+
+/** @deprecated kept for back-compat — callers should use exportBarOpen/Close */
+export function exportMenuOpen() {
+  exportBarOpen();
+}
+export function exportMenuClose() {
+  exportBarClose();
+}
+
+export function fitGraph() {
+  if (!graphState.graphData) return;
+  const b = root.node().getBBox();
+  if (!b.width) return;
+  const cv = Dom.canvas,
+    W = cv.clientWidth,
+    H = cv.clientHeight;
+  const s = Math.min(0.9, 0.9 / Math.max(b.width / W, b.height / H));
+  svg
+    .transition()
+    .duration(600)
+    .call(
+      zoom.transform,
+      d3.zoomIdentity
+        .translate(W / 2 - s * (b.x + b.width / 2), H / 2 - s * (b.y + b.height / 2))
+        .scale(s)
+    );
+}
+
+export function initExportListeners() {
+  // Toggle export bar
+  Dom.btnExport.addEventListener('click', e => {
+    e.stopPropagation();
+    if (Dom.exportBar?.classList.contains('open')) exportBarClose();
+    else exportBarOpen();
+  });
+
+  // Comparison controls — embedded toggle + which-compares multi-select (#177).
+  Dom.exportBar?.addEventListener('change', e => {
+    if (e.target.id === 'export-include-comparison') {
+      _includeComparison = e.target.checked;
+      return;
+    }
+    const cmpCb = e.target.closest('.export-compare-chip input');
+    if (cmpCb) {
+      _toggleIncludedCompare(cmpCb.dataset.compareId, cmpCb.checked);
+    }
+  });
+
+  // Scope toggles + format buttons (delegated on the bar)
+  Dom.exportBar?.addEventListener('click', e => {
+    // Scope toggle — data or image row, independent
+    const scopeBtn = e.target.closest('.export-scope-btn');
+    if (scopeBtn) {
+      const { cat, scope } = scopeBtn.dataset;
+      if (cat === 'data') _dataScope = scope;
+      if (cat === 'image') _imageScope = scope;
+      _syncScopeUI();
+      return;
+    }
+    // Format button — dispatch based on format + category scope, then close
+    const fmtBtn = e.target.closest('.export-fmt-btn');
+    if (fmtBtn && !fmtBtn.disabled) {
+      const { fmt, cat } = fmtBtn.dataset;
+      exportBarClose();
+      if (cat === 'config') {
+        _configExportHook?.(fmt);
+        return;
+      }
+      if (cat === 'data') {
+        const fn = _DATA_EXPORTS[_dataScope]?.[fmt];
+        if (fn) fn();
+        return;
+      }
+      if (cat === 'image') {
+        if (_imageScope === 'view') {
+          if (fmt === 'png') {
+            exportViewPNG();
+            return;
+          }
+          if (fmt === 'svg') {
+            exportViewSVG();
+            return;
+          }
+        } else {
+          if (fmt === 'png') {
+            exportFullPNG();
+            return;
+          }
+          if (fmt === 'svg') {
+            exportFullSVG();
+            return;
+          }
+        }
+      }
+    }
+  });
+
+  // Close on Escape or click outside the bar
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && Dom.exportBar?.classList.contains('open')) {
+      exportBarClose();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!Dom.exportBar?.classList.contains('open')) return;
+    if (e.target.closest('#export-bar') || e.target.closest('#btn-export')) return;
+    exportBarClose();
+  });
+
+  // Swatch button — toggle picker open/close
+  document.getElementById('export-bg-swatch-btn')?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const picker = document.getElementById('export-color-picker');
+    if (picker && !picker.hidden) _cpClose();
+    else _cpOpen();
+  });
+
+  // SV canvas — drag to pick saturation + value (mouse + touch)
+  const _svCanvas = document.getElementById('export-cp-sv');
+  if (_svCanvas) {
+    const _svCoords = (clientX, clientY) => {
+      const rect = _svCanvas.getBoundingClientRect();
+      _cpS = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      _cpV = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    };
+    _svCanvas.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      _cpDragging = true;
+      _svCoords(e.clientX, e.clientY);
+      _drawSVCanvas();
+      _cpSyncOutput();
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!_cpDragging) return;
+      _svCoords(e.clientX, e.clientY);
+      _drawSVCanvas();
+      _cpSyncOutput();
+    });
+    document.addEventListener('mouseup', () => {
+      _cpDragging = false;
+    });
+    // Touch support
+    _svCanvas.addEventListener(
+      'touchstart',
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!e.touches[0]) return;
+        _cpDragging = true;
+        _svCoords(e.touches[0].clientX, e.touches[0].clientY);
+        _drawSVCanvas();
+        _cpSyncOutput();
+      },
+      { passive: false }
+    );
+    _svCanvas.addEventListener(
+      'touchmove',
+      function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!_cpDragging || !e.touches[0]) return;
+        _svCoords(e.touches[0].clientX, e.touches[0].clientY);
+        _drawSVCanvas();
+        _cpSyncOutput();
+      },
+      { passive: false }
+    );
+    _svCanvas.addEventListener(
+      'touchend',
+      function () {
+        _cpDragging = false;
+      },
+      { passive: false }
+    );
+  }
+
+  // Hue slider — update hue, redraw canvas
+  document.getElementById('export-cp-hue')?.addEventListener('input', function (e) {
+    e.stopPropagation();
+    _cpH = parseInt(this.value, 10);
+    _drawSVCanvas();
+    _cpSyncOutput();
+  });
+
+  // Alpha slider — update opacity
+  document.getElementById('export-cp-alpha')?.addEventListener('input', function (e) {
+    e.stopPropagation();
+    _cpA = parseInt(this.value, 10) / 100;
+    _cpSyncOutput();
+  });
+
+  // Scale slider — live label + info, persist on release
+  const _scaleSlider = document.getElementById('export-scale-slider');
+  if (_scaleSlider) {
+    _scaleSlider.addEventListener('input', function (e) {
+      e.stopPropagation();
+      const n = parseInt(this.value, 10);
+      const valEl = document.getElementById('export-scale-val');
+      if (valEl) valEl.textContent = n + '×';
+      _updateScaleInfo(n);
+    });
+    _scaleSlider.addEventListener('change', function (e) {
+      e.stopPropagation();
+      setPngExportScale(parseInt(this.value, 10));
+    });
+  }
+
+  // Include-edge-legend checkbox
+  const _legendCb = document.getElementById('export-include-legend');
+  if (_legendCb) {
+    _legendCb.addEventListener('change', function (e) {
+      e.stopPropagation();
+      setExportIncludeLegend(this.checked);
+    });
+  }
+
+  // Hex text input — live swatch preview on input, validate + store on blur
+  const _hexEl = document.getElementById('export-bg-hex');
+  if (_hexEl) {
+    _hexEl.addEventListener('input', function (e) {
+      e.stopPropagation();
+      const v = _normaliseHex(this.value);
+      this.classList.toggle('invalid', !!this.value && !v);
+      if (v) {
+        const swBtn = document.getElementById('export-bg-swatch-btn');
+        if (swBtn) {
+          swBtn.style.background = v;
+          swBtn.classList.remove('transparent-mode');
+        }
+        const picker = document.getElementById('export-color-picker');
+        if (picker && !picker.hidden) _cpSyncFromHex(v);
+      }
+    });
+    _hexEl.addEventListener('blur', function () {
+      const v = _normaliseHex(this.value);
+      if (v) setExportBgColor(v);
+      else _syncBgUI(); // revert invalid entry to stored value
+    });
+    _hexEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        this.blur();
+        e.preventDefault();
+      }
+    });
+  }
+}

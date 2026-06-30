@@ -31,6 +31,7 @@ async function injectSchema(page, schema) {
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(schema)),
   });
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('svg .node, svg g.node, svg circle', { timeout: 15_000 });
 }
 
@@ -82,7 +83,7 @@ test.describe('Export (image)', () => {
 
     // Enable the legend and re-export — the legend group should be embedded.
     await page.locator('#btn-export').click();
-    await page.locator('.export-toggle').click(); // styled switch wraps the input
+    await page.locator('.sn-toggle:has(#export-include-legend)').click(); // styled switch wraps the input
     await expect(cb).toBeChecked();
     const dl2 = page.waitForEvent('download');
     await page.locator('#epb-svg').click();
@@ -102,7 +103,7 @@ test.describe('Path Finder dot-walk', () => {
     await loadApp(page, { enableFeatures: { pathFinding: true } });
     await injectSchema(page, SCHEMA_OUTPUT);
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await page.locator('#pf-source').fill('incident');
     await page.locator('#pf-target').fill('sys_user');
     await page.locator('#pf-find').click();
@@ -129,11 +130,11 @@ test.describe('Sidebar sync', () => {
     // Default view: table list visible, path sidebar hidden.
     await expect(page.locator('#table-list')).toBeVisible();
 
-    await page.locator('#vms-path').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="path"]').click();
     await expect(page.locator('#pf-sidebar')).toBeVisible();
     await expect(page.locator('#table-list')).toBeHidden();
 
-    await page.locator('#vms-force').click();
+    await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
     await expect(page.locator('#pf-sidebar')).toBeHidden();
     await expect(page.locator('#table-list')).toBeVisible();
   });
@@ -141,16 +142,34 @@ test.describe('Sidebar sync', () => {
 
 // ── Schema Diff interactions ──────────────────────────────────────────────────
 test.describe('Schema Diff interactions', () => {
+  // Register a schema export as an instance from the landing page (stays on landing).
+  async function registerInstance(page, schema, name) {
+    await page.locator('#file-input').setInputFiles({
+      name,
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(schema)),
+    });
+  }
+
+  // Pick an option from a custom dropdown (core/dropdown.js) by visible label.
+  async function pickDropdown(page, mountId, label) {
+    await page.locator(`#${mountId} .sn-dd-btn`).click();
+    // The open menu is portalled to <body> (direct child), so target it there —
+    // not under the mount, where only the closed menu lives.
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: label }).click();
+  }
+
   async function openDiff(page) {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
-    await injectSchema(page, SCHEMA_OUTPUT);
-    await page.locator('#vms-diff').click();
+    // #141: Diff is a layer on the Schema Map. Open the base on the map, then pick
+    // the compare from the header Compare dropdown; the diff sidebar then appears.
+    await registerInstance(page, SCHEMA_OUTPUT, 'base.json'); // test-instance
+    await registerInstance(page, SCHEMA_OUTPUT_B, 'compare.json'); // test-instance-b
+    const baseCard = page.locator('.inst-card:not(.add-card)').first();
+    await baseCard.locator('[data-tool="schemaExplorer"]').click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await pickDropdown(page, 'header-compare', 'vs test-instance-b');
     await expect(page.locator('#diff-sidebar')).toBeVisible();
-    await page.locator('#diff-file-input').setInputFiles({
-      name: 'compare.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT_B)),
-    });
     await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -165,7 +184,9 @@ test.describe('Schema Diff interactions', () => {
   test('header search filters the diff list', async ({ page }) => {
     await openDiff(page);
     const before = await page.locator('#diff-list .diff-item').count();
-    await page.locator('#diff-search-input').fill('problem');
+    // The header search bar (Tbl mode) filters the diff list — there is no
+    // separate inline search in the diff sidebar.
+    await page.locator('#search-box').fill('problem');
     await page.waitForTimeout(300);
     const after = await page.locator('#diff-list .diff-item').count();
     expect(after).toBeGreaterThan(0);
@@ -173,10 +194,41 @@ test.describe('Schema Diff interactions', () => {
     await expect(page.locator('#diff-list .diff-item').first()).toContainText(/problem/i);
   });
 
-  test('clear returns to the base-only view', async ({ page }) => {
+  test('clearing the compare returns to the base-only view', async ({ page }) => {
     await openDiff(page);
-    await page.locator('#diff-drop-clear').click();
-    // After clearing, the compare is gone — the diff list no longer shows items.
-    await expect(page.locator('#diff-list .diff-item')).toHaveCount(0);
+    // Clearing the comparison from the header hides the diff sidebar.
+    await pickDropdown(page, 'header-compare', 'Compare: none');
+    await expect(page.locator('#diff-sidebar')).toBeHidden();
+    // Re-selecting the same compare reproduces the diff — proving the stored
+    // compare export was not mutated by the first run (clone-before-graft).
+    await pickDropdown(page, 'header-compare', 'vs test-instance-b');
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('swap button flips base and compare, keeping the old base as compare', async ({ page }) => {
+    await openDiff(page); // base = test-instance, compare = test-instance-b (adds `problem`)
+    await expect(page.locator('#diff-list .diff-item').first()).toBeVisible({ timeout: 10_000 });
+    // Direction 1: `problem` exists in compare but not base → 1 added, 0 removed.
+    await expect(page.locator('#diff-n-added')).toHaveText('1');
+    await expect(page.locator('#diff-n-removed')).toHaveText('0');
+
+    await page.locator('#header-swap').click();
+
+    // The header pickers swap: Base becomes test-instance-b, Compare becomes the
+    // previous base (test-instance) — not cleared. The Compare button summarises
+    // the single selection as "vs <label>" (#150 multi-select dropdown).
+    await expect(page.locator('#header-instance .sn-dd-label')).toHaveText('test-instance-b');
+    await expect(page.locator('#header-compare .sn-dd-label')).toHaveText('vs test-instance');
+
+    // Direction 2 must INVERT: `problem` is now in base but not compare → 1
+    // removed, 0 added. (Regression: grafting polluted the outgoing base's
+    // in-memory data, collapsing both counts to 0 after a swap.)
+    await expect(page.locator('#diff-n-added')).toHaveText('0');
+    await expect(page.locator('#diff-n-removed')).toHaveText('1');
+
+    // The base switch runs loadGraph, which used to re-show the main sort bar
+    // and Application Scopes panel in diff view — both stay hidden.
+    await expect(page.locator('#sort-bar')).toBeHidden();
+    await expect(page.locator('#scope-info-group')).toBeHidden();
   });
 });

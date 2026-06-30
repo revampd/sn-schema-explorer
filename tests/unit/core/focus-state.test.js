@@ -1,0 +1,189 @@
+/**
+ * Unit tests for src/core/focus-state.js — the shared "focus" facade (#131).
+ *
+ * focus-state is a thin facade over three existing singletons (instancesState,
+ * diffState, uiState). It owns no storage; these tests assert that it READS live
+ * from them, that the `table` setter writes through + notifies, and that
+ * `onFocusChange` fires with a correct snapshot and can be unsubscribed.
+ */
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import {
+  focusState,
+  onFocusChange,
+  focusSnapshot,
+  notifyFocusChange,
+  setCompareId,
+  setCompareIds,
+} from '../../../src/core/focus-state.js';
+import { instancesState } from '../../../src/core/instances-state.js';
+import { diffState } from '../../../src/core/diff-state.js';
+import { uiState } from '../../../src/core/ui-state.js';
+
+beforeEach(() => {
+  instancesState.selectedId = null;
+  diffState._compareId = null;
+  diffState._compareIds = [];
+  uiState.selectedNode = null;
+});
+
+describe('focusState facade — reads live from the singletons', () => {
+  it('resolves instanceId / compareId / table from the underlying state', () => {
+    instancesState.selectedId = 'i_dev';
+    diffState._compareId = 'i_prod';
+    uiState.selectedNode = 'incident';
+    expect(focusState.instanceId).toBe('i_dev');
+    expect(focusState.compareId).toBe('i_prod');
+    expect(focusState.table).toBe('incident');
+  });
+
+  it('never drifts — reflects later mutations of the singletons', () => {
+    expect(focusState.table).toBeNull();
+    uiState.selectedNode = 'task';
+    expect(focusState.table).toBe('task');
+  });
+});
+
+describe('focusState.table setter', () => {
+  it('writes through to uiState.selectedNode and notifies on change', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    focusState.table = 'cmdb_ci';
+    expect(uiState.selectedNode).toBe('cmdb_ci');
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ table: 'cmdb_ci' }));
+    off();
+  });
+
+  it('is a no-op (no notify) when the value is unchanged', () => {
+    uiState.selectedNode = 'task';
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    focusState.table = 'task';
+    expect(spy).not.toHaveBeenCalled();
+    off();
+  });
+});
+
+describe('setCompareId — the single writer for the compare instance', () => {
+  it('writes through to diffState and notifies on change', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareId('i_prod');
+    expect(diffState._compareId).toBe('i_prod');
+    expect(focusState.compareId).toBe('i_prod');
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ compareId: 'i_prod' }));
+    off();
+  });
+  it('is a no-op (no notify) when unchanged', () => {
+    setCompareId('i_prod');
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareId('i_prod');
+    expect(spy).not.toHaveBeenCalled();
+    off();
+  });
+  it('the facade setter routes through setCompareId', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    focusState.compareId = 'i_x';
+    expect(diffState._compareId).toBe('i_x');
+    expect(spy).toHaveBeenCalledTimes(1);
+    off();
+  });
+  it('clears with null', () => {
+    setCompareId('i_a');
+    setCompareId(null);
+    expect(focusState.compareId).toBeNull();
+  });
+  it('keeps the N-way list (#150) in sync — one compare = a one-element list', () => {
+    setCompareId('i_prod');
+    expect(diffState._compareIds).toEqual(['i_prod']);
+    setCompareId(null);
+    expect(diffState._compareIds).toEqual([]);
+  });
+  it('collapses a multi-element list back to one when called after setCompareIds', () => {
+    setCompareIds(['i_a', 'i_b']);
+    setCompareId('i_a'); // same primary, but list must collapse — so not a no-op
+    expect(diffState._compareId).toBe('i_a');
+    expect(diffState._compareIds).toEqual(['i_a']);
+  });
+});
+
+describe('setCompareIds — the N-way writer (#150)', () => {
+  it('sets the ordered list and follows the primary to the first entry', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareIds(['i_prod', 'i_uat']);
+    expect(diffState._compareIds).toEqual(['i_prod', 'i_uat']);
+    expect(diffState._compareId).toBe('i_prod');
+    expect(focusState.compareId).toBe('i_prod');
+    expect(spy).toHaveBeenCalledTimes(1);
+    off();
+  });
+  it('filters falsy ids and de-dupes while preserving order', () => {
+    setCompareIds(['i_a', null, 'i_b', 'i_a', '', 'i_c']);
+    expect(diffState._compareIds).toEqual(['i_a', 'i_b', 'i_c']);
+  });
+  it('is a no-op (no notify) when the list is unchanged', () => {
+    setCompareIds(['i_a', 'i_b']);
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    setCompareIds(['i_a', 'i_b']);
+    expect(spy).not.toHaveBeenCalled();
+    off();
+  });
+  it('clears to empty with [] or non-array, dropping the primary', () => {
+    setCompareIds(['i_a']);
+    setCompareIds([]);
+    expect(diffState._compareIds).toEqual([]);
+    expect(diffState._compareId).toBeNull();
+  });
+});
+
+describe('focusSnapshot()', () => {
+  it('returns a point-in-time copy of all three tiers', () => {
+    instancesState.selectedId = 'i_a';
+    diffState._compareId = 'i_b';
+    uiState.selectedNode = 'task';
+    expect(focusSnapshot()).toEqual({ instanceId: 'i_a', compareId: 'i_b', table: 'task' });
+  });
+});
+
+describe('onFocusChange / notifyFocusChange', () => {
+  it('fires every subscriber with the current snapshot', () => {
+    const a = vi.fn();
+    const b = vi.fn();
+    const offA = onFocusChange(a);
+    const offB = onFocusChange(b);
+    instancesState.selectedId = 'i_x';
+    notifyFocusChange();
+    expect(a).toHaveBeenCalledWith(expect.objectContaining({ instanceId: 'i_x' }));
+    expect(b).toHaveBeenCalledWith(expect.objectContaining({ instanceId: 'i_x' }));
+    offA();
+    offB();
+  });
+
+  it('unsubscribe stops further notifications', () => {
+    const spy = vi.fn();
+    const off = onFocusChange(spy);
+    notifyFocusChange();
+    expect(spy).toHaveBeenCalledTimes(1);
+    off();
+    notifyFocusChange();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('a throwing listener does not break the others', () => {
+    const bad = vi.fn(() => {
+      throw new Error('boom');
+    });
+    const good = vi.fn();
+    const offBad = onFocusChange(bad);
+    const offGood = onFocusChange(good);
+    expect(() => notifyFocusChange()).not.toThrow();
+    expect(good).toHaveBeenCalled();
+    offBad();
+    offGood();
+  });
+});

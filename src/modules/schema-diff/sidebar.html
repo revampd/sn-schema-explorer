@@ -1,0 +1,34 @@
+  <!-- DIFF SIDEBAR — shown on the Schema Map while a comparison is active.
+       Base/Compare/Swap live in the header (#141); this is the change report. -->
+  <div id="diff-sidebar">
+    <!-- Export method mismatch warning — shown when base and compare schemas use different export_mode -->
+    <div class="diff-mode-warn" id="diff-mode-warn" style="display:none"></div>
+    <!-- Summary counts — visible once a diff is loaded -->
+    <div class="diff-summary" id="diff-summary">
+      <div class="diff-stat ds-added"   id="diff-stat-added"   title="Filter to added tables">
+        <span class="diff-stat-n" id="diff-n-added">0</span>
+        <span class="diff-stat-label">Added</span>
+      </div>
+      <div class="diff-stat ds-removed" id="diff-stat-removed" title="Filter to removed tables">
+        <span class="diff-stat-n" id="diff-n-removed">0</span>
+        <span class="diff-stat-label">Removed</span>
+      </div>
+      <div class="diff-stat ds-changed" id="diff-stat-changed" title="Filter to changed tables">
+        <span class="diff-stat-n" id="diff-n-changed">0</span>
+        <span class="diff-stat-label">Changed</span>
+      </div>
+    </div>
+    <!-- Table filtering is handled by the header search bar (Tbl mode), which
+         also filters the diff list — no separate inline search needed. -->
+    <div class="diff-toggle-row" id="diff-toggle-row">
+      <!-- Element-type slice (#4): toggle chips that show only tables touching a
+           chosen kind (fields / references / inheritance / …). Rendered in JS. -->
+      <div class="diff-element-filter" id="diff-element-filter"
+           title="Toggle which element kinds the list shows (fields, references, inheritance, …)"></div>
+      <!-- Graph display toggle — controls the canvas, not the report list. -->
+      <button class="diff-show-all-btn" id="diff-show-all-btn"
+              title="Whether unchanged tables are drawn on the graph (the report always lists only changes)">Graph: changed only</button>
+    </div>
+    <!-- Flat grouped list of changed tables -->
+    <div class="diff-list" id="diff-list"></div>
+  </div>

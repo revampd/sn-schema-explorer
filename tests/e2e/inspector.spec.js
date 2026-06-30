@@ -23,6 +23,7 @@ async function loadAndInject(page) {
     buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
   });
   // Wait for at least one node-group to appear in the SVG
+  await page.locator('[data-tool="schemaExplorer"]').click();
   await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
   return errors;
 }
