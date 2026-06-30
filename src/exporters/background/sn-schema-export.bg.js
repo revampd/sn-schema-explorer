@@ -258,11 +258,13 @@ function fetchSysDbObject() {
   return out;
 }
 
-function fetchSysDictionary(dbObjectById) {
-  // dbObjectById: sys_id→name map built from fetchSysDbObject() output, passed by
-  // main(). Used to resolve reference field target names via O(1) Map lookup instead
-  // of calling getRefRecord() for every reference field (≈15k hidden GlideRecord
-  // fetches on a typical instance). Falls back to getRefRecord() when absent.
+function fetchSysDictionary(dbObjectById, dbObjectByName) {
+  // dbObjectById: sys_id→name map, dbObjectByName: name→name map, both built from
+  // fetchSysDbObject() output passed by main(). Used to resolve reference field
+  // target names via O(1) lookup instead of calling getRefRecord() for every
+  // reference field (≈15k hidden GlideRecord fetches on a typical instance).
+  // Both maps are consulted (sys_id first, then name) for cross-version robustness.
+  // Falls back to getRefRecord() when neither map is provided (e.g. tests).
   var out = [];
   var gr = new GlideRecord('sys_dictionary');
   // (No setLimit — default is unbounded. setLimit(0) actually means "return 0 rows".)
@@ -284,10 +286,15 @@ function fetchSysDictionary(dbObjectById) {
     var refDisplay = gr.getDisplayValue('reference');
     var refName = '';
     if (refValue) {
-      if (dbObjectById) {
-        // O(1) lookup — no GlideRecord. An orphaned reference (sys_id not in the
-        // map) leaves refName as '' which is the same outcome as a failed getRefRecord.
-        refName = dbObjectById[refValue] || '';
+      if (dbObjectById || dbObjectByName) {
+        // O(1) lookup — no GlideRecord. Try sys_id map first, then name map (covers
+        // instances where the reference column stores the table name directly rather
+        // than the sys_id). Explicit String() prevents Rhino Java/JS string key
+        // mismatches. An orphaned reference that misses both maps leaves refName as
+        // '' — the same outcome as a failed getRefRecord.
+        var _refKey = String(refValue);
+        refName = (dbObjectById && dbObjectById[_refKey]) ||
+                  (dbObjectByName && dbObjectByName[_refKey]) || '';
       } else {
         // Fallback for callers that don't pass the map (e.g. tests).
         try {
@@ -877,16 +884,25 @@ function gatherInstanceInfo() {
   var sysDbObject = fetchSysDbObject();
   gs.info('  rows: ' + sysDbObject.length);
 
-  // Build sys_id→name map for reference-field resolution in fetchSysDictionary.
+  // Build lookup maps for reference-field resolution in fetchSysDictionary.
   // Eliminates ~15k getRefRecord() calls (one per reference field in sys_dictionary).
+  // Two maps for robustness: sys_id→name covers the standard case where
+  // sys_dictionary.reference stores the sys_id of the sys_db_object row;
+  // name→name covers instances where it stores the table name directly.
+  // Explicit String() wrapping avoids Rhino Java-String vs JS-string key mismatches.
   var dbObjectById = {};
+  var dbObjectByName = {};
   for (var dboIdx = 0; dboIdx < sysDbObject.length; dboIdx++) {
     var _dbo = sysDbObject[dboIdx];
-    if (_dbo.sys_id && _dbo.name) dbObjectById[_dbo.sys_id] = _dbo.name;
+    if (_dbo.name) {
+      var _dboName = String(_dbo.name);
+      if (_dbo.sys_id) dbObjectById[String(_dbo.sys_id)] = _dboName;
+      dbObjectByName[_dboName] = _dboName;
+    }
   }
 
   gs.info('[2/9] Fetching sys_dictionary (active, with element)...');
-  var sysDictionary = fetchSysDictionary(dbObjectById);
+  var sysDictionary = fetchSysDictionary(dbObjectById, dbObjectByName);
   gs.info('  rows: ' + sysDictionary.length);
 
   gs.info('[3/9] Fetching sys_m2m...');
