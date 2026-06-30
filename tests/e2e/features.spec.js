@@ -176,18 +176,14 @@ test.describe('Schema Diff', () => {
     const added = page.locator('#diff-stat-added, #diff-n-added').first();
     await expect(added).toHaveText(/[1-9]/, { timeout: 10_000 });
 
-    // Selecting a compare auto-enables the Differences overlay on the canvas
-    // (the user shouldn't have to click Differences to see the diff), and the
-    // toggle still mutes it on demand.
-    const diffToggle = page.locator('#diff-layer-master');
-    await expect(diffToggle).toBeVisible();
-    await expect(diffToggle).toHaveAttribute('aria-pressed', 'true');
+    // The Differences overlay is always on while comparing — there is no layer
+    // toggle anymore (Differences / Config-drift buttons removed). The comparison
+    // is active (sidebar shown above); the diff just paints.
+    await expect(page.locator('#diff-layer-master, #cfg-drift-toggle')).toHaveCount(0);
 
     // A new comparison shows the FULL graph with diff colouring (not collapsed to
     // changed-only) — so the graph toggle starts in its "all tables" state.
     await expect(page.locator('#diff-show-all-btn')).toHaveText('Graph: all tables');
-    await diffToggle.click();
-    await expect(diffToggle).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('exports the active comparison — embedded toggle + standalone scope (#177)', async ({
@@ -577,7 +573,7 @@ test.describe('Configuration Data', () => {
     await page.locator('#tool-switcher .ts-btn[data-tool="schema-map"]').click();
     await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
     await expect(page.locator('#header-compare')).toBeVisible();
-    await expect(page.locator('#diff-layer-master')).toBeVisible(); // diff overlay active
+    await expect(page.locator('#diff-sidebar')).toBeVisible(); // comparison materialised
     expect(await page.locator('#header-compare .sn-dd-label').textContent()).toBe(cfgLabel);
   });
 });

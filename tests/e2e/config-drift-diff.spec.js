@@ -103,13 +103,13 @@ test('Diff inspector shows the Configuration section with per-side versions + st
   await expect(insp).toContainText('v2.0'); // base
   await expect(insp).toContainText('v1.0'); // compare
 
-  // #150: config drift lives in the INSPECTOR (above) — not as a canvas channel.
-  // The canvas carries no config badges, and the standalone config-drift overlay
-  // control stands down while a comparison is active.
+  // Config drift lives in the INSPECTOR (above) — not as a canvas channel. There
+  // are no canvas layer controls anymore: neither the standalone Config-drift
+  // toggle nor a Differences toggle (the diff overlay is always on while comparing).
   await expect(page.locator('circle.cfg-node-badge')).toHaveCount(0);
-  await expect(page.locator('#cfg-drift-layer')).toBeHidden();
-  // The comparison overlay is a single "Differences" toggle (no structure/config split).
-  await expect(page.locator('#diff-layer-master')).toBeVisible();
+  await expect(page.locator('#cfg-drift-layer, #cfg-drift-toggle, #diff-layer-master')).toHaveCount(
+    0
+  );
   await expect(page.locator('#diff-sub-config')).toHaveCount(0);
 });
 

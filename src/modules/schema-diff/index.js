@@ -119,10 +119,6 @@ function loadDiffSchema(compareData) {
   // A fresh comparison starts with all report groups expanded and no element slice.
   diffState._collapsedGroups = [];
   diffState._diffElementFilter = null;
-  // Establishing a comparison turns the Differences overlay ON, regardless of any
-  // prior toggle state — selecting one or more compare targets should light up the
-  // diff view on the canvas (the toggle still mutes it without dropping the diff).
-  diffState._diffLayerOn = true;
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   diffUpdateSummary();
@@ -130,7 +126,6 @@ function loadDiffSchema(compareData) {
   // #141: starting a comparison no longer changes the view-mode, so sync the
   // sidebar here to reveal the diff report on the map.
   diffSyncSidebar();
-  refreshDiffLayerControl();
   updateInstancePill();
   // The compare list is set (setCompareIds) BEFORE `_diffData` is populated here,
   // so the focus-change it fired saw isComparing() === false. Re-notify now that
@@ -223,8 +218,6 @@ function clearDiff() {
   diffState._diffData = null;
   diffState._diffMatrix = null;
   setCompareId(null);
-  // Reset the overlay to ON so the next comparison starts with the diff visible.
-  diffState._diffLayerOn = true;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
   diffState._diffElementFilter = null;
@@ -233,9 +226,8 @@ function clearDiff() {
   if (modeWarn) modeWarn.style.display = 'none';
   diffUpdateSummary();
   diffBuildList();
-  // Comparison dropped — restore the default sidebar and hide the layer toggle.
+  // Comparison dropped — restore the default sidebar.
   diffSyncSidebar();
-  refreshDiffLayerControl();
   updateInstancePill();
   render();
 }
@@ -669,38 +661,7 @@ onFocusChange(() => {
   }
 });
 
-// ── Canvas "Differences" layer toggle (#150) ──────────────────────────────────
-// A single toggle for the comparison overlay (structural diff colouring + edge
-// pills) — "diff is diff", no structure/config split. Config drift is surfaced in
-// the inspector (the Configuration section for the selected table) and the sidebar
-// report, not as a canvas channel. While a comparison is active the standalone
-// config-overlay control stands down (see config-overlay/index.js). Shown only
-// while comparing on the map; built in JS (no partial edits).
-let _diffLayerToggle = null;
-
-function refreshDiffLayerControl() {
-  const host = document.getElementById('edge-legend')?.parentNode;
-  if (!host) return;
-  if (!_diffLayerToggle) {
-    const btn = document.createElement('button');
-    btn.id = 'diff-layer-master';
-    btn.type = 'button';
-    btn.className = 'cfg-drift-toggle';
-    btn.textContent = 'Differences';
-    btn.title = 'Show the comparison overlay (added / removed / changed tables)';
-    btn.addEventListener('click', () => {
-      diffState._diffLayerOn = !diffState._diffLayerOn;
-      refreshDiffLayerControl();
-      render();
-    });
-    host.appendChild(btn);
-    _diffLayerToggle = btn;
-  }
-  const show = isComparing() && uiState.viewMode === 'force';
-  _diffLayerToggle.style.display = show ? '' : 'none';
-  _diffLayerToggle.setAttribute('aria-pressed', String(!!diffState._diffLayerOn));
-  _diffLayerToggle.classList.toggle('active', !!diffState._diffLayerOn);
-}
-
-onFocusChange(() => refreshDiffLayerControl());
-onViewModeChange(() => refreshDiffLayerControl());
+// The canvas comparison overlay (structural diff colouring + edge pills) is always
+// on while a comparison is active — there is no toggle. "Diff is diff"; config
+// drift is surfaced in the inspector + the Config Data table, not as a canvas
+// channel (#150). isStructureLayerOn() === isComparing().

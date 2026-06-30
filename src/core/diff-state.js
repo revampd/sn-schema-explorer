@@ -21,13 +21,6 @@ export const diffState = {
   // aggregate this array; the canvas keeps using `_diffData` alone. Null when no
   // comparison is active. (#150)
   _diffMatrix: null,
-  // #150 — the canvas comparison overlay is ONE "Differences" layer: a single
-  // toggle that paints the structural difference (added/removed/changed node
-  // colours + edge pills) for the compared instances. There is no structure/config
-  // split — "diff is diff"; config drift is surfaced in the INSPECTOR for the
-  // selected table (and in the sidebar report), not as a separate canvas channel.
-  // Turning it off mutes the overlay without dropping the comparison.
-  _diffLayerOn: true,
   // Group keys collapsed in the report list ('added' | 'removed' | 'changed' |
   // 'matrix'). Purely a display state; doesn't affect counts.
   _collapsedGroups: [],
@@ -46,7 +39,8 @@ export function isComparing() {
   return !!diffState._diffData;
 }
 
-/** Is the Differences overlay painting (comparison active + the layer toggle on)? */
+/** Is the Differences overlay painting? It's always on while a comparison is
+ *  active — there is no separate toggle anymore (the canvas just shows the diff). */
 export function isStructureLayerOn() {
-  return isComparing() && diffState._diffLayerOn;
+  return isComparing();
 }
