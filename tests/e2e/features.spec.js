@@ -253,6 +253,48 @@ test.describe('Schema Diff', () => {
     expect(stJson.nodes).toBeUndefined(); // no schema dump
     expect(stJson.tables.some(t => t.id === 'problem')).toBe(true);
   });
+
+  test('image export carries the diff colours + a diff legend (#177)', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(SCHEMA_OUTPUT)),
+    });
+    const compare = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
+    compare._instance = { ...(compare._instance || {}), instance_name: 'compare-inst' };
+    compare.nodes.push({
+      id: 'problem',
+      label: 'Problem',
+      fields: [{ name: 'sys_id', type: 'GUID' }],
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    // Enable the (renamed) Legend toggle and export SVG → the diff legend group
+    // is drawn into the image.
+    await page.locator('#btn-export').click();
+    await expect(page.locator('#export-bar.open')).toBeVisible();
+    await page.locator('#export-include-legend').check({ force: true });
+    const dl = page.waitForEvent('download');
+    await page.locator('#epb-svg').click();
+    const { readFileSync } = await import('fs');
+    const svg = readFileSync(await (await dl).path(), 'utf8');
+    expect(svg).toContain('DIFFERENCES'); // the diff legend header
+    expect(svg).toContain('>Added<'); // an added table exists (problem)
+  });
 });
 
 // ── Configuration Data ─────────────────────────────────────────────────────

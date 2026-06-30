@@ -19,7 +19,7 @@ No installation, no server, no external dependencies.
 - Configuration Data — view and reconcile plugins, store apps, custom apps, and system properties across your registered instances; available from a single instance (one column) and lights up version drift, missing entries, active-state mismatches, and the store-app update signal as you add more; an **Instance Data** tab compares instance identity/runtime/export metadata and schema stats side by side, and an instance picker chooses which instances to compare; export the active section as CSV or JSON from the header **Export** bar
 - Saved Views — snapshot and restore named view configurations
 - Export as PNG, SVG, JSON, Markdown, JSON-LD, OWL/Turtle, or OpenAPI YAML — and, while a comparison is active, fold the diff into any data export (Include comparison) or export the diff on its own (the **Comparison** scope), choosing which compares to include
-- Custom colour-coded export background with opacity control, plus an optional edge-type legend embedded in PNG/SVG exports
+- Custom colour-coded export background with opacity control, plus an optional **Legend** embedded in PNG/SVG exports — edge types, and a Differences (Added/Removed/Changed) key while a comparison is active. PNG/SVG also carry the on-canvas diff colouring.
 - CMDB CI topology edges and ServiceNow Data Model Reference (CSDM 5)
 - Optional update check — a dismissible footer badge when a newer release is available (toggle in Settings; no telemetry)
 

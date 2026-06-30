@@ -1,4 +1,10 @@
-import { graphState, uiState, diffState, isComparing } from '../../core/state.js';
+import {
+  graphState,
+  uiState,
+  diffState,
+  isComparing,
+  isStructureLayerOn,
+} from '../../core/state.js';
 import { Dom } from '../../core/dom.js';
 import { diffToExport, diffToMarkdown, diffToTurtleComment, toYaml } from './diff-export.js';
 import { svg, root, zoom } from '../../core/canvas.js';
@@ -495,6 +501,90 @@ export function _buildEdgeLegendGroup(doc, items, box) {
   return { group, width, height };
 }
 
+// Diff-overlay legend items — mirrors the on-canvas diff colouring
+// (schema-diff/index.css). Colours are the literal values of --diff-* so the
+// exported image is self-contained. Drawn into image exports while a comparison
+// is active so the added/removed/changed colours are interpretable.
+const DIFF_LEGEND_ITEMS = [
+  { key: 'added', label: 'Added', color: '#4ade80' },
+  { key: 'removed', label: 'Removed', color: '#f87171' },
+  { key: 'changed', label: 'Changed', color: '#fbbf24' },
+];
+
+// Which diff statuses are actually present in the active (primary) comparison —
+// the canvas colours key off `_diffData` (low-cardinality). Returns items in
+// DIFF_LEGEND_ITEMS order; empty when not comparing.
+export function _presentDiffStatuses() {
+  const d = diffState._diffData;
+  if (!d) return [];
+  const out = [];
+  if (d.added && d.added.size) out.push(DIFF_LEGEND_ITEMS[0]);
+  if (d.removed && d.removed.size) out.push(DIFF_LEGEND_ITEMS[1]);
+  if (d.changed && d.changed.size) out.push(DIFF_LEGEND_ITEMS[2]);
+  return out;
+}
+
+// Build a native-SVG diff legend group for export. Mirrors _buildEdgeLegendGroup
+// but uses filled swatches. `items` is a subset of DIFF_LEGEND_ITEMS; `box` is the
+// top-left {x, y}. Returns { group, width, height }.
+export function _buildDiffLegendGroup(doc, items, box) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const PAD = 10;
+  const HEADER_H = 16;
+  const ROW_H = 16;
+  const SWATCH_W = 14;
+  const SWATCH_H = 10;
+  const width = 130;
+  const height = PAD * 2 + HEADER_H + items.length * ROW_H;
+
+  const group = doc.createElementNS(NS, 'g');
+  group.setAttribute('transform', `translate(${box.x},${box.y})`);
+
+  const bg = doc.createElementNS(NS, 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('rx', 6);
+  bg.setAttribute('ry', 6);
+  bg.setAttribute('fill', 'rgba(10,15,25,0.85)');
+  bg.setAttribute('stroke', 'rgba(255,255,255,0.12)');
+  bg.setAttribute('stroke-width', '1');
+  group.appendChild(bg);
+
+  const header = doc.createElementNS(NS, 'text');
+  header.setAttribute('x', PAD);
+  header.setAttribute('y', PAD + 8);
+  header.setAttribute('fill', '#8aa0b8');
+  header.setAttribute('font-family', "'Syne', sans-serif");
+  header.setAttribute('font-size', '8');
+  header.setAttribute('letter-spacing', '0.1em');
+  header.textContent = 'DIFFERENCES';
+  group.appendChild(header);
+
+  items.forEach((item, i) => {
+    const rowY = PAD + HEADER_H + i * ROW_H + ROW_H / 2;
+    const swatch = doc.createElementNS(NS, 'rect');
+    swatch.setAttribute('x', PAD);
+    swatch.setAttribute('y', rowY - SWATCH_H / 2);
+    swatch.setAttribute('width', SWATCH_W);
+    swatch.setAttribute('height', SWATCH_H);
+    swatch.setAttribute('rx', 2);
+    swatch.setAttribute('ry', 2);
+    swatch.setAttribute('fill', item.color);
+    group.appendChild(swatch);
+
+    const label = doc.createElementNS(NS, 'text');
+    label.setAttribute('x', PAD + SWATCH_W + 8);
+    label.setAttribute('y', rowY + 3);
+    label.setAttribute('fill', item.color);
+    label.setAttribute('font-family', "'JetBrains Mono', monospace");
+    label.setAttribute('font-size', '10');
+    label.textContent = item.label;
+    group.appendChild(label);
+  });
+
+  return { group, width, height };
+}
+
 export function buildExportSvg(opts) {
   opts = opts || {};
   const scope = opts.scope || 'viewport';
@@ -608,36 +698,37 @@ export function buildExportSvg(opts) {
   // 'transparent' → no rect inserted; PNG canvas default is transparent,
   // SVG renders without a background element.
 
-  // Edge-type legend — drawn as native SVG (not foreignObject, which PNG
-  // rasterisation handles unreliably) into the export's screen-space, so it
-  // ignores the graph-root pan/zoom transform. Only the edge types actually
-  // drawn are shown.
+  // Legends — drawn as native SVG (not foreignObject, which PNG rasterisation
+  // handles unreliably) into the export's screen-space, so they ignore the
+  // graph-root pan/zoom transform. Both are gated by the single "Legend" toggle
+  // and stacked bottom-left: the edge-type legend at the bottom, the diff legend
+  // above it (only while a comparison is painting). Only present items are shown.
   if (getExportIncludeLegend()) {
-    const items = _presentEdgeTypes(svgEl);
-    if (items.length) {
-      const PAD = 16;
-      // Provisional height to anchor the box bottom-left; recompute exactly
-      // via the builder, then nudge so the box sits PAD from the bottom edge.
-      let bx, by, h0;
-      const vb = clone.getAttribute('viewBox');
-      const provisional = _buildEdgeLegendGroup(clone.ownerDocument || document, items, {
-        x: 0,
-        y: 0,
-      });
-      h0 = provisional.height;
-      if (vb) {
-        const p = vb.split(/\s+/).map(Number);
-        bx = p[0] + PAD;
-        by = p[1] + p[3] - PAD - h0;
-      } else {
-        bx = PAD;
-        by = exportHeight - PAD - h0;
-      }
-      const { group } = _buildEdgeLegendGroup(clone.ownerDocument || document, items, {
-        x: bx,
-        y: by,
-      });
-      clone.appendChild(group);
+    const doc = clone.ownerDocument || document;
+    const PAD = 16;
+    const GAP = 8;
+    let originX, cursorY;
+    const vb = clone.getAttribute('viewBox');
+    if (vb) {
+      const p = vb.split(/\s+/).map(Number);
+      originX = p[0] + PAD;
+      cursorY = p[1] + p[3] - PAD; // bottom edge of the legend stack
+    } else {
+      originX = PAD;
+      cursorY = exportHeight - PAD;
+    }
+    const edgeItems = _presentEdgeTypes(svgEl);
+    if (edgeItems.length) {
+      const h = _buildEdgeLegendGroup(doc, edgeItems, { x: 0, y: 0 }).height;
+      cursorY -= h;
+      clone.appendChild(_buildEdgeLegendGroup(doc, edgeItems, { x: originX, y: cursorY }).group);
+      cursorY -= GAP;
+    }
+    const diffItems = isStructureLayerOn() ? _presentDiffStatuses() : [];
+    if (diffItems.length) {
+      const h = _buildDiffLegendGroup(doc, diffItems, { x: 0, y: 0 }).height;
+      cursorY -= h;
+      clone.appendChild(_buildDiffLegendGroup(doc, diffItems, { x: originX, y: cursorY }).group);
     }
   }
 
