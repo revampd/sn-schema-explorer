@@ -93,4 +93,31 @@ describe('diffBuildList — N-column roll-up', () => {
     const ids = [...document.querySelectorAll('.diff-item')].map(i => i.dataset.id);
     expect(ids).toEqual(['task']); // only task is "changed" in any instance
   });
+
+  it('renders edge sub-rows for tables that gained/lost relationships across compares', () => {
+    // base has task with no edges; prod adds a view edge on task; uat removes nothing.
+    const viewEdge = { source: 'task', target: 'task_view', type: 'view' };
+    const baseFull = { nodes: [node('task'), node('task_view')], edges: [] };
+    const prodFull = { nodes: [node('task'), node('task_view')], edges: [viewEdge] };
+    const uatFull  = { nodes: [node('task'), node('task_view')], edges: [] };
+    setMatrix([
+      { id: 'i_prod', label: 'prod', data: prodFull },
+      { id: 'i_uat',  label: 'uat',  data: uatFull },
+    ]);
+    // Override base to baseFull for this test
+    diffState._diffMatrix[0] = computeDiff(baseFull, prodFull);
+    diffState._diffMatrix[0]._compareId = 'i_prod';
+    diffState._diffMatrix[1] = computeDiff(baseFull, uatFull);
+    diffState._diffMatrix[1]._compareId = 'i_uat';
+    diffState._diffData = diffState._diffMatrix[0];
+
+    diffBuildList();
+    const subgroup = document.querySelector('.diff-edge-subgroup');
+    expect(subgroup).not.toBeNull();
+    const edgeItem = subgroup.querySelector('.diff-edge-item');
+    expect(edgeItem).not.toBeNull();
+    expect(edgeItem.querySelector('.diff-edge-type').textContent).toBe('view');
+    // Only one edge even though the matrix has 2 diffs (dedup by key)
+    expect(subgroup.querySelectorAll('.diff-edge-item')).toHaveLength(1);
+  });
 });

@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exports (manifest + part files inside the zip), and multiple JSON files in one
   archive. Powered by JSZip (bundled, no network request).
 
+### Fixed
+
+- **Schema Diff: edge sub-rows now appear in N-schema (multi-compare) mode.** When
+  two or more compare schemas are selected, the "Differs across instances" list now
+  shows relationship sub-rows (added/removed edges) for each differing table —
+  matching the behaviour already present in single-compare mode. Edges that appear
+  in more than one diff are deduplicated. The Kind dropdown now also offers edge
+  types in N-schema mode.
+
 ### Changed
 
 - **Configuration Data table: sortable columns.** Click any column header to sort
