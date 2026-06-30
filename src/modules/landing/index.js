@@ -16,6 +16,7 @@
  * Settings.registerFeature / registerWorkspace.
  * ============================================================================ */
 
+import JSZip from 'jszip';
 import {
   instancesState,
   addInstance,
@@ -179,7 +180,7 @@ function promptMultiPartLoad(manifest) {
   if (!confirm(msg + '\n\nOK to pick the part files now?')) return;
   const picker = document.createElement('input');
   picker.type = 'file';
-  picker.accept = '.json,application/json';
+  picker.accept = '.json,.zip,application/json,application/zip';
   picker.multiple = true;
   picker.addEventListener('change', ev => {
     const files = Array.from(ev.target.files || []);
@@ -210,8 +211,103 @@ function promptMultiPartLoad(manifest) {
   picker.click();
 }
 
+async function loadZipFile(file) {
+  let zip;
+  try {
+    zip = await JSZip.loadAsync(file);
+  } catch (err) {
+    alert('Could not read zip file:\n\n' + (err.message || err));
+    return;
+  }
+
+  const jsonFiles = Object.values(zip.files).filter(
+    f => !f.dir && /\.json$/i.test(f.name)
+  );
+
+  if (!jsonFiles.length) {
+    alert('No .json files found inside the zip.');
+    return;
+  }
+
+  // Build a map of basename → content for the stitcher.
+  const byName = new Map();
+  for (const zf of jsonFiles) {
+    const text = await zf.async('string');
+    // Use the basename only (strip any folder prefix written by the archiver).
+    const base = zf.name.replace(/^.*\//, '');
+    byName.set(base, text);
+  }
+
+  // Single JSON file in the zip — parse and register directly.
+  if (byName.size === 1) {
+    const [[name, text]] = [...byName.entries()];
+    try {
+      const parsed = JSON.parse(text);
+      // A manifest inside a zip: stitch inline without an extra file-picker step.
+      if (parsed && parsed._manifest_version && Array.isArray(parsed.parts)) {
+        const expected = parsed.parts.map(p => p.fileName);
+        const missing = expected.filter(n => !byName.has(n));
+        if (missing.length) {
+          alert(
+            'Zip contains a manifest but is missing part files:\n' + missing.join('\n')
+          );
+          return;
+        }
+        const ordered = parsed.parts.slice().sort((a, b) => a.idx - b.idx);
+        const stitched = JSON.parse(ordered.map(p => byName.get(p.fileName)).join(''));
+        registerFromData(
+          stitched,
+          parsed.parts[0].fileName.replace(/\.part1\.json$/i, '.json'),
+          'file'
+        );
+        return;
+      }
+      registerFromData(parsed, name, 'file');
+    } catch (err) {
+      alert('Could not parse JSON from zip:\n\n' + (err.message || err));
+    }
+    return;
+  }
+
+  // Multiple JSON files — look for a manifest and stitch.
+  const manifestEntry = [...byName.keys()].find(n => /\.manifest\.json$/i.test(n));
+  if (!manifestEntry) {
+    alert(
+      'Zip contains multiple .json files but no manifest (*.manifest.json).\n' +
+        'Re-create the zip with the manifest included.'
+    );
+    return;
+  }
+  try {
+    const manifest = JSON.parse(byName.get(manifestEntry));
+    if (!manifest._manifest_version || !Array.isArray(manifest.parts)) {
+      alert('Manifest is missing _manifest_version or parts.');
+      return;
+    }
+    const missing = manifest.parts.map(p => p.fileName).filter(n => !byName.has(n));
+    if (missing.length) {
+      alert('Zip is missing part files:\n' + missing.join('\n'));
+      return;
+    }
+    const ordered = manifest.parts.slice().sort((a, b) => a.idx - b.idx);
+    const parsed = JSON.parse(ordered.map(p => byName.get(p.fileName)).join(''));
+    registerFromData(
+      parsed,
+      manifestEntry.replace(/\.manifest\.json$/i, '.json'),
+      'file'
+    );
+  } catch (err) {
+    alert('Failed to stitch parts from zip:\n\n' + (err.message || err));
+  }
+}
+
 async function loadFileList(files) {
   if (!files || !files.length) return;
+
+  if (files.length === 1 && /\.zip$/i.test(files[0].name)) {
+    await loadZipFile(files[0]);
+    return;
+  }
 
   if (files.length === 1) {
     const f = files[0];

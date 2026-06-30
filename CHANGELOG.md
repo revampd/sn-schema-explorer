@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-30
+
+### Added
+
+- **Zip file import.** Drop or select a `.zip` file on the landing page to load a
+  schema export without unzipping first. Handles single-file exports, multi-part
+  exports (manifest + part files inside the zip), and multiple JSON files in one
+  archive. Powered by JSZip (bundled, no network request).
+
+### Fixed
+
+- **Schema Diff: edge sub-rows now appear in N-schema (multi-compare) mode.** When
+  two or more compare schemas are selected, the "Differs across instances" list now
+  shows relationship sub-rows (added/removed edges) for each differing table —
+  matching the behaviour already present in single-compare mode. Edges that appear
+  in more than one diff are deduplicated. The Kind dropdown now also offers edge
+  types in N-schema mode.
+- **Schema Diff: Kind filter now applies to Added and Removed rows in N-schema
+  mode.** Previously the element-type slice (Fields, References, DB view, …) only
+  narrowed the Changed rows; Added and Removed tables were always shown regardless
+  of the active Kind. All three categories are now filtered consistently.
+- **Schema Diff: group header label and colour reflect the active status filter in
+  N-schema mode.** Selecting Added / Removed / Changed now colours and labels the
+  group accordingly (green "Added", red "Removed", amber "Changed") instead of
+  always showing the neutral "Differs across instances" style.
+- **Schema Diff: group header count shows filtered/total when a Kind slice is
+  active** (e.g. "363/1837"), matching the pattern already used by the stat badges.
+- **Schema Diff: Added and Removed stat badges show filtered/total in N-schema
+  mode.** When a Kind slice is active all three badges (ADDED, REMOVED, CHANGED)
+  now display the x/y fraction.
+- **Schema Diff: update check re-runs on About chip click.** Clicking the version
+  chip in the footer now always triggers a fresh update check, bypassing the
+  once-per-session guard.
+
+### Changed
+
+- **Configuration Data table: sortable columns.** Click any column header to sort
+  ascending or descending. Active sort shows ↑/↓; inactive columns show a dim ⇅.
+- **Configuration Data table: resizable columns.** Drag the right edge of any column
+  header to resize it. Works alongside sorting and column reorder.
+- **Configuration Data table: reorderable instance columns.** Drag an instance column
+  header left or right to change the comparison order. Sort state and filters are
+  preserved across reorders.
+- **Configuration Data: centered, content-aware layout.** Title, subtitle, tabs,
+  controls, and stat tiles are centered (max 1200px). The comparison table and the
+  Instance Data panel are also centered and auto-size to their content — the table
+  only expands when columns need the space rather than always stretching to the full
+  viewport width. The hidden sidebar/inspector grid tracks no longer consume space on
+  non-schema-explorer workspaces.
+- **Background exporter runtime estimate updated.** Comment in the script header
+  reflects v1.0.4 benchmark data (1–3 min without counts, 2–6 min with counts) and
+  explains that the cost drivers are dictionary row volume and cluster size, not just
+  table count.
+
 ## [1.0.4] - 2026-06-30
 
 ### Performance

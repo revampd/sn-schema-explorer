@@ -1,6 +1,6 @@
 {
   "name": "sn-schema-explorer",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Visualise your ServiceNow table schema in a single self-contained HTML file.",
   "homepage": "https://github.com/revampd/sn-schema-explorer",
   "repository": {
@@ -38,5 +38,8 @@
     "jsdom": "^29.1.1",
     "prettier": "^3.9.0",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
   }
 }

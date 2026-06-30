@@ -56,7 +56,14 @@ registerWorkspace({ key: 'config-data', root: '#config-data' });
 // dropdown = instancesState.selectedId) plus COMPARES. The compare selection is
 // SHARED with the Schema Map via diffState._compareIds, so picking compares in
 // either tool carries to the other. Default = none (just the base column).
-const view = { section: null, search: '', filter: 'all', showDates: false };
+const view = {
+  section: null,
+  search: '',
+  filter: 'all',
+  showDates: false,
+  sort: { col: 'name', dir: 'asc' },
+  colOrder: null, // null = natural order (base first, then compares)
+};
 
 // The base column — the header instance dropdown. Falls back to the first
 // registered instance when nothing is loaded yet.
@@ -178,6 +185,7 @@ function renderTabs() {
     if (enabled) {
       btn.addEventListener('click', () => {
         view.section = section;
+        view.colOrder = null;
         renderCompare();
       });
     }
@@ -333,8 +341,19 @@ function renderCompare() {
     search: view.search,
     filter: view.filter,
     showDates: view.showDates,
+    sort: view.sort,
+    colOrder: view.colOrder,
+    onSort: (col, dir) => {
+      view.sort = { col, dir };
+      renderCompare();
+    },
+    onReorder: order => {
+      view.colOrder = order;
+      renderCompare();
+    },
   });
   if (table) table.replaceWith(rendered);
+  else if (tableWrap) tableWrap.appendChild(rendered);
 
   const visibleRows = rendered.querySelectorAll('tbody tr').length;
   if (tableWrap) tableWrap.style.display = visibleRows ? '' : 'none';

@@ -21,12 +21,18 @@
  *     super_class names are resolved via a two-pass over sys_db_object; reference
  *     field target names and view names are resolved via Maps built from the
  *     already-fetched sys_db_object / sys_db_view arrays — no getRefRecord() calls.
- *   • Record-count pass is opt-in because it adds N GlideAggregate calls
- *     (about 5-15 minutes on a typical instance with ~7k tables).
+ *   • Record-count pass is opt-in because it adds one GlideAggregate call per
+ *     table. Cost scales with table count and inversely with cluster size.
  *
- * Expected runtime on a typical instance (~7k tables, ~150k dictionary rows):
- *   • Without record counts:   45-90 seconds
- *   • With record counts:      5-15 minutes
+ * Expected runtime (benchmarked on ~12k-table instances, v1.0.4):
+ *   • Without record counts:   1-3 minutes
+ *     Dominated by sys_dictionary bulk fetch — scales with dictionary row volume
+ *     (field count), not just table count. Heavily customised instances with many
+ *     custom fields will be at the higher end.
+ *   • With record counts:      2-6 minutes
+ *     One GlideAggregate query per table — scales linearly with table count and
+ *     inversely with cluster size. A single-node PDI or developer instance will
+ *     be significantly slower than a multi-node production cluster.
  *
  * Output size (without record counts): ~16-20 MB JSON.
  * ============================================================================ */
