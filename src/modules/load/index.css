@@ -595,6 +595,25 @@
   padding: 0 4px;
   font-size: 10.5px;
 }
+.bg-cfg-row--text {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.bg-cfg-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--sn-border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 11px;
+  font-family: monospace;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+.bg-cfg-input::placeholder {
+  color: var(--sn-muted);
+}
 .setup-step {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--sn-border);

@@ -34,14 +34,20 @@ test('toggling record counts and metadata sections updates the source', async ({
   await openSetup(page);
   const pre = page.locator('#code-bg');
 
-  // Inputs are visually hidden inside .sn-toggle labels — click the label.
-  await page.locator('#bg-config .sn-toggle:has(input[data-bg="includeRecordCounts"])').click();
-  await expect(pre).toContainText('includeRecordCounts: true');
+  // All four metadata sections are checked by default.
+  await expect(pre).toContainText(
+    "metadataSections: ['plugins', 'storeApps', 'customApps', 'properties']"
+  );
 
+  // Uncheck plugins — three should remain.
   await page
     .locator('#bg-config [data-bg-group="metadataSections"] .sn-toggle:has(input[value="plugins"])')
     .click();
-  await expect(pre).toContainText("metadataSections: ['plugins']");
+  await expect(pre).toContainText("metadataSections: ['storeApps', 'customApps', 'properties']");
+
+  // Inputs are visually hidden inside .sn-toggle labels — click the label.
+  await page.locator('#bg-config .sn-toggle:has(input[data-bg="includeRecordCounts"])').click();
+  await expect(pre).toContainText('includeRecordCounts: true');
 });
 
 test('unchecking all edge types empties the array', async ({ page }) => {
