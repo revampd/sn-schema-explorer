@@ -41,7 +41,7 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { diffBuildList } from './build-list.js';
+import { diffBuildList, countChangedAfterElementFilter } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
 
@@ -284,9 +284,14 @@ function diffUpdateSummary() {
       if (info.anyChanged) nC++;
     }
   }
+  // The Kind (element-type) slice narrows only the Changed total — Added/Removed
+  // are whole-table and have no element-kind breakdown, so they keep their counts.
+  const nCFiltered = countChangedAfterElementFilter();
   if (nAdded) nAdded.textContent = nA;
   if (nRemoved) nRemoved.textContent = nR;
-  if (nChanged) nChanged.textContent = nC;
+  if (nChanged) {
+    nChanged.textContent = nCFiltered === null ? nC : `${nCFiltered}/${nC}`;
+  }
   if (showAllBtn) {
     showAllBtn.classList.toggle('active', diffState._diffShowAll);
     // The label names the GRAPH state — this toggle never touches the report list.
