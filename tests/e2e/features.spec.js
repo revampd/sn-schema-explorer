@@ -392,6 +392,68 @@ test.describe('Schema Diff', () => {
     await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'References' }).click();
     expect(await changedIds()).toEqual(['incident']);
   });
+
+  test('inspector shows a compare-only table as added, not "identical" in base', async ({
+    page,
+  }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    // Base has only incident; compare adds x_new (fields + a reference to incident).
+    const base = {
+      _instance: { instance_name: 'base-inst' },
+      nodes: [
+        {
+          id: 'incident',
+          label: 'Incident',
+          scope: 'Global',
+          fields: [{ name: 'number', label: 'Number', type: 'string' }],
+        },
+      ],
+      edges: [],
+    };
+    const compare = JSON.parse(JSON.stringify(base));
+    compare._instance = { instance_name: 'compare-inst' };
+    compare.nodes.push({
+      id: 'x_new',
+      label: 'New Table',
+      scope: 'X App',
+      recordCount: 41,
+      fields: [
+        { name: 'name', label: 'Name', type: 'string' },
+        { name: 'sys_id', label: 'Sys ID', type: 'GUID' },
+      ],
+    });
+    compare.edges.push({ source: 'x_new', target: 'incident', type: 'reference', field: 'inc' });
+    await page
+      .locator('#file-input')
+      .setInputFiles({
+        name: 'base.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(base)),
+      });
+    await page
+      .locator('#file-input')
+      .setInputFiles({
+        name: 'compare.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(compare)),
+      });
+    await page
+      .locator('.inst-card:not(.add-card)', { hasText: 'base-inst' })
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    await page.locator('#diff-list .diff-item[data-id="x_new"]').click();
+    const insp = page.locator('#inspector-content');
+    // The added table's fields are ADDED in compare — never "identical" in base
+    // (the grafted base node must not leak its fields/props/relationships).
+    await expect(insp).not.toContainText('identical across all instances');
+    await expect(insp).toContainText('added');
+    await expect(insp).toContainText('name'); // a compare-only field is listed
+  });
 });
 
 // ── Configuration Data ─────────────────────────────────────────────────────

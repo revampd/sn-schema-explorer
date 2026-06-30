@@ -109,7 +109,20 @@ export function diffFillInspector(d) {
 
   // Column model: Base first, then one column per compare (matrix order).
   const baseLabel = getInstance(instancesState.selectedId)?.label || 'Base';
-  const baseData = getInstance(instancesState.selectedId)?.data || null;
+  // The base graph has the compare's ADDED tables/edges grafted in (marked
+  // `_diffOnly`) so they render on the map. Those are NOT real base entities, so
+  // strip them here — otherwise the base column would show a compare-only table's
+  // fields / properties / relationships as if they existed in the base (and the
+  // field matrix would call them "identical"). The compare columns read their own
+  // (un-grafted) instance data, so only the base needs cleaning.
+  const rawBase = getInstance(instancesState.selectedId)?.data || null;
+  const baseData = rawBase
+    ? {
+        ...rawBase,
+        nodes: (rawBase.nodes || []).filter(n => !n._diffOnly),
+        edges: (rawBase.edges || []).filter(e => !e._diffOnly),
+      }
+    : null;
   const cols = [
     { id: '__base__', label: baseLabel, kind: 'base', data: baseData, status: 'base' },
     ...matrix.map(diff => ({
