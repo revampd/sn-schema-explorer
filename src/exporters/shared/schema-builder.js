@@ -325,7 +325,7 @@
       // fieldSeen and refEdgeSeen guard against duplicate input rows (e.g. from
       // unstable Table API pagination returning a boundary row on two consecutive
       // pages, or GlideRecord returning a row twice under certain index conditions).
-      var fieldSeen = {}; // tableName → { elementName: true }
+      var fieldSeen = {}; // "tableName\x01elementName" → true  (matches refEdgeSeen pattern)
       var refEdgeSeen = {}; // "table\x01field" → true
       var referenceEdges = []; // { source, target, type:'reference', field, label }
       for (var id = 0; id < sysDictionary.length; id++) {
@@ -334,10 +334,12 @@
         var tableNode = tableByName[d.name];
         if (!tableNode) continue; // dictionary row for a table not in sys_db_object — skip
 
-        // Deduplicate: skip if we've already processed this (table, element) pair
-        if (!fieldSeen[d.name]) fieldSeen[d.name] = {};
-        if (fieldSeen[d.name][d.element]) continue;
-        fieldSeen[d.name][d.element] = true;
+        // Deduplicate: skip if we've already processed this (table, element) pair.
+        // Flat concatenated key matches the refEdgeSeen pattern — avoids creating
+        // one nested object per table (lower GC pressure on 150k+ rows).
+        var fieldKey = d.name + '\x01' + d.element;
+        if (fieldSeen[fieldKey]) continue;
+        fieldSeen[fieldKey] = true;
 
         var typeValue = (d.internal_type && d.internal_type.value) || 'string';
         var typeLabel = (d.internal_type && d.internal_type.displayValue) || typeValue;
@@ -539,10 +541,21 @@
       for (var iex = 0; iex < extendsEdges.length; iex++)
         parentMap[extendsEdges[iex].source] = extendsEdges[iex].target;
       var depthCache = {};
+      var _depthVisiting = {}; // cycle guard — prevents infinite recursion on corrupt extends chains
       function depthOf(name) {
         if (depthCache[name] != null) return depthCache[name];
+        if (_depthVisiting[name]) {
+          depthCache[name] = 0;
+          return 0;
+        } // cycle detected, break it
         var parent = parentMap[name];
-        var d = parent ? 1 + depthOf(parent) : 0;
+        if (!parent) {
+          depthCache[name] = 0;
+          return 0;
+        }
+        _depthVisiting[name] = true;
+        var d = 1 + depthOf(parent);
+        delete _depthVisiting[name];
         depthCache[name] = d;
         return d;
       }
@@ -803,29 +816,27 @@
       }
 
       // ── Stream the JSON document ────────────────────────────────────────────
-      // Header — write the document opening and all small top-level objects.
-      emit('{"_schema_version":');
-      emitJSON(schema._schema_version);
-      emit(',"_instance":');
-      emitJSON(schema._instance);
-      emit(',"_stats":');
-      emitJSON(schema._stats);
-      emit(',"_capabilities":');
-      emitJSON(schema._capabilities);
-      // Optional metadata sections — emitted only when build() produced them.
-      // Small (plugins/apps/properties lists), so a single chunk is safe.
-      if (schema._metadata) {
-        emit(',"_metadata":');
-        emitJSON(schema._metadata);
-      }
-      emit(',"_typeCatalog":');
-      emitJSON(schema._typeCatalog);
-      emit(',"_restrictedHints":');
-      emitJSON(schema._restrictedHints);
-      emit(',"_ciRelationships":');
-      emitJSON(schema._ciRelationships);
-      emit(',"_build":');
-      emitJSON(schema._build);
+      // Header — batch the small fixed-size top-level fields into a single emit()
+      // to reduce writeFn() call overhead in Rhino. Each value here is at most a
+      // few KB; concatenating them is safe well within the 32 MB string cap.
+      emit(
+        '{"_schema_version":' +
+          JSON.stringify(schema._schema_version) +
+          ',"_instance":' +
+          JSON.stringify(schema._instance) +
+          ',"_stats":' +
+          JSON.stringify(schema._stats) +
+          ',"_capabilities":' +
+          JSON.stringify(schema._capabilities)
+      );
+      // Optional metadata sections — each is one emit (plugins/apps/properties can
+      // be several hundred KB but well under the cap; keeping separate avoids
+      // constructing an unnecessarily large intermediate string).
+      if (schema._metadata) emit(',"_metadata":' + JSON.stringify(schema._metadata));
+      emit(',"_typeCatalog":' + JSON.stringify(schema._typeCatalog));
+      emit(',"_restrictedHints":' + JSON.stringify(schema._restrictedHints));
+      emit(',"_ciRelationships":' + JSON.stringify(schema._ciRelationships));
+      emit(',"_build":' + JSON.stringify(schema._build));
 
       // Nodes — one per write. Even a 200-field table serialises to <100 KB,
       // well under the 32 MB cap. This is where the bulk of the payload lives.

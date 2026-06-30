@@ -1,4 +1,5 @@
 import { Dom } from './dom.js';
+import { uiState } from './state.js';
 
 export const LOD_THRESHOLD = 0.25;
 export const svg = d3.select('#graph');
@@ -7,6 +8,9 @@ export const root = d3.select('#graph-root');
 export const zoom = d3
   .zoom()
   .scaleExtent([0.04, 5])
+  // Block user-initiated gestures when the viewport is frozen; allow programmatic
+  // calls (fitGraph, zoom buttons) which bypass filter() entirely in D3.
+  .filter(e => (!e.ctrlKey || e.type === 'wheel') && !e.button)
   .on('zoom', e => {
     root.attr('transform', e.transform);
     svg.classed('lod-dots', e.transform.k < LOD_THRESHOLD);

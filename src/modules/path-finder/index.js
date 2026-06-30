@@ -27,7 +27,7 @@ Settings.registerFeature({
   label: 'Path Finder',
   description:
     'Adds a third view mode that finds shortest dot-walk paths between tables or from a table to a field. Inheritance-aware: paths through extends edges cost nothing because ancestor fields are directly accessible. Shows up to 5 alternative paths for fallback when fields may be unpopulated.',
-  default: false,
+  baseline: true,
   category: 'features',
 });
 
@@ -35,8 +35,8 @@ Settings.registerFeature({
   key: 'advancedPathFinder',
   label: 'Advanced Path Finder configuration',
   description:
-    'Adds a Configuration panel at the top of the Path Finder sidebar (visible when Path Finder is also enabled) for tuning the search: minimum path length, maximum path length, and how many alternative paths to return. Default values match the standard behaviour (1 step minimum, 10 maximum, 5 alternatives). Off by default — most users won’t need to change these.',
-  default: false,
+    'Adds a Configuration panel at the top of the Path Finder sidebar (visible when Path Finder is also enabled) for tuning the search: minimum path length, maximum path length, and how many alternative paths to return. Default values match the standard behaviour (1 step minimum, 10 maximum, 5 alternatives).',
+  baseline: true,
   category: 'experimental',
 });
 

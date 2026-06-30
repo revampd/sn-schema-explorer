@@ -10,10 +10,8 @@
   </div>
   <div class="guide-card">
     <h4>Features</h4>
-    <p>Major features that add significant UI surface area. Most are off by default.</p>
+    <p>Major features that add significant UI surface area.</p>
     <div class="guide-kv"><span class="guide-key">Saved Views</span><span class="guide-val"><em>On by default.</em> Adds the Saved Views section to the left sidebar. Save and restore named snapshots of your current selection, filters, hop depth, scope, and view mode.</span></div>
-    <div class="guide-kv"><span class="guide-key">Path Finder</span><span class="guide-val"><em>Off by default.</em> Adds the Path Finder view mode — shortest dot-walk path between two tables or from a table to a specific field. See the Path Finder tab for full details.</span></div>
-    <div class="guide-kv"><span class="guide-key">Schema Diff</span><span class="guide-val"><em>Off by default.</em> Adds the Schema Diff view mode — compare two schema exports to highlight added, removed, and changed tables. See the Schema Diff tab for full details.</span></div>
   </div>
   <div class="guide-card">
     <h4>Display</h4>
@@ -31,17 +29,11 @@
     <div class="guide-kv"><span class="guide-key">Clear search on selection</span><span class="guide-val"><em>On by default.</em> Empties the search box when you click a table, so the next search starts fresh. Sidebar-list clicks bypass this — your filter is preserved.</span></div>
     <div class="guide-kv"><span class="guide-key">Show inherited references in inspector</span><span class="guide-val"><em>Off by default.</em> When a table is selected, also shows the outgoing and incoming references of every ancestor in its inheritance chain, clearly grouped and labelled by ancestor. For example, selecting <code>incident</code> also shows <code>task</code>'s references. Inherited sections start collapsed and have a subtle left-border accent.</span></div>
     <div class="guide-kv"><span class="guide-key">Show inherited refs in edge tooltip</span><span class="guide-val"><em>Off by default.</em> When hovering a reference edge on the canvas, also shows reference fields inherited from ancestor tables that point to the same target. Each contributing ancestor appears as a separate group: <code>↳ inherited from Task:</code> with up to 5 fields listed; additional fields are summarised as <code>… +N more</code>. The full inheritance chain is walked automatically — no depth limit.</span></div>
-    <div class="guide-kv"><span class="guide-key">Check for updates</span><span class="guide-val"><em>On by default.</em> Once per browser session, checks GitHub for a newer release and shows a dismissible "update available" badge in the footer linking to the release. The only network request is a single GET to the public releases API — no telemetry or usage data — and it fails silently when offline. Turn off to disable all network activity.</span></div>
-  </div>
-  <div class="guide-card">
-    <h4>Export</h4>
-    <p>Settings that control export quality and limits.</p>
-    <div class="guide-kv"><span class="guide-key">Max PNG scale</span><span class="guide-val"><em>Default 50×.</em> Sets the upper limit of the PNG resolution slider in the Export menu. Use <code>−</code> / <code>+</code> to step in 10× increments (range 10–200×). The browser's 16 MP pixel cap still applies regardless — an amber warning appears in the export menu when the chosen scale would be capped.</span></div>
+    <div class="guide-kv"><span class="guide-key">Check for updates</span><span class="guide-val"><em>On by default.</em> Once per browser session, checks GitHub for a newer release — if found, the About chip in the footer changes to <strong>New version available</strong> and links to the release. The only network request is a single GET to the public releases API — no telemetry or usage data — and it fails silently when offline. Turn off to disable all network activity.</span></div>
   </div>
   <div class="guide-card">
     <h4>Experimental</h4>
     <p>These features work but may have rough edges — performance issues on large graphs, layout glitches, or unfinished UX. Try them and turn them off if anything misbehaves.</p>
     <div class="guide-kv"><span class="guide-key">Expanded field view</span><span class="guide-val"><em>Off by default.</em> Shows the selected table's fields inline inside its node rectangle in Schema Map. Useful for quick schema inspection; expands node sizes significantly on tables with many fields — consider keeping Max Nodes low.</span></div>
-    <div class="guide-kv"><span class="guide-key">Advanced Path Finder configuration</span><span class="guide-val"><em>Off by default.</em> Adds a Configuration panel to the Path Finder sidebar for tuning minimum/maximum path length and the number of alternatives returned. Requires Path Finder to be enabled.</span></div>
   </div>
 </div>

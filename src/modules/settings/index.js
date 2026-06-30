@@ -57,6 +57,7 @@ export const Settings = (() => {
     notify(key, value);
   }
   function isEnabled(featureKey) {
+    if (features.get(featureKey)?.baseline) return true;
     const v = get(featureKey);
     return v !== false;
   }
@@ -68,6 +69,7 @@ export const Settings = (() => {
       description: def.description || '',
       default: def.default !== false,
       hidden: !!def.hidden,
+      baseline: !!def.baseline,
       category: def.category || 'features',
     });
   }
@@ -289,7 +291,7 @@ export function renderSettingsModal() {
   const features = Settings.getFeatures();
   const featuresByCategory = new Map();
   for (const f of features) {
-    if (f.hidden) continue;
+    if (f.hidden || f.baseline) continue;
     if (!featuresByCategory.has(f.category)) featuresByCategory.set(f.category, []);
     featuresByCategory.get(f.category).push(f);
   }
@@ -317,68 +319,14 @@ export function renderSettingsModal() {
 
   for (const cat of CATEGORY_ORDER) {
     const items = featuresByCategory.get(cat) || [];
-    // Display and Export sections always render (have steppers even if no feature toggles)
-    if (!items.length && cat !== 'display' && cat !== 'export') continue;
+    // Display section always renders (has the font-size stepper even if no feature toggles)
+    if (!items.length && cat !== 'display') continue;
     const meta = CATEGORY_META[cat] || { title: cat, desc: '' };
 
     const section = h('div', { class: 'settings-section' });
     section.appendChild(h('div', { class: 'settings-section-title' }, meta.title));
     if (meta.desc) {
       section.appendChild(h('div', { class: 'settings-section-desc' }, meta.desc));
-    }
-
-    // Max PNG scale stepper — injected at the top of the Export section
-    if (cat === 'export') {
-      let cur = Settings.getMaxPngScale();
-      const valEl = h('span', { class: 'setting-stepper-val' }, cur + '\xD7');
-      // Set disabled as DOM property (not attribute) to avoid setAttribute('disabled', false) quirk
-      const minBtn = h(
-        'button',
-        {
-          class: 'setting-stepper-btn',
-          title: 'Decrease max PNG scale',
-          onClick: () => {
-            cur = Settings.setMaxPngScale(cur - 10);
-            valEl.textContent = cur + '\xD7';
-            minBtn.disabled = cur <= 10;
-            plusBtn.disabled = cur >= 200;
-          },
-        },
-        '−'
-      );
-      minBtn.disabled = cur <= 10;
-      const plusBtn = h(
-        'button',
-        {
-          class: 'setting-stepper-btn',
-          title: 'Increase max PNG scale',
-          onClick: () => {
-            cur = Settings.setMaxPngScale(cur + 10);
-            valEl.textContent = cur + '\xD7';
-            minBtn.disabled = cur <= 10;
-            plusBtn.disabled = cur >= 200;
-          },
-        },
-        '+'
-      );
-      plusBtn.disabled = cur >= 200;
-      section.appendChild(
-        h(
-          'div',
-          { class: 'setting-row' },
-          h(
-            'div',
-            { class: 'setting-row-text' },
-            h('div', { class: 'setting-row-label' }, 'Max PNG scale'),
-            h(
-              'div',
-              { class: 'setting-row-desc' },
-              'Upper limit for the PNG resolution slider in the Export menu. Default 50\xD7. Range: 10–200\xD7, step 10\xD7. The browser’s 16 MP pixel cap still applies regardless.'
-            )
-          ),
-          h('div', { class: 'setting-stepper' }, minBtn, valEl, plusBtn)
-        )
-      );
     }
 
     // Font size stepper — injected at the top of the Display section

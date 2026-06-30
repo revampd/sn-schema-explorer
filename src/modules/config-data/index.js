@@ -45,7 +45,7 @@ Settings.registerFeature({
   label: 'Configuration Data',
   description:
     'Adds a cross-instance comparison tool that reconciles plugins, store apps, custom apps, and system properties across the instances you register, highlighting version drift, missing entries, and active-state mismatches.',
-  default: false,
+  baseline: true,
   category: 'features',
 });
 

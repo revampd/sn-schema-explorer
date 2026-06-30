@@ -34,6 +34,12 @@ export function selectNode(d, nodeSel, edgePath) {
   notifyFocusChange();
   Dom.statFocus.textContent = d.id;
 
+  if (uiState.frozenViewport) {
+    fillInspector(d);
+    highlightListItem(d.id);
+    return;
+  }
+
   if (Settings.isEnabled('clearSearchOnSelect')) {
     Dom.searchBox.value = '';
     applyTableFilter('');
@@ -56,6 +62,7 @@ export function clearSel(nodeSel, edgePath) {
 
 export function clearSelection() {
   if (!uiState.selectedNode) return;
+  if (uiState.frozenViewport) return;
   uiState.selectedNode = null;
   notifyFocusChange();
   uiState.connectedNodes = new Set();
