@@ -1,160 +1,257 @@
-      <div class="setup-guide-wrap">
-        <div class="setup-guide">
-        <div class="setup-notice info">
-          <span class="setup-notice-icon">ℹ</span>
-          <span>Run one of the scripts below on your ServiceNow instance to generate a schema JSON file, then drop it above.</span>
-        </div>
-        <div class="setup-notice warn">
-          <span class="setup-notice-icon">⚠</span>
-          <span><strong>Important:</strong> switch the application picker (top-right) to <strong>Global</strong> before running the Background Script. Running inside a scoped app blocks reads on global metadata tables (sys_db_object, sys_dictionary, ...) and the script will return zero rows. The script's pre-flight check catches this and aborts with a clear error.</span>
-        </div>
+<!-- ── Export Wizard ───────────────────────────────────────────────────────── -->
 
-        <div class="setup-step">
-          <div class="setup-step-header">
-            <div class="setup-step-num">A</div>
-            <div class="setup-step-title">Option A — Scripts › Background (recommended)</div>
-          </div>
-          <div class="setup-step-body">
-            <div class="setup-step-desc">
-              Navigate to <strong>System Definition → Scripts - Background</strong>
-              (or search "Scripts - Background" in the navigator).
-              Make sure the application picker (top-right) shows <strong>Global</strong>.
-              Paste the exporter below and click <strong>Run script</strong>.
-              The script writes the output as a <code>sys_attachment</code> on your own
-              user record and logs the download URL — open it from the result area to
-              grab the JSON file. Tune the <code>CONFIG</code> block at the top if you want
-              record counts (opt-in, adds ~5–15 min) or direct print-to-output instead.
-              Set <code>format</code> to <code>'markdown'</code> or <code>'jsonld'</code> to export in those formats
-              directly — OWL/Turtle and OpenAPI are not supported in the Background Script
-              (export as JSON, then convert via Export in the viewer or use the Node.js extractor with
-              <code>--format=owl</code> / <code>--format=openapi</code> instead).
-              Use <code>edgeTypes</code> to control which relationship types appear in the Markdown or JSON-LD output.
-              <br><br>
-              Expected runtime on a typical instance (~6800 tables):
-              <strong>45–90 seconds</strong> without record counts.
-              <br><br>
-              <strong>Background Script UI notes:</strong>
-              <ul style="margin:4px 0 0 16px;padding:0;font-size:10px;line-height:1.7">
-                <li><strong>Application scope picker</strong> — must show <strong>Global</strong> (see warning above)</li>
-                <li><strong>Record for rollback?</strong> — leave checked (default). Creates a rollback context so the script can be rolled back via Script Execution History if something goes wrong.</li>
-                <li><strong>Execute in sandbox?</strong> — leave <strong>unchecked</strong>. Sandbox mode prevents data writes — the script needs to save the JSON as a <code>sys_attachment</code> on your user record, so it will fail silently if this is checked.</li>
-                <li><strong>Cancel after 4 hours?</strong> — leave checked (default). The script completes in under 2 minutes on most instances.</li>
-              </ul>
-            </div>
-            <div class="setup-notice info" style="margin-bottom:8px">
-              <span class="setup-notice-icon">💡</span>
-              <span><strong>Record counts are off by default</strong> (<code>includeRecordCounts: false</code> in the CONFIG block).
-              Leave it off for the first run — enabling it adds <strong>5–15 minutes</strong> to the export time.</span>
-            </div>
-            <div class="bg-config" id="bg-config">
-              <div class="bg-config-title">⚙ Configure the script
-                <span>— edits the CONFIG block below before you copy</span>
-              </div>
-              <div class="bg-config-grid">
-                <label class="bg-cfg-row">
-                  <span class="bg-cfg-label">Output format</span>
-                  <div class="bg-cfg-mount" data-bg-mount="format"></div>
-                </label>
-                <label class="sn-toggle"><input type="checkbox" data-bg="includeRecordCounts"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Per-table record counts <em>(adds 5–15 min)</em></span></label>
-                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includeRecordCounts">
-                  <span class="bg-cfg-label">Count exclude patterns <em>(comma-separated regex)</em></span>
-                  <input class="bg-cfg-input" type="text" data-bg="recordCountExclude" value="^sys_, ^var_, ^ts_">
-                </label>
-                <fieldset class="bg-cfg-set" data-bg-group="metadataSections">
-                  <legend>Metadata sections <em>(JSON only)</em></legend>
-                  <label class="sn-toggle"><input type="checkbox" value="plugins" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="storeApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="customApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
-                </fieldset>
-                <label class="sn-toggle" data-bg-show="properties"><input type="checkbox" data-bg="includePropertyValues"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
-                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="properties">
-                  <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
-                  <input class="bg-cfg-input" type="text" data-bg="propertyEncodedQuery" placeholder="e.g. nameSTARTSWITHglide.ui">
-                </label>
-                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includePropertyValues">
-                  <span class="bg-cfg-label">Property denylist <em>(regex, no slashes)</em></span>
-                  <input class="bg-cfg-input" type="text" data-bg="propertyValueDenylist" value="password|secret|key|token|cred|private|passwd">
-                </label>
-                <fieldset class="bg-cfg-set" data-bg-group="edgeTypes">
-                  <legend>Edge types <em>(Markdown / JSON-LD)</em></legend>
-                  <label class="sn-toggle"><input type="checkbox" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="extends" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">extends</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="m2m" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">m2m</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">rel</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="view" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">view</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="cmdb_rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">cmdb_rel</span></label>
-                </fieldset>
-              </div>
-            </div>
-            <div class="code-block">
-              <div class="code-block-header">
-                <span class="code-block-lang">ServiceNow — Scripts - Background</span>
-                <button class="code-copy-btn" >Copy</button>
-              </div>
-              <pre id="code-bg"><!--INJECT:exporter-bg--></pre>
-            </div>
-            <div class="setup-notice warn" style="margin-top:10px">
-              <span class="setup-notice-icon">⚠</span>
-              <span>Requires the <code>admin</code> role. For non-admin environments use Option B (Node.js extractor)
-              or ask your ServiceNow administrator to run the Background Script on your behalf.</span>
-            </div>
-          </div>
-        </div>
+<!-- Step 1: Pick method -->
+<div class="wiz-step" id="wiz-1">
+  <p class="wiz-pick-prompt">Choose how you want to export your ServiceNow schema:</p>
+  <div class="wiz-methods">
 
-        <div class="setup-step">
-          <div class="setup-step-header">
-            <div class="setup-step-num">B</div>
-            <div class="setup-step-title">Option B — Node.js extractor (local machine)</div>
-          </div>
-          <div class="setup-step-body">
-            <div class="setup-step-desc">
-              Requires Node.js 18+ and network access to your instance.
-              The extractor is configured via CLI flags (no inline config block).
-              Save the script as <code>sn-schema-export.js</code> and run it with:
-              <br><br>
-              <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:10px;display:block;line-height:1.5;white-space:pre">node sn-schema-export.js \
-  --instance=https://your-instance.service-now.com \
-  --user=admin --password=*** \
-  --output=schema.json</code>
-              <br>
-              Uses the standard Table API — no instance-side setup required.
-              Add <code>--include-record-counts</code> for per-table counts (opt-in, slow).
-              Add <code>--page-size=N</code> to override the API page size (default: 1000 rows/request — increase for faster exports on capable instances, decrease if you see HTTP timeouts).
-              <br><br>
-              <strong>Authentication:</strong> use <code>--user</code> + <code>--password</code> for Basic Auth (shown above),
-              or <code>--apikey=&lt;key&gt;</code> for API key auth — the key is sent as the <code>x-sn-apikey</code>
-              request header and does not require a username or password.
-              <br><br>
-              <strong>Output format:</strong> add <code>--format=&lt;fmt&gt;</code> to control the output format
-              (default: <code>json</code>). The output file extension is set automatically when <code>--output</code>
-              is omitted.
-              <br>
-              <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:10px;display:block;line-height:1.5;white-space:pre">--format=json      → schema JSON  (.json)  — viewer-ready, supports streaming
---format=markdown  → Markdown doc (.md)   — one ## block per table, for wikis / LLMs
---format=jsonld    → JSON-LD      (.jsonld)— owl:Class / owl:DatatypeProperty graph
---format=owl       → OWL/Turtle   (.ttl)  — standard OWL ontology (Protégé, ROBOT)
---format=openapi   → OpenAPI YAML (.yaml) — component schemas with typed properties</code>
-              <br>
-              Use <code>--edge-types=&lt;list&gt;</code> to control which relationship types appear in Markdown,
-              JSON-LD, OWL, and OpenAPI exports (comma-separated; default: all six).
-              <br>
-              <code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px;font-size:10px;display:block;line-height:1.5;white-space:pre">--edge-types=reference,extends,m2m,rel,view,cmdb_rel</code>
-              <br><br>
-              Env-var equivalents are supported:
-              <code>SN_INSTANCE</code>, <code>SN_USER</code>, <code>SN_PASSWORD</code>,
-              <code>SN_APIKEY</code>, <code>SN_OUTPUT</code>, <code>SN_PAGE_SIZE</code>,
-              <code>SN_FORMAT</code>, <code>SN_EDGE_TYPES</code>.
-            </div>
-            <div class="code-block">
-              <div class="code-block-header">
-                <span class="code-block-lang">Node.js — sn-schema-export.js (standalone)</span>
-                <button class="code-copy-btn" >Copy</button>
-              </div>
-              <pre id="code-node"><!--INJECT:exporter-node--></pre>
-            </div>
-          </div>
+    <button class="wiz-method" data-wiz-method="bg">
+      <div class="wiz-method-top">
+        <span class="wiz-method-letter">A</span>
+        <span class="wiz-method-name">Background Script</span>
+        <span class="wiz-method-rec">Recommended</span>
+      </div>
+      <div class="wiz-method-body">
+        <div class="wiz-fact-label">Output</div>
+        <div class="wiz-fact-pills">
+          <span class="wiz-pill wiz-pill--primary">Schema Explorer JSON</span>
+          <span class="wiz-pill">Markdown</span>
+          <span class="wiz-pill">JSON-LD</span>
         </div>
+        <p class="wiz-fact-note">OWL/Turtle and OpenAPI not available as direct output — export the JSON first, then convert via Schema Explorer's Export bar.</p>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Requirements</span><span>Admin role · no local tooling</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Runs on</span><span>Your ServiceNow instance — saves export as an attachment on your user record</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Table visibility</span><span>All tables, incl. privately-scoped apps (admin session bypasses cross-scope ACLs)</span></div>
+      </div>
+    </button>
 
-      </div><!-- /.setup-guide -->
-      </div><!-- /.setup-guide-wrap -->
+    <button class="wiz-method" data-wiz-method="node">
+      <div class="wiz-method-top">
+        <span class="wiz-method-letter">B</span>
+        <span class="wiz-method-name">Node.js extractor</span>
+      </div>
+      <div class="wiz-method-body">
+        <div class="wiz-fact-label">Output</div>
+        <div class="wiz-fact-pills">
+          <span class="wiz-pill wiz-pill--primary">Schema Explorer JSON</span>
+          <span class="wiz-pill">Markdown</span>
+          <span class="wiz-pill">JSON-LD</span>
+          <span class="wiz-pill">OWL/Turtle</span>
+          <span class="wiz-pill">OpenAPI</span>
+        </div>
+        <p class="wiz-fact-note">Standalone formats are generated directly — ready for wikis, LLMs, RDF tooling, or API consumers without opening Schema Explorer.</p>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Requirements</span><span>Node.js 22+ · network access · credentials via env vars</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Runs on</span><span>Your local machine via the Table API — no instance-side setup</span></div>
+        <div class="wiz-fact-row"><span class="wiz-fact-key">Table visibility</span><span>Table API — privately-scoped app tables may be absent due to cross-scope ACLs</span></div>
+      </div>
+    </button>
+
+  </div>
+</div>
+
+<!-- Step 2A: Configure Background Script -->
+<div class="wiz-step" id="wiz-2-bg" hidden>
+  <div class="wiz-step-head">
+    <button class="wiz-back-btn" data-wiz-goto="wiz-1">← Back</button>
+    <span class="wiz-step-crumb">Background Script · Step 2 of 3</span>
+  </div>
+
+  <div class="setup-notice warn">
+    <span class="setup-notice-icon">⚠</span>
+    <span><strong>Important:</strong> switch the application picker (top-right) to <strong>Global</strong> before running the script. Running inside a scoped app blocks reads on global metadata tables (<code>sys_db_object</code>, <code>sys_dictionary</code>, …) and the script will return zero rows. The pre-flight check catches this and aborts with a clear error.</span>
+  </div>
+  <div class="setup-notice info">
+    <span class="setup-notice-icon">💡</span>
+    <span><strong>Record counts are off by default</strong> (<code>includeRecordCounts: false</code>). Leave them off for the first run — enabling adds 5–15 minutes to the export time.</span>
+  </div>
+
+  <div class="bg-config" id="bg-config">
+    <div class="bg-config-title">⚙ Configure the script <span>— edits the CONFIG block before you copy</span></div>
+    <div class="bg-config-grid">
+      <label class="bg-cfg-row">
+        <span class="bg-cfg-label">Output format</span>
+        <div class="bg-cfg-mount" data-bg-mount="format"></div>
+      </label>
+      <label class="sn-toggle"><input type="checkbox" data-bg="includeRecordCounts"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Per-table record counts <em>(adds 5–15 min)</em></span></label>
+      <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includeRecordCounts">
+        <span class="bg-cfg-label">Count exclude patterns <em>(comma-separated regex)</em></span>
+        <input class="bg-cfg-input" type="text" data-bg="recordCountExclude" value="^sys_, ^var_, ^ts_">
+      </label>
+      <fieldset class="bg-cfg-set" data-bg-group="metadataSections">
+        <legend>Metadata sections <em>(JSON only)</em></legend>
+        <label class="sn-toggle"><input type="checkbox" value="plugins" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="storeApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="customApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
+      </fieldset>
+      <label class="sn-toggle" data-bg-show="properties"><input type="checkbox" data-bg="includePropertyValues"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+      <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="properties">
+        <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
+        <input class="bg-cfg-input" type="text" data-bg="propertyEncodedQuery" placeholder="e.g. nameSTARTSWITHglide.ui">
+      </label>
+      <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includePropertyValues">
+        <span class="bg-cfg-label">Property denylist <em>(regex, no slashes)</em></span>
+        <input class="bg-cfg-input" type="text" data-bg="propertyValueDenylist" value="password|secret|key|token|cred|private|passwd">
+      </label>
+      <fieldset class="bg-cfg-set" data-bg-group="edgeTypes">
+        <legend>Edge types <em>(Markdown / JSON-LD)</em></legend>
+        <label class="sn-toggle"><input type="checkbox" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="extends" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">extends</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="m2m" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">m2m</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">rel</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="view" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">view</span></label>
+        <label class="sn-toggle"><input type="checkbox" value="cmdb_rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">cmdb_rel</span></label>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="wiz-nav">
+    <button class="wiz-next-btn" data-wiz-goto="wiz-3-bg">View script →</button>
+  </div>
+</div>
+
+<!-- Step 2B: Configure Node.js extractor -->
+<div class="wiz-step" id="wiz-2-node" hidden>
+  <div class="wiz-step-head">
+    <button class="wiz-back-btn" data-wiz-goto="wiz-1">← Back</button>
+    <span class="wiz-step-crumb">Node.js extractor · Step 2 of 3</span>
+  </div>
+
+  <div class="setup-notice info">
+    <span class="setup-notice-icon">🔒</span>
+    <span>Credentials are <strong>never passed on the command line</strong> — they would appear in shell history and process listings. Use environment variables instead (<code>SN_PASSWORD</code> or <code>SN_APIKEY</code>).</span>
+  </div>
+
+  <div class="bg-config" id="node-config">
+    <div class="bg-config-title">⚙ Configure the command <span>— updates the command preview as you type</span></div>
+    <div class="bg-config-grid">
+      <label class="bg-cfg-row bg-cfg-row--text">
+        <span class="bg-cfg-label">Instance URL</span>
+        <input class="bg-cfg-input" type="text" id="node-instance" placeholder="https://your-instance.service-now.com">
+      </label>
+      <div class="node-auth-group">
+        <span class="bg-cfg-label">Authentication</span>
+        <div class="node-auth-opts">
+          <label class="node-auth-opt">
+            <input type="radio" name="node-auth" value="basic" checked>
+            <span class="node-auth-label">Basic auth</span>
+            <code class="node-auth-hint">set SN_PASSWORD</code>
+          </label>
+          <label class="node-auth-opt">
+            <input type="radio" name="node-auth" value="apikey">
+            <span class="node-auth-label">API key</span>
+            <code class="node-auth-hint">set SN_APIKEY</code>
+          </label>
+        </div>
+      </div>
+      <label class="bg-cfg-row bg-cfg-row--text" id="node-user-row">
+        <span class="bg-cfg-label">Username <em>(for basic auth)</em></span>
+        <input class="bg-cfg-input" type="text" id="node-user" placeholder="admin">
+      </label>
+      <label class="bg-cfg-row">
+        <span class="bg-cfg-label">Output format</span>
+        <div class="bg-cfg-mount" data-node-mount="format"></div>
+      </label>
+      <label class="sn-toggle"><input type="checkbox" id="node-record-counts"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Per-table record counts <em>(adds 5–15 min)</em></span></label>
+      <fieldset class="bg-cfg-set">
+        <legend>Metadata sections</legend>
+        <label class="sn-toggle"><input type="checkbox" class="node-meta" value="plugins" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-meta" value="storeApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-meta" value="customApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-meta" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
+      </fieldset>
+      <label class="sn-toggle" id="node-prop-values-row"><input type="checkbox" id="node-prop-values"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+      <label class="bg-cfg-row bg-cfg-row--text" id="node-prop-denylist-row">
+        <span class="bg-cfg-label">Property denylist <em>(regex, no slashes)</em></span>
+        <input class="bg-cfg-input" type="text" id="node-prop-denylist" value="password|secret|key|token|cred|private|passwd">
+      </label>
+      <label class="bg-cfg-row bg-cfg-row--text" id="node-prop-query-row">
+        <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
+        <input class="bg-cfg-input" type="text" id="node-prop-query" placeholder="e.g. nameSTARTSWITHglide.ui">
+      </label>
+      <fieldset class="bg-cfg-set" id="node-edge-types-set">
+        <legend>Edge types <em>(Markdown / JSON-LD / OWL / OpenAPI)</em></legend>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="extends" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">extends</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="m2m" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">m2m</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">rel</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="view" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">view</span></label>
+        <label class="sn-toggle"><input type="checkbox" class="node-edge" value="cmdb_rel" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">cmdb_rel</span></label>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="wiz-nav">
+    <button class="wiz-next-btn" data-wiz-goto="wiz-3-node">View script and command →</button>
+  </div>
+</div>
+
+<!-- Step 3A: Background Script — copy and run -->
+<div class="wiz-step" id="wiz-3-bg" hidden>
+  <div class="wiz-step-head">
+    <button class="wiz-back-btn" data-wiz-goto="wiz-2-bg">← Back</button>
+    <span class="wiz-step-crumb">Background Script · Step 3 of 3</span>
+  </div>
+
+  <div class="setup-step-desc">
+    Navigate to <strong>System Definition → Scripts - Background</strong> (or search "Scripts - Background" in the navigator).
+    Make sure the application picker (top-right) shows <strong>Global</strong>.
+    Paste the script below and click <strong>Run script</strong>.
+    The script writes the output as a <code>sys_attachment</code> on your own user record and logs the download URL — open it from the result area to grab the file.
+    <br><br>
+    Expected runtime on a typical instance (~6800 tables): <strong>45–90 seconds</strong> without record counts.
+    <br><br>
+    <strong>Background Script UI checklist:</strong>
+    <ul style="margin:4px 0 0 16px;padding:0;font-size:10px;line-height:1.7">
+      <li><strong>Application scope picker</strong> — must show <strong>Global</strong></li>
+      <li><strong>Record for rollback?</strong> — leave checked (default). Creates a rollback context so the script can be rolled back via Script Execution History if anything goes wrong.</li>
+      <li><strong>Execute in sandbox?</strong> — leave <strong>unchecked</strong>. Sandbox mode prevents data writes; the script needs to save the export as a <code>sys_attachment</code>.</li>
+      <li><strong>Cancel after 4 hours?</strong> — leave checked (default). The script completes in under 2 minutes on most instances.</li>
+    </ul>
+  </div>
+
+  <div class="setup-notice warn">
+    <span class="setup-notice-icon">⚠</span>
+    <span>Requires the <code>admin</code> role. For non-admin environments use the Node.js extractor, or ask your ServiceNow administrator to run this script on your behalf.</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-block-lang">ServiceNow — Scripts - Background</span>
+      <button class="code-copy-btn">Copy</button>
+    </div>
+    <pre id="code-bg"><!--INJECT:exporter-bg--></pre>
+  </div>
+</div>
+
+<!-- Step 3B: Node.js extractor — copy and run -->
+<div class="wiz-step" id="wiz-3-node" hidden>
+  <div class="wiz-step-head">
+    <button class="wiz-back-btn" data-wiz-goto="wiz-2-node">← Back</button>
+    <span class="wiz-step-crumb">Node.js extractor · Step 3 of 3</span>
+  </div>
+
+  <div class="setup-step-desc">
+    Save the script below as <code>sn-schema-export.js</code>, then run the generated command.
+    Credentials go in environment variables — never on the command line.
+    <br><br>
+    <strong>Environment variable equivalents:</strong> all flags have env-var counterparts —
+    <code>SN_INSTANCE</code>, <code>SN_USER</code>, <code>SN_PASSWORD</code>, <code>SN_APIKEY</code>,
+    <code>SN_FORMAT</code>, <code>SN_METADATA</code>. Set them in your shell profile or CI environment
+    instead of passing flags each time.
+  </div>
+
+  <div class="node-cmd-wrap">
+    <div class="bg-config-title">Generated command</div>
+    <pre id="node-cmd-preview" class="node-cmd-pre"></pre>
+    <button class="code-copy-btn" id="node-cmd-copy">Copy command</button>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-block-lang">Node.js — sn-schema-export.js (standalone, zero dependencies)</span>
+      <button class="code-copy-btn">Copy</button>
+    </div>
+    <pre id="code-node"><!--INJECT:exporter-node--></pre>
+  </div>
+</div>

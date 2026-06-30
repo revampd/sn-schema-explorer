@@ -581,10 +581,13 @@ function readBgConfigForm(root) {
   };
 }
 
+let _bgConfigInited = false;
 function initBgConfig() {
   const panel = document.getElementById('bg-config');
   const pre = document.getElementById('code-bg');
   if (!panel || !pre) return;
+  if (_bgConfigInited) return;
+  _bgConfigInited = true;
   const original = pre.textContent;
 
   // Update visibility of rows that have a data-bg-show dependency.
@@ -633,6 +636,127 @@ function initBgConfig() {
   rerender();
 }
 
+// ── Export wizard ────────────────────────────────────────────────────────────
+
+// Custom dropdown for the Node.js output-format picker, created lazily.
+let nodeFormatDD = null;
+let _nodeConfigInited = false;
+
+function showWizStep(id) {
+  document.querySelectorAll('.wiz-step').forEach(el => {
+    el.hidden = el.id !== id;
+  });
+}
+
+const ALL_NODE_EDGE_TYPES = ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'];
+
+function buildNodeCommand() {
+  const instance = (document.getElementById('node-instance')?.value || '').trim();
+  const user = (document.getElementById('node-user')?.value || '').trim();
+  const authEl = document.querySelector('input[name="node-auth"]:checked');
+  const auth = authEl ? authEl.value : 'basic';
+  const format = nodeFormatDD ? nodeFormatDD.getValue() : 'json';
+  const recordCounts = document.getElementById('node-record-counts')?.checked;
+  const meta = [...document.querySelectorAll('.node-meta:checked')].map(i => i.value);
+  const propValues = document.getElementById('node-prop-values')?.checked;
+  const propDenylist = (document.getElementById('node-prop-denylist')?.value || '').trim();
+  const propQuery = (document.getElementById('node-prop-query')?.value || '').trim();
+  const edgeTypes = [...document.querySelectorAll('.node-edge:checked')].map(i => i.value);
+
+  const lines = [];
+  if (auth === 'basic') {
+    lines.push('# Set your password — never pass it on the command line');
+    lines.push('export SN_PASSWORD=<your-password>');
+  } else {
+    lines.push('# Set your API key — never pass it on the command line');
+    lines.push('export SN_APIKEY=<your-api-key>');
+  }
+  lines.push('');
+
+  const cmd = ['node sn-schema-export.js'];
+  if (instance) cmd.push(`  --instance=${instance}`);
+  else cmd.push('  --instance=https://your-instance.service-now.com');
+  if (auth === 'basic') cmd.push(`  --user=${user || 'admin'}`);
+  if (format !== 'json') cmd.push(`  --format=${format}`);
+  if (recordCounts) cmd.push('  --include-record-counts');
+  if (meta.length && meta.length < 4) cmd.push(`  --metadata=${meta.join(',')}`);
+  if (propValues) cmd.push('  --include-property-values');
+  const defaultDenylist = 'password|secret|key|token|cred|private|passwd';
+  if (propValues && propDenylist && propDenylist !== defaultDenylist)
+    cmd.push(`  --property-value-denylist=${propDenylist}`);
+  if (propQuery) cmd.push(`  --property-query=${propQuery}`);
+  if (edgeTypes.length && edgeTypes.length < ALL_NODE_EDGE_TYPES.length)
+    cmd.push(`  --edge-types=${edgeTypes.join(',')}`);
+
+  lines.push(cmd.join(' \\\n'));
+  return lines.join('\n');
+}
+
+function updateNodeCommand() {
+  const pre = document.getElementById('node-cmd-preview');
+  if (pre) pre.textContent = buildNodeCommand();
+
+  const auth = document.querySelector('input[name="node-auth"]:checked')?.value;
+  const userRow = document.getElementById('node-user-row');
+  if (userRow) userRow.style.display = auth === 'apikey' ? 'none' : '';
+
+  const hasProps = document.querySelector('.node-meta[value="properties"]')?.checked;
+  const hasPropValues = document.getElementById('node-prop-values')?.checked;
+  const propValRow = document.getElementById('node-prop-values-row');
+  if (propValRow) propValRow.style.display = hasProps ? '' : 'none';
+  const propDenylistRow = document.getElementById('node-prop-denylist-row');
+  if (propDenylistRow) propDenylistRow.style.display = hasProps && hasPropValues ? '' : 'none';
+  const propQueryRow = document.getElementById('node-prop-query-row');
+  if (propQueryRow) propQueryRow.style.display = hasProps ? '' : 'none';
+
+  // Edge types only relevant for non-JSON output formats
+  const format = nodeFormatDD ? nodeFormatDD.getValue() : 'json';
+  const edgeSet = document.getElementById('node-edge-types-set');
+  if (edgeSet) edgeSet.style.display = format === 'json' ? 'none' : '';
+}
+
+function initNodeConfig() {
+  const panel = document.getElementById('node-config');
+  if (!panel) return;
+  if (_nodeConfigInited) return;
+  _nodeConfigInited = true;
+
+  const fmtMount = panel.querySelector('[data-node-mount="format"]');
+  if (fmtMount && !nodeFormatDD) {
+    nodeFormatDD = createDropdown({ ariaLabel: 'Output format', onChange: updateNodeCommand });
+    nodeFormatDD.setOptions(
+      [
+        { value: 'json', label: 'JSON (Schema Explorer format)' },
+        { value: 'markdown', label: 'Markdown (standalone)' },
+        { value: 'jsonld', label: 'JSON-LD (standalone)' },
+        { value: 'owl', label: 'OWL/Turtle (standalone)' },
+        { value: 'openapi', label: 'OpenAPI YAML (standalone)' },
+      ],
+      'json'
+    );
+    fmtMount.appendChild(nodeFormatDD.el);
+  }
+
+  panel.addEventListener('change', updateNodeCommand);
+  panel.addEventListener('input', updateNodeCommand);
+  updateNodeCommand();
+}
+
+function openExportWizard() {
+  const overlay = document.getElementById('export-wizard-overlay');
+  if (!overlay) return;
+  overlay.hidden = false;
+  showWizStep('wiz-1');
+  // Initialise configs lazily on first open (DOM is present after first open)
+  initBgConfig();
+  initNodeConfig();
+}
+
+function closeExportWizard() {
+  const overlay = document.getElementById('export-wizard-overlay');
+  if (overlay) overlay.hidden = true;
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 export function initLanding() {
@@ -676,13 +800,57 @@ export function initLanding() {
   const home = document.getElementById('btn-home');
   if (home) home.addEventListener('click', () => setWorkspace('landing'));
 
-  // Setup-instructions code copy (the accordion is the outer <details>).
-  document
-    .querySelectorAll('.code-copy-btn')
-    .forEach(btn => btn.addEventListener('click', e => copyCode(e.currentTarget)));
+  // Export wizard: open button
+  document.getElementById('btn-export-wizard')?.addEventListener('click', openExportWizard);
 
-  // Background-script CONFIG editor — rewrites the displayed bg source on change.
-  initBgConfig();
+  // Export wizard: close button + overlay backdrop click + Escape key
+  document.getElementById('export-wizard-close')?.addEventListener('click', closeExportWizard);
+  document.getElementById('export-wizard-overlay')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeExportWizard();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.getElementById('export-wizard-overlay')?.hidden) {
+      closeExportWizard();
+    }
+  });
+
+  // Export wizard: step navigation (back/next buttons + method cards)
+  document.addEventListener('click', e => {
+    const goto = e.target.closest('[data-wiz-goto]');
+    if (goto) {
+      showWizStep(goto.dataset.wizGoto);
+      // When navigating to the Node step 3, refresh the command preview
+      if (goto.dataset.wizGoto === 'wiz-3-node') updateNodeCommand();
+      return;
+    }
+    const method = e.target.closest('[data-wiz-method]');
+    if (method) {
+      showWizStep(method.dataset.wizMethod === 'bg' ? 'wiz-2-bg' : 'wiz-2-node');
+    }
+  });
+
+  // Code copy buttons (wizard steps)
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.code-copy-btn');
+    if (btn) copyCode(btn);
+  });
+
+  // Node command copy button
+  document.getElementById('node-cmd-copy')?.addEventListener('click', () => {
+    const pre = document.getElementById('node-cmd-preview');
+    if (!pre) return;
+    navigator.clipboard.writeText(pre.textContent.trim()).then(() => {
+      const btn = document.getElementById('node-cmd-copy');
+      if (!btn) return;
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.style.color = 'var(--sn-wasabi)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+      }, 1800);
+    });
+  });
 
   onWorkspaceChange(ws => {
     if (ws === 'landing') refreshLanding();

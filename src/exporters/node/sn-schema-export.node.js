@@ -18,13 +18,14 @@
  *     [--include-record-counts] \
  *     [--metadata=plugins,storeApps,customApps,properties]  (opt-in; JSON only)
  *     [--include-property-values]  (sys_properties values — OFF by default, denylist-redacted)
+ *     [--property-value-denylist=<regex>]  (override redaction pattern; default: password|secret|key|token|cred|private|passwd)
  *     [--property-query=<encoded query>]  (narrow which sys_properties rows export)
  *     [--page-size=N] \
  *     [--pretty] [--verbose]
  *
  * Environment variable alternatives:
  *   SN_INSTANCE, SN_USER, SN_PASSWORD, SN_APIKEY, SN_OUTPUT, SN_PAGE_SIZE,
- *   SN_FORMAT, SN_EDGE_TYPES, SN_METADATA, SN_PROPERTY_QUERY
+ *   SN_FORMAT, SN_EDGE_TYPES, SN_METADATA, SN_PROPERTY_QUERY, SN_PROPERTY_VALUE_DENYLIST
  *
  * Performance
  * -----------
@@ -111,8 +112,12 @@ const config = {
     .map(s => s.trim())
     .filter(Boolean),
   // sys_properties values can hold secrets — OFF by default. When on, the shared
-  // builder still redacts values whose property name matches its denylist.
+  // builder redacts values whose property name matches the denylist.
   includePropertyValues: !!args['include-property-values'],
+  // Override the built-in redaction pattern (regex without slashes). Falls back
+  // to the schema-builder default when absent.
+  propertyValueDenylist:
+    args['property-value-denylist'] || process.env.SN_PROPERTY_VALUE_DENYLIST || null,
   // Optional encoded query to narrow which sys_properties rows are exported.
   propertyQuery: args['property-query'] || process.env.SN_PROPERTY_QUERY || '',
   pretty: !!args.pretty,
@@ -1025,7 +1030,12 @@ async function main() {
     // JSON streaming mode avoids materialising the full string (V8 ~512 MB cap).
     const needFullBuild = config.format !== 'json' || config.pretty;
 
-    const buildOptions = { includePropertyValues: config.includePropertyValues };
+    const buildOptions = {
+      includePropertyValues: config.includePropertyValues,
+      propertyDenylist: config.propertyValueDenylist
+        ? new RegExp(config.propertyValueDenylist, 'i')
+        : undefined,
+    };
 
     if (needFullBuild) {
       const schema = SchemaBuilder.build(input, buildOptions);

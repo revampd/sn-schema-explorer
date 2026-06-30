@@ -41,8 +41,6 @@ header > * {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sn-muted);
-  border-left: 1px solid var(--sn-border);
-  padding-left: 10px;
   white-space: nowrap;
   line-height: 1;
 }
