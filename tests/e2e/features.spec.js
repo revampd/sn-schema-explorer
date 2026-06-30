@@ -312,20 +312,16 @@ test.describe('Schema Diff', () => {
       label: 'Problem',
       fields: [{ name: 'sys_id', label: 'Sys ID', type: 'GUID' }],
     });
-    await page
-      .locator('#file-input')
-      .setInputFiles({
-        name: 'base.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(base)),
-      });
-    await page
-      .locator('#file-input')
-      .setInputFiles({
-        name: 'compare.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(compare)),
-      });
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(base)),
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
     await page
       .locator('.inst-card:not(.add-card)')
       .first()
