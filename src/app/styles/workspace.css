@@ -30,6 +30,12 @@ body:not([data-workspace='schema-explorer']) #inspector,
 body:not([data-workspace='schema-explorer']) #filter-bar {
   display: none !important;
 }
+/* Collapse the grid track widths so non-schema-explorer workspaces
+   that span all columns (grid-column: 1 / -1) get the full viewport width. */
+body:not([data-workspace='schema-explorer']) {
+  --sidebar-w: 0px;
+  --inspector-w: 0px;
+}
 /* The export bar is shared chrome: it surfaces on Config Data too (CSV/JSON row),
    so hide it only on workspaces that have no export (the landing page). */
 body:not([data-workspace='schema-explorer']):not([data-workspace='config-data']) #export-bar {

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-30
+
+### Added
+
+- **Zip file import.** Drop or select a `.zip` file on the landing page to load a
+  schema export without unzipping first. Handles single-file exports, multi-part
+  exports (manifest + part files inside the zip), and multiple JSON files in one
+  archive. Powered by JSZip (bundled, no network request).
+
+### Changed
+
+- **Configuration Data table: sortable columns.** Click any column header to sort
+  ascending or descending. Active sort shows ↑/↓; inactive columns show a dim ⇅.
+- **Configuration Data table: resizable columns.** Drag the right edge of any column
+  header to resize it. Works alongside sorting and column reorder.
+- **Configuration Data table: reorderable instance columns.** Drag an instance column
+  header left or right to change the comparison order. Sort state and filters are
+  preserved across reorders.
+- **Configuration Data table: full-width layout.** The table now fills the available
+  viewport width. The title, tabs, controls, and stat tiles remain at a comfortable
+  reading width. The hidden sidebar/inspector grid tracks no longer consume space on
+  non-schema-explorer workspaces.
+- **Background exporter runtime estimate updated.** Comment in the script header
+  reflects v1.0.4 benchmark data (1–3 min without counts, 2–6 min with counts) and
+  explains that the cost drivers are dictionary row volume and cluster size, not just
+  table count.
+
 ## [1.0.4] - 2026-06-30
 
 ### Performance

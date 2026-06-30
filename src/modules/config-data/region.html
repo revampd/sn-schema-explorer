@@ -1,29 +1,31 @@
 <!-- Configuration Data workspace region (populated by modules/config-data). -->
 <div id="config-data" class="workspace-region cd-workspace">
   <div class="cd-inner">
-    <div class="cd-head">
-      <div class="cd-title">Configuration Data</div>
-      <div class="cd-sub">Reconcile plugins, store apps, custom apps &amp; system properties across your registered instances.</div>
+    <div class="cd-header-wrap">
+      <div class="cd-head">
+        <div class="cd-title">Configuration Data</div>
+        <div class="cd-sub">Reconcile plugins, store apps, custom apps &amp; system properties across your registered instances.</div>
+      </div>
+
+      <!-- Instance selection now lives in the header (Base dropdown + Compare
+           multi-select), shared with the Schema Map (#1). -->
+
+      <!-- Section tab bar (rendered by index.js; tabs disable when &lt;2 instances carry the section) -->
+      <div class="cd-tabs" id="cd-tabs"></div>
+
+      <div class="cd-controls">
+        <input type="text" id="cd-search" placeholder="Search name or key…" autocomplete="off" spellcheck="false">
+        <div id="cd-filter" class="cd-filter-mount" title="Filter rows by status"></div>
+        <label class="sn-toggle">
+          <input type="checkbox" id="cd-showdates">
+          <span class="sn-toggle-track"></span>
+          <span class="sn-toggle-label">Show dates</span>
+        </label>
+      </div>
+
+      <!-- Stat tiles (rendered by index.js) -->
+      <div class="cd-stats" id="cd-stats"></div>
     </div>
-
-    <!-- Instance selection now lives in the header (Base dropdown + Compare
-         multi-select), shared with the Schema Map (#1). -->
-
-    <!-- Section tab bar (rendered by index.js; tabs disable when &lt;2 instances carry the section) -->
-    <div class="cd-tabs" id="cd-tabs"></div>
-
-    <div class="cd-controls">
-      <input type="text" id="cd-search" placeholder="Search name or key…" autocomplete="off" spellcheck="false">
-      <div id="cd-filter" class="cd-filter-mount" title="Filter rows by status"></div>
-      <label class="sn-toggle">
-        <input type="checkbox" id="cd-showdates">
-        <span class="sn-toggle-track"></span>
-        <span class="sn-toggle-label">Show dates</span>
-      </label>
-    </div>
-
-    <!-- Stat tiles (rendered by index.js) -->
-    <div class="cd-stats" id="cd-stats"></div>
 
     <div class="cd-table-wrap glass" id="cd-table-wrap">
       <table class="cd-table" id="cd-table"><thead></thead><tbody></tbody></table>

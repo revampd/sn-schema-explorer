@@ -16,6 +16,9 @@ const inst = (id, label, section, rows) => ({
 });
 const P = (id, version, active) => ({ id, name: id, version, active });
 
+// Strip sort-arrow indicator characters added by the sortable header feature.
+const headLabel = th => th.textContent.replace(/[⇅↑↓]/g, '').trim();
+
 describe('renderComparisonTable', () => {
   it('renders Name + one column per loaded instance + Status (no Key for plugins)', () => {
     const r = reconcile('plugins', [
@@ -23,7 +26,7 @@ describe('renderComparisonTable', () => {
       inst('b', 'Test', 'plugins', [P('com.x', '1.0', true)]),
     ]);
     const table = renderComparisonTable(r);
-    const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent);
+    const heads = [...table.querySelectorAll('thead th')].map(headLabel);
     expect(heads).toEqual(['Name', 'Dev', 'Test', 'Status']);
     expect(table.querySelectorAll('tbody tr')).toHaveLength(1);
   });
@@ -120,7 +123,7 @@ describe('renderComparisonTable', () => {
     const table = renderComparisonTable(r);
     // Properties drop the redundant Key column (key === name) — columns are
     // Name | Dev | Test | Status, so the first instance cell is index 1.
-    const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent);
+    const heads = [...table.querySelectorAll('thead th')].map(headLabel);
     expect(heads).toEqual(['Name', 'Dev', 'Test', 'Status']);
     const devCell = table.querySelectorAll('tbody td')[1];
     expect(devCell.querySelector('.cd-val').textContent).toBe('on');
@@ -144,9 +147,7 @@ describe('renderComparisonTable', () => {
           ? [P('com.x', '1.0', true)]
           : [{ scope: 'x', name: 'App', version: '1.0', active: true }];
       const r = reconcile(section, [inst('a', 'Dev', section, row)]);
-      const heads = [...renderComparisonTable(r).querySelectorAll('thead th')].map(
-        th => th.textContent
-      );
+      const heads = [...renderComparisonTable(r).querySelectorAll('thead th')].map(headLabel);
       expect(heads).not.toContain('Key');
     }
   });
