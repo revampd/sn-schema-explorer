@@ -19,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   _only_ the diff in any of the five formats. A **multi-select** lists the active
   compares so you choose which diff sets are included. All of it is opt-in and
   appears only while comparing — the plain schema export is unchanged otherwise.
-  (Image exports carrying the visible diff highlights will follow.)
+  PNG/SVG image exports carry the on-canvas diff colouring, and the **Legend**
+  toggle (renamed from "Edge legend") now also draws a **Differences** key
+  (Added / Removed / Changed) into the image while a comparison is active.
 - **Multi-select Compare (compare against several instances at once)**
   ([#150](https://github.com/revampd/sn-schema-explorer/issues/150)). The header
   **Compare** control is now multi-select: it's a single dropdown whose rows are
