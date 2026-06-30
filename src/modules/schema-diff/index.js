@@ -11,7 +11,9 @@ import {
   onFocusChange,
   notifyFocusChange,
 } from '../../core/state.js';
-import { createDropdown } from '../../core/dropdown.js';
+import { registerCompareProvider, refreshHeaderCompare } from '../../core/header-compare.js';
+// Re-export so existing importers keep resolving refreshHeaderCompare here.
+export { refreshHeaderCompare };
 import { Config } from '../../core/constants.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
@@ -554,91 +556,40 @@ onFilterChange(() => {
 // instance in/out of the comparison; "Compare: none" clears all. Each change
 // reloads the comparison as a layer on the Schema Map, so the inspector + sidebar
 // scale to one column per selected compare.
-let _cmpDd = null;
-const NO_COMPARE = '__none__';
-
-export function refreshHeaderCompare() {
-  const host = document.getElementById('header-compare');
-  if (!host) return;
-  const onMap = getWorkspace() === 'schema-explorer' && uiState.viewMode === 'force';
-  const eligible =
-    onMap &&
+// Schema Diff's provider for the shared header Compare control (core/header-compare).
+// Eligible only on the Schema Map with ≥2 schemas + a loaded graph. Each toggle
+// reloads the comparison as a layer; swap flips Base with the primary compare.
+registerCompareProvider({
+  eligible: () =>
+    getWorkspace() === 'schema-explorer' &&
+    uiState.viewMode === 'force' &&
     Settings.isEnabled('schemaDiff') &&
     schemaInstanceCount() >= 2 &&
-    !!graphState.graphData;
-  host.style.display = eligible ? '' : 'none';
-  if (!eligible) {
-    // The swap (⇄) button must hide alongside the Compare control — both are only
-    // meaningful with ≥2 schemas on the map (not on Home / with a single schema).
-    // refreshHeaderSwap() runs only on the eligible path below, so hide it here.
-    const sw = document.getElementById('header-swap');
-    if (sw) sw.style.display = 'none';
-    return;
-  }
-
-  if (!_cmpDd) {
-    _cmpDd = createDropdown({
-      ariaLabel: 'Compare against',
-      title: 'Compare the loaded instance against one or more others (diff layer)',
-      onChange: id => {
-        const base = instancesState.selectedId;
-        const sel = diffState._compareIds;
-        if (id === NO_COMPARE) {
-          loadDiffFromInstances(base, []);
-        } else if (id) {
-          // Toggle: a row already in the comparison comes out; otherwise it goes in.
-          const next = sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id];
-          loadDiffFromInstances(base, next);
-        }
-        refreshHeaderCompare();
-      },
-    });
-  }
-  if (_cmpDd.el.parentElement !== host) host.appendChild(_cmpDd.el);
-
-  // Rows: every schema instance except the base, each toggleable; a ✓ marks the
-  // ones currently in the comparison. The closed-button label (a value-'' row)
-  // summarises the selection so the header stays compact.
-  const selected = new Set(diffState._compareIds);
-  const n = selected.size;
-  const summary =
-    n === 0
-      ? 'Compare…'
-      : n === 1
-        ? 'vs ' + (getInstance([...selected][0])?.label || [...selected][0])
-        : 'Compare: ' + n + ' instances';
-  const instOpts = instancesState.instances
-    .filter(e => e.capabilities && e.capabilities.schema && e.id !== instancesState.selectedId)
-    .map(e => ({ value: e.id, label: (selected.has(e.id) ? '✓ ' : '') + 'vs ' + e.label }));
-  const opts = [
-    { value: '', label: summary },
-    ...(n ? [{ value: NO_COMPARE, label: 'Compare: none' }] : []),
-    ...instOpts,
-  ];
-  _cmpDd.setOptions(opts, '');
-  refreshHeaderSwap(eligible);
-}
-
-// Header swap button — flips Base and the PRIMARY compare (the first selected);
-// any additional compares ride along unchanged. Replaces the old sidebar swap.
-let _swapWired = false;
-function refreshHeaderSwap(eligible) {
-  const btn = document.getElementById('header-swap');
-  if (!btn) return;
-  if (!_swapWired) {
-    btn.addEventListener('click', () => {
+    !!graphState.graphData,
+  getSelected: () => diffState._compareIds,
+  getCandidates: () =>
+    instancesState.instances
+      .filter(e => e.capabilities && e.capabilities.schema && e.id !== instancesState.selectedId)
+      .map(e => ({ id: e.id, label: e.label })),
+  labelFor: id => getInstance(id)?.label || id,
+  onToggle: id => {
+    const base = instancesState.selectedId;
+    const sel = diffState._compareIds;
+    // Toggle: a row already in the comparison comes out; otherwise it goes in.
+    const next = sel.includes(id) ? sel.filter(x => x !== id) : [...sel, id];
+    loadDiffFromInstances(base, next);
+  },
+  onClear: () => loadDiffFromInstances(instancesState.selectedId, []),
+  swap: {
+    canSwap: () => isComparing(),
+    onSwap: () => {
       const base = instancesState.selectedId;
       const compares = diffState._compareIds;
       if (!compares.length) return; // nothing to swap into the base slot
-      const primary = compares[0];
-      loadDiffFromInstances(primary, [base, ...compares.slice(1)]);
-      refreshHeaderCompare();
-    });
-    _swapWired = true;
-  }
-  btn.style.display = eligible ? '' : 'none';
-  btn.disabled = !isComparing();
-}
+      loadDiffFromInstances(compares[0], [base, ...compares.slice(1)]);
+    },
+  },
+});
 
 onWorkspaceChange(() => refreshHeaderCompare());
 // Refresh when the loaded instance or compare changes (focus events) — covers a
