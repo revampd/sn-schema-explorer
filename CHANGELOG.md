@@ -68,6 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Configuration Data uses the header Base + Compare controls.** The Config
+  workspace's in-workspace instance chip picker is gone; instead the header
+  instance dropdown picks the **base** column and the header **Compare**
+  multi-select picks the other columns — the same UX as the Schema Map. Under the
+  hood, the header Compare control + swap button were extracted into a shared,
+  provider-driven `core/header-compare.js` that both Schema Diff and Config Data
+  register into. (The base is now the instance you opened Config Data from, so the
+  Instance Data deltas read relative to it.)
 - **Diff report is structure-only, with collapsible groups and a clearer graph
   toggle.** Configuration drift no longer appears in the Differences sidebar —
   it lives in the **Inspector** (the Configuration section for the selected table)

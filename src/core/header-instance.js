@@ -22,12 +22,18 @@ import { getWorkspace, onWorkspaceChange } from './workspace.js';
 let _dd = null;
 let _selectHandler = null;
 let _diffBaseHandler = null;
+let _configBaseHandler = null;
 
 export function setInstanceSelectHandler(fn) {
   _selectHandler = fn;
 }
 export function setDiffBaseHandler(fn) {
   _diffBaseHandler = fn;
+}
+// Configuration Data wires its base setter — the dropdown picks the base column
+// there (the same instancesState.selectedId), without loading the graph.
+export function setConfigBaseHandler(fn) {
+  _configBaseHandler = fn;
 }
 
 // Schema-capable instances are the only ones loadable into the graph.
@@ -37,6 +43,11 @@ function schemaInstances() {
 
 function onPick(id) {
   if (!id) return;
+  // In Configuration Data the dropdown sets the base column (no graph load).
+  if (getWorkspace() === 'config-data') {
+    if (_configBaseHandler) _configBaseHandler(id);
+    return;
+  }
   // The dropdown switches the BASE instance. If a comparison is active, re-run it
   // against the same compare so the diff layer follows the new base (#141).
   if (isComparing() && _diffBaseHandler) _diffBaseHandler(id);
@@ -47,9 +58,16 @@ export function renderHeaderInstance() {
   const host = document.getElementById('header-instance');
   if (!host) return;
 
-  // Only relevant inside the schema-explorer workspace's graph tools.
-  const insts = schemaInstances();
-  const show = getWorkspace() === 'schema-explorer' && insts.length > 0;
+  // Shown in the graph tools (schema-capable instances) and in Configuration Data
+  // (any registered instance can be the base column). Hidden elsewhere (landing).
+  const ws = getWorkspace();
+  const insts =
+    ws === 'config-data'
+      ? instancesState.instances
+      : ws === 'schema-explorer'
+        ? schemaInstances()
+        : [];
+  const show = insts.length > 0;
   host.style.display = show ? '' : 'none';
   if (!show) return;
 

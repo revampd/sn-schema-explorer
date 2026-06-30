@@ -9,7 +9,12 @@
  * the graph chrome while this workspace is active.
  * ============================================================================ */
 
-import { instancesState, aggregateCapabilities, METADATA_SECTIONS } from '../../core/state.js';
+import {
+  instancesState,
+  aggregateCapabilities,
+  METADATA_SECTIONS,
+  getInstance,
+} from '../../core/state.js';
 import { Settings } from '../settings/index.js';
 import {
   setWorkspace,
@@ -24,6 +29,8 @@ import { renderComparisonTable } from './table-view.js';
 import { instancesComparisonHtml } from '../../core/instance-info.js';
 import { createDropdown } from '../../core/dropdown.js';
 import { setConfigExportHook } from '../export/index.js';
+import { registerCompareProvider, refreshHeaderCompare } from '../../core/header-compare.js';
+import { setConfigBaseHandler, refreshHeaderInstance } from '../../core/header-instance.js';
 
 // Sentinel section key for the always-present Instance Data tab. Not a metadata
 // section — it renders the instance identity / runtime / export + a schema-stats
@@ -43,17 +50,35 @@ Settings.registerFeature({
 registerWorkspace({ key: 'config-data', root: '#config-data' });
 
 // ── View state ────────────────────────────────────────────────────────────
-// selectedIds: null = "all registered instances"; otherwise an explicit subset.
-const view = { section: null, search: '', filter: 'all', showDates: false, selectedIds: null };
+// Columns mirror the Schema Map model (#1): a BASE instance (the header instance
+// dropdown = instancesState.selectedId) plus COMPARES (the header Compare
+// multi-select). `compareIds: null` means "compare against all other instances"
+// (the default); an explicit array is the chosen subset.
+const view = { section: null, search: '', filter: 'all', showDates: false, compareIds: null };
 
-// The instances currently chosen for comparison (defaults to all). Stale ids
-// (removed instances) are dropped; an empty selection falls back to all.
+// The base column — the header instance dropdown. Falls back to the first
+// registered instance when nothing is loaded yet.
+function baseId() {
+  return instancesState.selectedId || instancesState.instances[0]?.id || null;
+}
+
+// The compare columns (ids), excluding the base; stale ids dropped. Default
+// (null) = every other registered instance.
+function compareIdList() {
+  const b = baseId();
+  const others = instancesState.instances.map(e => e.id).filter(id => id !== b);
+  if (view.compareIds === null) return others;
+  const set = new Set(view.compareIds);
+  return others.filter(id => set.has(id));
+}
+
+// The instances shown as columns: base first, then the compares in registry order.
 function selectedInstances() {
-  const all = instancesState.instances;
-  if (!view.selectedIds) return all;
-  const set = new Set(view.selectedIds);
-  const sel = all.filter(e => set.has(e.id));
-  return sel.length ? sel : all;
+  const b = baseId();
+  const compset = new Set(compareIdList());
+  const baseEntry = instancesState.instances.find(e => e.id === b);
+  const others = instancesState.instances.filter(e => e.id !== b && compset.has(e.id));
+  return [baseEntry, ...others].filter(Boolean);
 }
 
 // How many of the *selected* instances carry a given metadata section.
@@ -75,48 +100,46 @@ function hasComparable() {
   return METADATA_SECTIONS.some(s => agg[s] && agg[s].count >= 1);
 }
 
-// ── Rendering ───────────────────────────────────────────────────────────────
+// ── Instance selection: the shared header Base + Compare controls (#1) ────────
+// Configuration Data drives its columns from the header — the instance dropdown
+// (base column) + the Compare multi-select (other columns) — the same UX as the
+// Schema Map. The old in-workspace #cd-instances chip picker is gone.
 
-// Instance picker — toggle which registered instances participate. Hidden when
-// there's nothing to choose (≤1 instance).
-function renderInstanceSelector() {
-  const host = document.getElementById('cd-instances');
-  if (!host) return;
-  host.textContent = '';
-  const all = instancesState.instances;
-  if (all.length <= 1) {
-    host.style.display = 'none';
-    return;
-  }
-  host.style.display = '';
-  const selSet = new Set(selectedInstances().map(e => e.id));
-  const label = document.createElement('span');
-  label.className = 'cd-instances-label';
-  label.textContent = 'Compare:';
-  host.appendChild(label);
-  all.forEach(e => {
-    const on = selSet.has(e.id);
-    const chip = document.createElement('button');
-    chip.className = 'cd-inst-chip' + (on ? ' active' : '');
-    chip.textContent = e.label;
-    chip.title = on ? 'Click to exclude from comparison' : 'Click to include in comparison';
-    chip.addEventListener('click', () => toggleInstance(e.id));
-    host.appendChild(chip);
-  });
-}
-
-function toggleInstance(id) {
-  const cur = new Set(selectedInstances().map(e => e.id));
-  if (cur.has(id)) {
-    if (cur.size > 1) cur.delete(id); // keep at least one selected
-  } else {
-    cur.add(id);
-  }
-  // Store in registry order; null when everything is selected (the default).
-  const ids = instancesState.instances.map(e => e.id).filter(x => cur.has(x));
-  view.selectedIds = ids.length === instancesState.instances.length ? null : ids;
+// Header instance dropdown picks the base column (no graph load in this workspace).
+setConfigBaseHandler(id => {
+  if (!id) return;
+  instancesState.selectedId = id;
+  // The new base can't also be a compare; drop it from an explicit subset.
+  if (Array.isArray(view.compareIds)) view.compareIds = view.compareIds.filter(x => x !== id);
   renderCompare();
-}
+  refreshHeaderCompare();
+});
+
+// Header Compare provider — the compare columns. Symmetric N-way, so there is no
+// base↔primary swap (omit `swap`).
+registerCompareProvider({
+  eligible: () => getWorkspace() === 'config-data' && instancesState.instances.length >= 2,
+  getSelected: () => compareIdList(),
+  getCandidates: () =>
+    instancesState.instances
+      .filter(e => e.id !== baseId())
+      .map(e => ({ id: e.id, label: e.label })),
+  labelFor: id => getInstance(id)?.label || id,
+  onToggle: id => {
+    const cur = new Set(compareIdList());
+    if (cur.has(id)) cur.delete(id);
+    else cur.add(id);
+    // Store in registry order, excluding the base.
+    view.compareIds = instancesState.instances
+      .map(e => e.id)
+      .filter(x => x !== baseId() && cur.has(x));
+    renderCompare();
+  },
+  onClear: () => {
+    view.compareIds = [];
+    renderCompare();
+  },
+});
 
 function renderTabs() {
   const host = document.getElementById('cd-tabs');
@@ -265,7 +288,8 @@ function renderInstanceData() {
 }
 
 function renderCompare() {
-  renderInstanceSelector();
+  refreshHeaderInstance();
+  refreshHeaderCompare();
   const sections = comparableSections();
   const hasInstances = selectedInstances().length > 0;
   // Keep the Instance Data tab if chosen; otherwise pick a valid metadata
@@ -324,6 +348,11 @@ function renderCompare() {
 // ── Public entry ──────────────────────────────────────────────────────────
 export function openConfigData() {
   setWorkspace('config-data');
+  // Ensure a base column is set so the header instance dropdown reflects it even
+  // when Config Data is opened without a graph loaded.
+  if (!instancesState.selectedId && instancesState.instances[0]) {
+    instancesState.selectedId = instancesState.instances[0].id;
+  }
   // renderCompare runs via the onWorkspaceChange hook below; call directly too
   // so a re-open while already active still refreshes.
   renderCompare();

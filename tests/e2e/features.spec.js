@@ -440,15 +440,18 @@ test.describe('Configuration Data', () => {
     await expect(panel).toContainText('Identity');
     await expect(panel).toContainText('Schema stats');
     await expect(panel.locator('.insti-compare')).toBeVisible();
-    // prod (20) vs base dev (9356) → negative delta rendered.
-    await expect(panel.locator('.isd-down').first()).toBeVisible();
+    // A stat delta is rendered between the instances (direction depends on which
+    // instance is the base — i.e. the one Config Data was opened from).
+    await expect(panel.locator('.isd-down, .isd-up').first()).toBeVisible();
     // Metadata-comparison controls are hidden in this mode.
     await expect(page.locator('#config-data .cd-controls')).toBeHidden();
     // One aligned table: a header column per instance (blank label col + 2).
     await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
   });
 
-  test('instance picker narrows the comparison to the selected instances', async ({ page }) => {
+  test('header Compare control narrows the comparison to the selected instances', async ({
+    page,
+  }) => {
     await loadApp(page, { enableFeatures: { configData: true } });
     await register(page, withStats('dev', 9356), 'dev.json');
     await register(page, withStats('prod', 20), 'prod.json');
@@ -465,14 +468,19 @@ test.describe('Configuration Data', () => {
     // 3 instances → blank label column + 3 instance columns = 4 header cells.
     await expect(panel.locator('.insti-compare thead th')).toHaveCount(4);
 
-    // The picker is visible with a chip per instance; deselect one.
-    const picker = page.locator('#cd-instances');
-    await expect(picker).toBeVisible();
-    await expect(picker.locator('.cd-inst-chip')).toHaveCount(3);
-    await picker.locator('.cd-inst-chip', { hasText: 'qa' }).click();
+    // The in-workspace chip picker is gone — selection lives in the header now.
+    await expect(page.locator('#cd-instances')).toHaveCount(0);
+    await expect(page.locator('#header-instance')).toBeVisible();
+    await expect(page.locator('#header-compare')).toBeVisible();
+
+    // Drop one compare via the header Compare dropdown → one fewer column. The
+    // base (the header instance dropdown) isn't offered as a compare, so toggle a
+    // candidate that IS offered.
+    await page.locator('#header-compare .sn-dd-btn').click();
+    const candidate = page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'vs ' }).first();
+    await candidate.click();
 
     // The comparison now covers only the two remaining instances (3 header cells).
     await expect(panel.locator('.insti-compare thead th')).toHaveCount(3);
-    await expect(picker.locator('.cd-inst-chip.active')).toHaveCount(2);
   });
 });
