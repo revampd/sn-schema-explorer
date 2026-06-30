@@ -342,7 +342,9 @@ function refreshDiffElementFilter() {
           diffState._diffElementFilter = all.every(k => sel.has(k)) ? null : [...sel];
         }
         diffBuildList();
-        refreshDiffElementFilter();
+        // The slice changes the Changed count and re-renders this dropdown's
+        // summary — diffUpdateSummary() ends by calling refreshDiffElementFilter().
+        diffUpdateSummary();
       },
     });
   }

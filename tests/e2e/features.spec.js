@@ -386,11 +386,15 @@ test.describe('Schema Diff', () => {
         .locator('.diff-group[data-group="changed"] .diff-item')
         .evaluateAll(els => els.map(e => e.dataset.id));
     expect(await changedIds()).toEqual(['incident', 'task']);
+    // No slice → the Changed badge shows the raw count (2 changed tables).
+    await expect(page.locator('#diff-n-changed')).toHaveText('2');
 
     // Deselect "References" in the Kind dropdown → task (reference-only change) drops.
     await page.locator('#diff-element-filter .sn-dd-btn').click();
     await page.locator('.sn-dd-menu:visible .sn-dd-opt', { hasText: 'References' }).click();
     expect(await changedIds()).toEqual(['incident']);
+    // …and the Changed badge tracks the slice as passing/total.
+    await expect(page.locator('#diff-n-changed')).toHaveText('1/2');
   });
 
   test('inspector shows a compare-only table as added, not "identical" in base', async ({
