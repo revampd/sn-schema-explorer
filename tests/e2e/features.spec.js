@@ -446,6 +446,12 @@ test.describe('Schema Diff', () => {
     await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
 
+    // The added table surfaces its own new relationship as a sub-row, like a
+    // changed table does (the reference x_new → incident).
+    const addedGroup = page.locator('.diff-group[data-group="added"]');
+    await expect(addedGroup.locator('.diff-edge-subgroup-header')).toHaveText('Relationships (1)');
+    await expect(addedGroup.locator('.diff-edge-item .diff-edge-sign')).toHaveText('+');
+
     await page.locator('#diff-list .diff-item[data-id="x_new"]').click();
     const insp = page.locator('#inspector-content');
     // The added table's fields are ADDED in compare — never "identical" in base

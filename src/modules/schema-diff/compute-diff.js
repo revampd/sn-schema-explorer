@@ -122,6 +122,11 @@ export function computeDiff(base, compare) {
     removedEdgeKeys,
     allAddedEdges,
     allRemovedEdges,
+    // Per-table edge changes for EVERY owner — including added/removed tables,
+    // which never become `changed` entries (they don't exist on both sides).
+    // The list renderer uses this to show an added table's new relationships
+    // (and a removed table's vanished ones) as sub-rows, like changed tables.
+    tableEdges: tableEdgeChanges,
     edgeDiffKey,
   };
 }
