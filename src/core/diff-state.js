@@ -2,11 +2,6 @@ export const diffState = {
   _diffData: null,
   _diffShowAll: false,
   _diffFilter: 'all',
-  // Config-drift sidebar (#139b): which config status the app list is filtered to
-  // ('all' = all non-sync changes), and the scope key of the app whose tables are
-  // currently highlighted on the canvas (or null).
-  _configFilter: 'all',
-  _activeConfigApp: null,
   // Registry id of the instance currently selected as the compare side, or null
   // when no comparison is active. The picker reads this (not its own <select>
   // value) so a base switch — e.g. the swap button — can repopulate the compare
@@ -33,12 +28,8 @@ export const diffState = {
   // selected table (and in the sidebar report), not as a separate canvas channel.
   // Turning it off mutes the overlay without dropping the comparison.
   _diffLayerOn: true,
-  // Report row-type filter: which categories are included in the "Differences"
-  // sidebar list AND folded into the Added/Removed/Changed summary counts.
-  // `table` = structural table changes; `app` = configuration drift rows.
-  _diffTypes: { table: true, app: true },
-  // Group keys collapsed in the report list ('config' | 'added' | 'removed' |
-  // 'changed' | 'matrix'). Purely a display state; doesn't affect counts.
+  // Group keys collapsed in the report list ('added' | 'removed' | 'changed' |
+  // 'matrix'). Purely a display state; doesn't affect counts.
   _collapsedGroups: [],
 };
 

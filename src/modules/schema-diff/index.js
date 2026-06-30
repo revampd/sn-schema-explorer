@@ -38,7 +38,6 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { tablesForApp, appDriftSummary, appChangeCategory } from './config-drift.js';
 import { diffBuildList } from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
@@ -114,8 +113,7 @@ function loadDiffSchema(compareData) {
   // "Changed only" toggle still narrows it on demand.
   diffState._diffShowAll = true;
   diffState._diffFilter = 'all';
-  // A fresh comparison starts with every row type shown and all groups expanded.
-  diffState._diffTypes = { table: true, app: true };
+  // A fresh comparison starts with all report groups expanded.
   diffState._collapsedGroups = [];
   // Establishing a comparison turns the Differences overlay ON, regardless of any
   // prior toggle state — selecting one or more compare targets should light up the
@@ -225,8 +223,6 @@ function clearDiff() {
   diffState._diffLayerOn = true;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
-  diffState._configFilter = 'all';
-  diffState._activeConfigApp = null;
   uiState._viewPositionCache.diff = null;
   const modeWarn = document.getElementById('diff-mode-warn');
   if (modeWarn) modeWarn.style.display = 'none';
@@ -276,42 +272,19 @@ function diffUpdateSummary() {
   if (!hasDiff) return;
   // #150 — with multiple compares the counts are "tables that are added / removed /
   // changed in AT LEAST one instance" (a single compare reduces to the pairwise
-  // sizes, so the classic numbers are unchanged).
-  // Counts reflect the report's TYPE filter (diffState._diffTypes): hiding tables
-  // or configuration rescopes the Added/Removed/Changed totals to what's shown.
+  // sizes, so the classic numbers are unchanged). Counts are table-only;
+  // configuration drift is surfaced in the Inspector, not this report.
   const matrix = diffState._diffMatrix;
-  let nA = 0;
-  let nR = 0;
-  let nC = 0;
-  if (diffState._diffTypes?.table !== false) {
-    nA = diffState._diffData.added.size;
-    nR = diffState._diffData.removed.size;
-    nC = diffState._diffData.changed.size;
-    if (matrix && matrix.length > 1) {
-      const { tables } = rollupMatrix(matrix);
-      nA = nR = nC = 0;
-      for (const info of tables.values()) {
-        if (info.anyAdded) nA++;
-        if (info.anyRemoved) nR++;
-        if (info.anyChanged) nC++;
-      }
-    }
-  }
-  // Fold config-drift findings into the SAME Added/Removed/Changed counts — it's
-  // one schema+config comparison, so they share one summary row (#150/#149) —
-  // unless configuration is hidden via the type filter.
-  if (diffState._diffTypes?.app !== false) {
-    const cfg = appDriftSummary(
-      getInstance(instancesState.selectedId)?.data,
-      getInstance(diffState._compareId)?.data
-    );
-    if (cfg.comparable) {
-      for (const a of cfg.apps) {
-        const cat = appChangeCategory(a);
-        if (cat === 'added') nA++;
-        else if (cat === 'removed') nR++;
-        else if (cat === 'changed') nC++;
-      }
+  let nA = diffState._diffData.added.size;
+  let nR = diffState._diffData.removed.size;
+  let nC = diffState._diffData.changed.size;
+  if (matrix && matrix.length > 1) {
+    const { tables } = rollupMatrix(matrix);
+    nA = nR = nC = 0;
+    for (const info of tables.values()) {
+      if (info.anyAdded) nA++;
+      if (info.anyRemoved) nR++;
+      if (info.anyChanged) nC++;
     }
   }
   if (nAdded) nAdded.textContent = nA;
@@ -322,11 +295,6 @@ function diffUpdateSummary() {
     // The label names the GRAPH state — this toggle never touches the report list.
     showAllBtn.textContent = diffState._diffShowAll ? 'Graph: all tables' : 'Graph: changed only';
   }
-  // Reflect the row-type filter button states.
-  ['table', 'app'].forEach(t => {
-    const btn = document.getElementById('diff-type-' + t);
-    if (btn) btn.classList.toggle('active', diffState._diffTypes?.[t] !== false);
-  });
   ['added', 'removed', 'changed'].forEach(k => {
     const el = document.getElementById('diff-stat-' + k);
     if (el) el.classList.toggle('active', diffState._diffFilter === k);
@@ -353,18 +321,9 @@ function diffApplyOverlays() {
   // "Diff is diff" — the canvas overlay just paints the structural difference for
   // the compared instances. (Old per-node cfg-node-badge dots removed.)
 
-  // Highlight the tables owned by the app picked in the sidebar config list
-  // (#139b) — dim the rest — so a config-only-drifted table is locatable.
-  if (diffState._activeConfigApp && graphState.graphData) {
-    const owned = new Set(tablesForApp(diffState._activeConfigApp, graphState.graphData.nodes));
-    root.selectAll('g.node-group').each(function (d) {
-      d3.select(this)
-        .classed('cfg-app-hi', owned.has(d.id))
-        .classed('cfg-app-dim', !owned.has(d.id));
-    });
-  } else {
-    root.selectAll('g.node-group').classed('cfg-app-hi', false).classed('cfg-app-dim', false);
-  }
+  // Config drift no longer rides the diff sidebar (it lives in the Inspector), so
+  // there's no app-highlight on the canvas — keep these classes cleared.
+  root.selectAll('g.node-group').classed('cfg-app-hi', false).classed('cfg-app-dim', false);
 
   root.selectAll('g.diff-pill-layer').remove();
   if (!structure) {
@@ -456,27 +415,6 @@ export function selectDiffTable(id) {
   pushHistory();
 }
 
-// Toggle the config-drift app highlight from a unified-list app row: activating
-// it highlights the app's tables on the canvas and jumps to the first one (so a
-// config-only-drifted table — absent from the structural changes — is reachable);
-// re-clicking clears the highlight. Mirrors the old #diff-config behaviour.
-function selectDiffApp(key, row) {
-  if (!key) return;
-  const isActive = diffState._activeConfigApp?.key === key;
-  if (isActive) {
-    diffState._activeConfigApp = null;
-    diffBuildList();
-    render();
-    return;
-  }
-  const name = row?.dataset.name || key;
-  diffState._activeConfigApp = { key, name };
-  diffBuildList();
-  const owned = tablesForApp(diffState._activeConfigApp, graphState.graphData?.nodes || []);
-  if (owned.length) focusTable(owned[0], false);
-  else render();
-}
-
 (function wireDiffSidebar() {
   const list = document.getElementById('diff-list');
   if (list) {
@@ -500,12 +438,6 @@ function selectDiffApp(key, row) {
       }
       const item = e.target.closest('.diff-item');
       if (!item) return;
-      // Config-drift app row — toggle the app highlight (and jump to its tables).
-      if (item.dataset.kind === 'app') {
-        selectDiffApp(item.dataset.key, item);
-        return;
-      }
-      // Table row
       selectDiffTable(item.dataset.id);
     });
   }
@@ -530,24 +462,6 @@ function selectDiffApp(key, row) {
       pushHistory();
     });
   }
-
-  // Row-type filter — include/exclude tables or configuration from the report and
-  // the rescoped summary counts. Don't allow hiding both (nothing to show).
-  ['table', 'app'].forEach(t => {
-    const btn = document.getElementById('diff-type-' + t);
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      if (!diffState._diffTypes) diffState._diffTypes = { table: true, app: true };
-      const next = diffState._diffTypes[t] === false;
-      const other = t === 'table' ? 'app' : 'table';
-      // Re-enabling is always fine; disabling is blocked if it would hide both.
-      if (!next && diffState._diffTypes[other] === false) return;
-      diffState._diffTypes[t] = next;
-      diffUpdateSummary();
-      diffBuildList();
-      pushHistory();
-    });
-  });
 
   // Keyboard navigation — only active in diff view with a diff loaded
   document.addEventListener('keydown', e => {

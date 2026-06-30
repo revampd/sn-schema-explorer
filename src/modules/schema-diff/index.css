@@ -219,37 +219,6 @@
 .diff-group-header.dgh-changed {
   color: var(--diff-changed);
 }
-.diff-group-header.dgh-config {
-  color: #8aa0b8;
-}
-
-/* Row-type filter chips (Tables / Configuration) */
-.diff-type-filter {
-  display: flex;
-  gap: 4px;
-}
-.diff-type-btn {
-  background: none;
-  border: 1px solid var(--sn-border);
-  color: var(--muted);
-  border-radius: 3px;
-  padding: 2px 7px;
-  font-size: 9px;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    color 0.12s,
-    opacity 0.12s;
-}
-.diff-type-btn.active {
-  border-color: var(--diff-changed);
-  color: var(--text);
-}
-.diff-type-btn:not(.active) {
-  opacity: 0.5;
-  text-decoration: line-through;
-}
-
 /* Collapsible groups — the header toggles its body open/closed. */
 .diff-group-header {
   cursor: pointer;

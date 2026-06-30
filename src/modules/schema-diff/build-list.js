@@ -1,4 +1,4 @@
-import { uiState, diffState, instancesState, getInstance } from '../../core/state.js';
+import { uiState, diffState } from '../../core/state.js';
 import { Settings } from '../settings/index.js';
 import { Dom } from '../../core/dom.js';
 import { h } from '../../core/template.js';
@@ -6,8 +6,6 @@ import { getSearchMode } from '../search/index.js';
 import { filterOk } from '../../core/advanced-filter.js';
 import { clearDiffCursor } from './list-cursor.js';
 import { rollupMatrix } from './compute-matrix.js';
-import { appDriftSummary, appChangeCategory } from './config-drift.js';
-import { STATUS_LABELS } from '../config-data/reconcile.js';
 
 // ── diffBuildList ─────────────────────────────────────────────────────────────
 //
@@ -53,11 +51,6 @@ function makeCollapsibleGroup(frag, groupKey, label, count, kind) {
   return body;
 }
 
-function typeIncluded(kind) {
-  // kind: 'app' | 'table'. Missing entry defaults to included.
-  return diffState._diffTypes?.[kind] !== false;
-}
-
 export function diffBuildList() {
   clearDiffCursor();
   const list = document.getElementById('diff-list');
@@ -69,64 +62,14 @@ export function diffBuildList() {
   const frag = document.createDocumentFragment();
   const filter = diffState._diffFilter;
 
-  // Config-drift app rows first (few, high-value), then the table changes — both
-  // obey the same Added/Removed/Changed filter, and each row TYPE can be hidden
-  // via the report's type filter (diffState._diffTypes).
-  if (typeIncluded('app')) appendAppRows(frag, filter);
-  if (typeIncluded('table')) {
-    const matrix = diffState._diffMatrix;
-    if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
-    else appendGroupedRows(frag, filter);
-  }
+  // Structural table changes only. Configuration drift lives in the Inspector
+  // (the Configuration section for the selected table) and the Config Data table,
+  // not in this report — the rows added no navigational value here.
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) appendMatrixRows(frag, matrix, filter);
+  else appendGroupedRows(frag, filter);
 
   list.appendChild(frag);
-}
-
-// ── Config-drift app rows ───────────────────────────────────────────────────────
-
-function appendAppRows(frag, filter) {
-  const baseData = getInstance(instancesState.selectedId)?.data;
-  const compareData = getInstance(diffState._compareId)?.data;
-  const summary = appDriftSummary(baseData, compareData);
-  if (!summary.comparable) return;
-
-  // Fold each app into the Added/Removed/Changed vocabulary; in-sync apps (null)
-  // are not changes. The active filter ('all' or a category) gates them.
-  const visible = summary.apps
-    .map(a => ({ a, cat: appChangeCategory(a) }))
-    .filter(({ cat }) => cat && (filter === 'all' || filter === cat));
-  if (!visible.length) return;
-
-  const body = makeCollapsibleGroup(frag, 'config', 'Configuration', visible.length, 'config');
-
-  for (const { a } of visible) {
-    const item = document.createElement('div');
-    item.className = 'diff-item dci-' + a.status;
-    item.dataset.kind = 'app';
-    item.dataset.key = a.key;
-    item.dataset.name = a.name;
-    if (diffState._activeConfigApp?.key === a.key) item.classList.add('selected');
-
-    const pill = document.createElement('div');
-    pill.className = 'diff-item-pill dcp-' + a.status;
-
-    const names = document.createElement('div');
-    names.className = 'diff-item-names';
-    const lbl = document.createElement('div');
-    lbl.className = 'diff-item-label';
-    lbl.append(typeTag('app'), document.createTextNode(a.name));
-    const ver = document.createElement('div');
-    ver.className = 'diff-item-id';
-    ver.textContent = 'v' + (a.base?.version ?? '—') + ' → v' + (a.compare?.version ?? '—');
-    names.append(lbl, ver);
-
-    const status = document.createElement('div');
-    status.className = 'dci-status';
-    status.textContent = STATUS_LABELS[a.status] || a.status;
-
-    item.append(pill, names, status);
-    body.appendChild(item);
-  }
 }
 
 // ── Table change rows ───────────────────────────────────────────────────────────

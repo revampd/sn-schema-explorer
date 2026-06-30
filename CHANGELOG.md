@@ -68,16 +68,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Diff report: collapsible groups + a row-type filter, and a clearer graph
-  toggle.** Each group in the Differences sidebar (Configuration, Added, Removed,
-  Changed, Differs-across-instances) now has a caret and collapses on click — so a
-  huge **Configuration** list folds to one line. A new **Tables / Configuration**
-  filter includes or excludes a whole category from the report _and_ rescopes the
-  Added / Removed / Changed summary counts to what's shown. The old
-  "Show all / Changed only" control was clarified to **Graph: all tables /
-  Graph: changed only** — it only ever affected which tables are drawn on the
-  canvas (the report always lists changes), which was confusing in its old place
-  and wording.
+- **Diff report is structure-only, with collapsible groups and a clearer graph
+  toggle.** Configuration drift no longer appears in the Differences sidebar —
+  it lives in the **Inspector** (the Configuration section for the selected table)
+  and the Config Data table, where it's actionable. The report now lists table
+  changes only, and the Added / Removed / Changed counts are table-only. Each
+  group (Added, Removed, Changed, Differs-across-instances) has a caret and
+  collapses on click. The old "Show all / Changed only" control was clarified to
+  **Graph: all tables / Graph: changed only** — it only ever affected which tables
+  are drawn on the canvas (the report always lists changes), which was confusing
+  in its old place and wording.
 - **Removed the redundant "Compare on the Schema Map" landing card.** Comparison
   is now driven entirely from the header **Compare** control: open any instance
   via its **Open in Schema Map** card, then pick one or more compares from the
