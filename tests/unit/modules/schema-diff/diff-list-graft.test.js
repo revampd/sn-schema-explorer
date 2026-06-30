@@ -17,7 +17,10 @@ vi.mock('../../../../src/modules/search/index.js', () => ({ getSearchMode: () =>
 vi.mock('../../../../src/core/advanced-filter.js', () => ({ filterOk: () => true }));
 vi.mock('../../../../src/core/table-list.js', () => ({ buildTableList: vi.fn() }));
 
-import { diffBuildList } from '../../../../src/modules/schema-diff/build-list.js';
+import {
+  diffBuildList,
+  countChangedAfterElementFilter,
+} from '../../../../src/modules/schema-diff/build-list.js';
 import {
   diffGraftAddedIntoBase,
   diffUngraftAddedFromBase,
@@ -98,6 +101,24 @@ describe('diffBuildList', () => {
     diffState._diffElementFilter = ['m2m']; // task has no m2m change
     diffBuildList();
     expect(changedIds()).toEqual([]);
+
+    diffState._diffElementFilter = null; // reset shared state
+  });
+
+  it('countChangedAfterElementFilter mirrors the Kind slice (null when unsliced)', () => {
+    // No element filter → null, so the summary keeps the raw changed count.
+    diffState._diffElementFilter = null;
+    expect(countChangedAfterElementFilter()).toBe(null);
+
+    // task touches fields + a 'ref' edge → it passes a matching slice…
+    diffState._diffElementFilter = ['ref'];
+    expect(countChangedAfterElementFilter()).toBe(1);
+    diffState._diffElementFilter = ['fields'];
+    expect(countChangedAfterElementFilter()).toBe(1);
+
+    // …and is excluded by a non-matching slice (count drops to 0).
+    diffState._diffElementFilter = ['m2m'];
+    expect(countChangedAfterElementFilter()).toBe(0);
 
     diffState._diffElementFilter = null; // reset shared state
   });

@@ -307,3 +307,36 @@ function appendMatrixRows(frag, matrix, filter) {
     );
   }
 }
+
+// The "Changed" summary count under the active element-type (Kind) slice (#4).
+// Mirrors the list filtering so the badge matches the rows: a changed table
+// counts only if the kinds its change touches intersect the selected kinds.
+// Added/Removed are whole-table and have no element-kind breakdown, so they are
+// never sliced — only this Changed total responds to the Kind filter.
+export function countChangedAfterElementFilter() {
+  if (!diffState._diffElementFilter) return null; // no slice → caller keeps the raw count
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) {
+    const { tables } = rollupMatrix(matrix);
+    const kindsFor = id => {
+      const t = new Set();
+      for (const diff of matrix) {
+        const ch = diff.changed.get(id);
+        if (ch) for (const x of changedTypes(ch)) t.add(x);
+      }
+      return t;
+    };
+    let n = 0;
+    for (const [id, info] of tables.entries()) {
+      // Mirror appendMatrixRows: the slice only narrows a purely-changed table.
+      if (!info.anyChanged) continue;
+      if (info.anyAdded || info.anyRemoved || elementPasses(kindsFor(id))) n++;
+    }
+    return n;
+  }
+  const d = diffState._diffData;
+  if (!d?.changed) return 0;
+  let n = 0;
+  for (const ch of d.changed.values()) if (elementPasses(changedTypes(ch))) n++;
+  return n;
+}
