@@ -189,6 +189,9 @@
 /* Table */
 .cd-table-wrap {
   padding: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   overflow-x: auto;
 }
 .cd-table {
