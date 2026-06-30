@@ -21,8 +21,17 @@
     <!-- Table filtering is handled by the header search bar (Tbl mode), which
          also filters the diff list — no separate inline search needed. -->
     <div class="diff-toggle-row" id="diff-toggle-row">
-      <span>Showing changed tables only</span>
-      <button class="diff-show-all-btn" id="diff-show-all-btn">Show all</button>
+      <!-- Row-type filter — include/exclude whole categories from the report AND
+           the summary counts above. -->
+      <div class="diff-type-filter" role="group" aria-label="Report categories">
+        <button class="diff-type-btn active" id="diff-type-table" data-type="table"
+                title="Show structural table changes">Tables</button>
+        <button class="diff-type-btn active" id="diff-type-app" data-type="app"
+                title="Show configuration drift">Configuration</button>
+      </div>
+      <!-- Graph display toggle — controls the canvas, not the report list. -->
+      <button class="diff-show-all-btn" id="diff-show-all-btn"
+              title="Whether unchanged tables are drawn on the graph (the report always lists only changes)">Graph: changed only</button>
     </div>
     <!-- Flat grouped list of changed tables -->
     <div class="diff-list" id="diff-list"></div>

@@ -184,8 +184,8 @@ test.describe('Schema Diff', () => {
     await expect(diffToggle).toHaveAttribute('aria-pressed', 'true');
 
     // A new comparison shows the FULL graph with diff colouring (not collapsed to
-    // changed-only) — so the "Show all" toggle starts active and offers to narrow.
-    await expect(page.locator('#diff-show-all-btn')).toHaveText('Changed only');
+    // changed-only) — so the graph toggle starts in its "all tables" state.
+    await expect(page.locator('#diff-show-all-btn')).toHaveText('Graph: all tables');
     await diffToggle.click();
     await expect(diffToggle).toHaveAttribute('aria-pressed', 'false');
   });
@@ -294,6 +294,61 @@ test.describe('Schema Diff', () => {
     const svg = readFileSync(await (await dl).path(), 'utf8');
     expect(svg).toContain('DIFFERENCES'); // the diff legend header
     expect(svg).toContain('>Added<'); // an added table exists (problem)
+  });
+
+  test('report groups collapse, and the type filter rescopes the counts', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    // Both sides carry a store-app metadata section that drifts → a Configuration
+    // group + a folded "changed" count alongside the structural table change.
+    const meta = ver => ({
+      storeApps: [{ key: 'x_app', name: 'App X', version: ver, active: true }],
+    });
+    const base = { ...JSON.parse(JSON.stringify(SCHEMA_OUTPUT)), _metadata: meta('1.0.0') };
+    const compare = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
+    compare._instance = { ...(compare._instance || {}), instance_name: 'compare-inst' };
+    compare._metadata = meta('1.1.0'); // App X drifts → config "changed"
+    compare.nodes.push({
+      id: 'problem',
+      label: 'Problem',
+      fields: [{ name: 'sys_id', label: 'Sys ID', type: 'GUID' }],
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(base)),
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
+    await page
+      .locator('.inst-card:not(.add-card)')
+      .first()
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    // Configuration group present; collapsing it hides its body.
+    const cfgGroup = page.locator('.diff-group[data-group="config"]');
+    await expect(cfgGroup).toBeVisible();
+    await expect(cfgGroup.locator('.diff-group-body')).toBeVisible();
+    await page.locator('.diff-group-header[data-group="config"]').click();
+    await expect(cfgGroup).toHaveClass(/collapsed/);
+    await expect(cfgGroup.locator('.diff-group-body')).toBeHidden();
+
+    // The drifting store app folds into the Changed count; hiding Configuration
+    // rescopes it down.
+    const changed = page.locator('#diff-n-changed');
+    const before = parseInt(await changed.textContent(), 10);
+    expect(before).toBeGreaterThanOrEqual(1);
+    await page.locator('#diff-type-app').click();
+    await expect(page.locator('#diff-type-app')).not.toHaveClass(/active/);
+    await expect(page.locator('.diff-group[data-group="config"]')).toHaveCount(0);
+    expect(parseInt(await changed.textContent(), 10)).toBeLessThan(before);
   });
 });
 

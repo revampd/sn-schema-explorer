@@ -67,7 +67,9 @@ beforeEach(() => {
 describe('diffBuildList', () => {
   it('renders Added/Removed/Changed groups with the right counts', () => {
     diffBuildList();
-    const headers = [...document.querySelectorAll('.diff-group-header')].map(h => h.textContent);
+    const headers = [...document.querySelectorAll('.diff-group-header')].map(h =>
+      h.textContent.replace('▾', '')
+    );
     expect(headers).toEqual(['Added (1)', 'Removed (1)', 'Changed (1)']);
     expect(document.querySelectorAll('.diff-item').length).toBe(3);
   });
@@ -90,7 +92,9 @@ describe('diffBuildList', () => {
   it('honours the active filter (changed only)', () => {
     diffState._diffFilter = 'changed';
     diffBuildList();
-    const headers = [...document.querySelectorAll('.diff-group-header')].map(h => h.textContent);
+    const headers = [...document.querySelectorAll('.diff-group-header')].map(h =>
+      h.textContent.replace('▾', '')
+    );
     expect(headers).toEqual(['Changed (1)']);
   });
 

@@ -33,6 +33,13 @@ export const diffState = {
   // selected table (and in the sidebar report), not as a separate canvas channel.
   // Turning it off mutes the overlay without dropping the comparison.
   _diffLayerOn: true,
+  // Report row-type filter: which categories are included in the "Differences"
+  // sidebar list AND folded into the Added/Removed/Changed summary counts.
+  // `table` = structural table changes; `app` = configuration drift rows.
+  _diffTypes: { table: true, app: true },
+  // Group keys collapsed in the report list ('config' | 'added' | 'removed' |
+  // 'changed' | 'matrix'). Purely a display state; doesn't affect counts.
+  _collapsedGroups: [],
 };
 
 /**

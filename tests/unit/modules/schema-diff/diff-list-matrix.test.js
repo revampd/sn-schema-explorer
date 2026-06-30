@@ -64,7 +64,7 @@ describe('diffBuildList — N-column roll-up', () => {
     const header = document.querySelector('.diff-group-header');
     // task (changed in uat), incident (removed in prod), problem (added in prod).
     // note is identical everywhere → excluded.
-    expect(header.textContent).toBe('Differs across instances (3)');
+    expect(header.textContent.replace('▾', '')).toBe('Differs across instances (3)');
     const ids = [...document.querySelectorAll('.diff-item')].map(i => i.dataset.id);
     expect(ids).toEqual(['incident', 'problem', 'task']);
   });
