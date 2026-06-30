@@ -837,3 +837,11 @@ path.diff-edge-removed {
 .node-group.cfg-app-dim {
   opacity: 0.28;
 }
+
+/* The "Kind" element-type filter (#diff-element-filter): its trigger button is
+   narrow (short "Kind: all" summary), so pin the open menu to a wider min-width
+   so element labels (References/Inheritance/CI topology) aren't clipped. The
+   inline width set in core/dropdown.js is a floor; min-width overrides it. */
+.sn-dd-menu.diff-elem-dd {
+  min-width: 160px;
+}

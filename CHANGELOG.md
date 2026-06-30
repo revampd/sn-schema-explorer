@@ -178,6 +178,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The diff "Kind" filter dropdown no longer clips its labels.** The open menu
+  was pinned to the (narrow) trigger-button width, so element-type labels
+  (References, Inheritance, CI topology, …) were truncated to "R…", "In…", "C…".
+  The menu now widens to fit the labels.
 - **The comparison inspector no longer shows a compare-only table as "identical"
   in the base.** When a table exists only in the compare schema (added), the base
   graph has it grafted in (marked `_diffOnly`) so it can render on the map — but

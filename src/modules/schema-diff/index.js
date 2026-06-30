@@ -323,6 +323,7 @@ function refreshDiffElementFilter() {
   if (!host) return;
   if (!_elemDd) {
     _elemDd = createDropdown({
+      className: 'diff-elem-dd',
       ariaLabel: 'Filter changed tables by element type',
       title: 'Show only changed tables whose change touches the chosen element kinds',
       onChange: val => {
