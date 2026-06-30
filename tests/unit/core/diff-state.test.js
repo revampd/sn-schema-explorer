@@ -11,7 +11,6 @@ import { diffState, isComparing, isStructureLayerOn } from '../../../src/core/di
 
 beforeEach(() => {
   diffState._diffData = null;
-  diffState._diffLayerOn = true;
 });
 
 describe('isComparing', () => {
@@ -23,11 +22,9 @@ describe('isComparing', () => {
 });
 
 describe('isStructureLayerOn', () => {
-  it('requires a comparison AND the Differences layer toggle on', () => {
+  it('is always on while a comparison is active (no toggle)', () => {
     expect(isStructureLayerOn()).toBe(false); // not comparing
     diffState._diffData = {};
-    expect(isStructureLayerOn()).toBe(true);
-    diffState._diffLayerOn = false; // layer toggled off
-    expect(isStructureLayerOn()).toBe(false);
+    expect(isStructureLayerOn()).toBe(true); // comparing → overlay on
   });
 });

@@ -837,29 +837,3 @@ path.diff-edge-removed {
 .node-group.cfg-app-dim {
   opacity: 0.28;
 }
-
-/* ── "Differences" canvas toggle (#150) — single chip ─────────────────────── */
-#diff-layer-master {
-  position: absolute;
-  top: 48px;
-  left: 16px;
-  z-index: 14;
-  cursor: pointer;
-  border: 1px solid var(--sn-border);
-  border-radius: 6px;
-  background: rgba(3, 45, 66, 0.92);
-  backdrop-filter: blur(8px);
-  color: var(--muted);
-  font:
-    8px 'JetBrains Mono',
-    ui-monospace,
-    monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 9px;
-}
-#diff-layer-master.active {
-  color: var(--text);
-  border-color: var(--sn-accent, #2dd4bf);
-  background: rgba(45, 212, 191, 0.14);
-}

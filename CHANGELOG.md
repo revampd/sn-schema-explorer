@@ -74,6 +74,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Removed the canvas layer toggles — the diff overlay is always on while
+  comparing.** The on-canvas **Differences** toggle and the standalone **Config
+  drift** layer (`config-overlay`) are gone. Selecting one or more compares now
+  simply paints the structural diff on the Schema Map; there's no layer to turn on
+  or off. Configuration drift remains in the Inspector (the Configuration section
+  for the selected table) and the Config Data table — the canvas tint added a
+  second, redundant config control.
 - **Configuration Data uses the header Base + Compare controls.** The Config
   workspace's in-workspace instance chip picker is gone; instead the header
   instance dropdown picks the **base** column and the header **Compare**
