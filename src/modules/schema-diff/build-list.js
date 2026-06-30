@@ -492,12 +492,14 @@ export function filteredDiffCounts() {
       }
       return t;
     };
-    let total = 0;
-    for (const [id] of tables.entries()) {
-      if (elementPasses(kindsFor(id))) total++;
+    let a = 0, r = 0, c = 0;
+    for (const [id, info] of tables.entries()) {
+      if (!elementPasses(kindsFor(id))) continue;
+      if (info.anyAdded) a++;
+      if (info.anyRemoved) r++;
+      if (info.anyChanged) c++;
     }
-    // In matrix mode all differing rows live in one group — return total as changed.
-    return { added: null, removed: null, changed: total };
+    return { added: a, removed: r, changed: c };
   }
   const d = diffState._diffData;
   if (!d) return { added: 0, removed: 0, changed: 0 };
