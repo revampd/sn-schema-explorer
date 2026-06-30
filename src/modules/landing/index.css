@@ -492,7 +492,7 @@ body[data-workspace='landing'] #btn-home {
   padding: 2px 8px;
   border-radius: 20px;
   border: 1px solid var(--border);
-  color: var(--text-dim);
+  color: var(--text);
   white-space: nowrap;
 }
 .wiz-pill--primary {
@@ -504,14 +504,14 @@ body[data-workspace='landing'] #btn-home {
   margin: 0;
   font-size: 11px;
   font-style: italic;
-  color: var(--muted);
+  color: var(--text-dim);
   line-height: 1.45;
 }
 .wiz-fact-row {
   display: flex;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--text-dim);
+  color: var(--text);
   line-height: 1.4;
 }
 .wiz-fact-key {

@@ -161,6 +161,10 @@
         <label class="sn-toggle"><input type="checkbox" class="node-meta" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
       </fieldset>
       <label class="sn-toggle" id="node-prop-values-row"><input type="checkbox" id="node-prop-values"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+      <label class="bg-cfg-row bg-cfg-row--text" id="node-prop-denylist-row">
+        <span class="bg-cfg-label">Property denylist <em>(regex, no slashes)</em></span>
+        <input class="bg-cfg-input" type="text" id="node-prop-denylist" value="password|secret|key|token|cred|private|passwd">
+      </label>
       <label class="bg-cfg-row bg-cfg-row--text" id="node-prop-query-row">
         <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
         <input class="bg-cfg-input" type="text" id="node-prop-query" placeholder="e.g. nameSTARTSWITHglide.ui">

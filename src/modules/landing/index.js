@@ -659,6 +659,7 @@ function buildNodeCommand() {
   const recordCounts = document.getElementById('node-record-counts')?.checked;
   const meta = [...document.querySelectorAll('.node-meta:checked')].map(i => i.value);
   const propValues = document.getElementById('node-prop-values')?.checked;
+  const propDenylist = (document.getElementById('node-prop-denylist')?.value || '').trim();
   const propQuery = (document.getElementById('node-prop-query')?.value || '').trim();
   const edgeTypes = [...document.querySelectorAll('.node-edge:checked')].map(i => i.value);
 
@@ -680,6 +681,9 @@ function buildNodeCommand() {
   if (recordCounts) cmd.push('  --include-record-counts');
   if (meta.length && meta.length < 4) cmd.push(`  --metadata=${meta.join(',')}`);
   if (propValues) cmd.push('  --include-property-values');
+  const defaultDenylist = 'password|secret|key|token|cred|private|passwd';
+  if (propValues && propDenylist && propDenylist !== defaultDenylist)
+    cmd.push(`  --property-value-denylist=${propDenylist}`);
   if (propQuery) cmd.push(`  --property-query=${propQuery}`);
   if (edgeTypes.length && edgeTypes.length < ALL_NODE_EDGE_TYPES.length)
     cmd.push(`  --edge-types=${edgeTypes.join(',')}`);
@@ -697,8 +701,11 @@ function updateNodeCommand() {
   if (userRow) userRow.style.display = auth === 'apikey' ? 'none' : '';
 
   const hasProps = document.querySelector('.node-meta[value="properties"]')?.checked;
+  const hasPropValues = document.getElementById('node-prop-values')?.checked;
   const propValRow = document.getElementById('node-prop-values-row');
   if (propValRow) propValRow.style.display = hasProps ? '' : 'none';
+  const propDenylistRow = document.getElementById('node-prop-denylist-row');
+  if (propDenylistRow) propDenylistRow.style.display = hasProps && hasPropValues ? '' : 'none';
   const propQueryRow = document.getElementById('node-prop-query-row');
   if (propQueryRow) propQueryRow.style.display = hasProps ? '' : 'none';
 
