@@ -524,18 +524,28 @@ export function applyBgConfig(source, cfg) {
     (block = block.replace(new RegExp(`(\\n\\s*${field}:\\s*)(?:true|false)`), `$1${val}`));
   const setArr = (field, arr) => {
     const list = arr.map(v => `'${v}'`).join(', ');
-    block = block.replace(new RegExp(`(\\n\\s*${field}:\\s*)\\[[^\\]]*\\]`), `$1[${list}]`);
+    block = block.replace(
+      new RegExp(`(\\n\\s*${field}:\\s*)\\[[^\\]]*\\]`),
+      (_, prefix) => `${prefix}[${list}]`
+    );
   };
 
   if (cfg.format) setStr('format', cfg.format);
   if (typeof cfg.includeRecordCounts === 'boolean')
     setBool('includeRecordCounts', cfg.includeRecordCounts);
-  if (typeof cfg.printToScriptOutput === 'boolean')
-    setBool('printToScriptOutput', cfg.printToScriptOutput);
   if (typeof cfg.includePropertyValues === 'boolean')
     setBool('includePropertyValues', cfg.includePropertyValues);
   if (Array.isArray(cfg.metadataSections)) setArr('metadataSections', cfg.metadataSections);
   if (Array.isArray(cfg.edgeTypes)) setArr('edgeTypes', cfg.edgeTypes);
+  if (Array.isArray(cfg.recordCountExclude)) setArr('recordCountExclude', cfg.recordCountExclude);
+  if (cfg.propertyValueDenylist != null) {
+    // Stored in source as a regex literal — replace the pattern between the slashes.
+    block = block.replace(
+      /([\n\s]*propertyValueDenylist:\s*)\/[^/]*\/i/,
+      `$1/${cfg.propertyValueDenylist}/i`
+    );
+  }
+  if (cfg.propertyEncodedQuery != null) setStr('propertyEncodedQuery', cfg.propertyEncodedQuery);
 
   return source.slice(0, start) + block + source.slice(end);
 }
@@ -546,15 +556,28 @@ function readBgConfigForm(root) {
     const el = root.querySelector(`[data-bg="${field}"]`);
     return el ? el.checked : false;
   };
+  const textVal = field => {
+    const el = root.querySelector(`[data-bg="${field}"]`);
+    return el ? el.value.trim() : null;
+  };
   const groupValues = group =>
     [...root.querySelectorAll(`[data-bg-group="${group}"] input:checked`)].map(i => i.value);
+  const rawExclude = textVal('recordCountExclude');
+  const recordCountExclude = rawExclude
+    ? rawExclude
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
   return {
     format: bgFormatDD ? bgFormatDD.getValue() : 'json',
     includeRecordCounts: checked('includeRecordCounts'),
-    printToScriptOutput: checked('printToScriptOutput'),
     includePropertyValues: checked('includePropertyValues'),
     metadataSections: groupValues('metadataSections'),
     edgeTypes: groupValues('edgeTypes'),
+    recordCountExclude,
+    propertyValueDenylist: textVal('propertyValueDenylist'),
+    propertyEncodedQuery: textVal('propertyEncodedQuery'),
   };
 }
 
@@ -563,9 +586,33 @@ function initBgConfig() {
   const pre = document.getElementById('code-bg');
   if (!panel || !pre) return;
   const original = pre.textContent;
+
+  // Update visibility of rows that have a data-bg-show dependency.
+  // data-bg-show="includeRecordCounts" → show when that checkbox is checked.
+  // data-bg-show="properties" → show when the "properties" metadata section toggle is checked.
+  const updateVisibility = () => {
+    panel.querySelectorAll('[data-bg-show]').forEach(el => {
+      const key = el.dataset.bgShow;
+      let visible;
+      const directCb = panel.querySelector(`[data-bg="${key}"]`);
+      if (directCb) {
+        visible = directCb.checked;
+      } else {
+        // treat as a metadataSections value
+        const sectionCb = panel.querySelector(
+          `[data-bg-group="metadataSections"] input[value="${key}"]`
+        );
+        visible = sectionCb ? sectionCb.checked : false;
+      }
+      el.style.display = visible ? '' : 'none';
+    });
+  };
+
   const rerender = () => {
+    updateVisibility();
     pre.textContent = applyBgConfig(original, readBgConfigForm(panel));
   };
+
   // Output-format picker is a custom dropdown (app-themed); the rest of the
   // panel (toggles) still rerenders via change-event delegation.
   const fmtMount = panel.querySelector('[data-bg-mount="format"]');
@@ -582,6 +629,8 @@ function initBgConfig() {
     fmtMount.appendChild(bgFormatDD.el);
   }
   panel.addEventListener('change', rerender);
+  // Set initial visibility and render with the checked defaults.
+  rerender();
 }
 
 // ── Init ─────────────────────────────────────────────────────────────────────

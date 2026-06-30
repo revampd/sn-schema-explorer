@@ -183,10 +183,12 @@ describe('applyBgConfig()', () => {
     'var CONFIG = {',
     "  format: 'json', // 'json' | 'markdown' | 'jsonld'",
     "  edgeTypes: ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'],",
-    '  printToScriptOutput: false,',
     '  includeRecordCounts: false,',
-    '  metadataSections: [], // e.g. ["plugins"]',
+    "  recordCountExclude: ['^sys_', '^var_', '^ts_'],",
+    "  metadataSections: ['plugins', 'storeApps', 'customApps', 'properties'],",
     '  includePropertyValues: false,',
+    '  propertyValueDenylist: /password|secret|key|token|cred|private|passwd/i,',
+    "  propertyEncodedQuery: '',",
     '  maxFieldsPerTable: 0,',
     '};',
     '',
@@ -197,18 +199,31 @@ describe('applyBgConfig()', () => {
     const out = applyBgConfig(SAMPLE, {
       format: 'markdown',
       includeRecordCounts: true,
-      printToScriptOutput: true,
       includePropertyValues: false,
       metadataSections: ['plugins', 'storeApps'],
       edgeTypes: ['reference', 'm2m'],
     });
     expect(out).toContain("format: 'markdown',");
     expect(out).toContain('includeRecordCounts: true,');
-    expect(out).toContain('printToScriptOutput: true,');
     expect(out).toContain("metadataSections: ['plugins', 'storeApps'],");
     expect(out).toContain("edgeTypes: ['reference', 'm2m'],");
     // Untouched code outside the block survives.
     expect(out).toContain("gs.print('done');");
+  });
+
+  it('rewrites recordCountExclude array', () => {
+    const out = applyBgConfig(SAMPLE, { recordCountExclude: ['^cmdb_', '^task$'] });
+    expect(out).toContain("recordCountExclude: ['^cmdb_', '^task$'],");
+  });
+
+  it('rewrites propertyValueDenylist regex pattern', () => {
+    const out = applyBgConfig(SAMPLE, { propertyValueDenylist: 'password|secret' });
+    expect(out).toContain('propertyValueDenylist: /password|secret/i,');
+  });
+
+  it('rewrites propertyEncodedQuery string', () => {
+    const out = applyBgConfig(SAMPLE, { propertyEncodedQuery: 'nameSTARTSWITHglide.ui' });
+    expect(out).toContain("propertyEncodedQuery: 'nameSTARTSWITHglide.ui',");
   });
 
   it('empties an array field when no values are selected', () => {
@@ -235,11 +250,17 @@ describe('applyBgConfig()', () => {
       includeRecordCounts: true,
       metadataSections: ['plugins'],
       edgeTypes: ['reference'],
+      recordCountExclude: ['^cmdb_'],
+      propertyValueDenylist: 'password|secret',
+      propertyEncodedQuery: 'nameSTARTSWITHglide',
     });
     expect(out).toContain("format: 'markdown'");
     expect(out).toContain('includeRecordCounts: true');
     expect(out).toContain("metadataSections: ['plugins']");
     expect(out).toContain("edgeTypes: ['reference']");
+    expect(out).toContain("recordCountExclude: ['^cmdb_']");
+    expect(out).toContain('propertyValueDenylist: /password|secret/i');
+    expect(out).toContain("propertyEncodedQuery: 'nameSTARTSWITHglide'");
     // The dynamic, non-configured lines must be left intact.
     expect(out).toContain('attachmentTargetSysId: gs.getUserID()');
   });

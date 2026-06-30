@@ -11,10 +11,7 @@
  *      (config flag below).
  *   3. Hands the raw arrays to the embedded SchemaBuilder (same code as the
  *      Node.js extractor).
- *   4. Emits the resulting JSON two ways:
- *        • Prints a download URL for the sys_attachment record.
- *        • Optionally streams the full JSON to gs.print() in chunks (for
- *          smaller exports where you want to copy it directly).
+ *   4. Emits the resulting JSON as a sys_attachment and prints a download URL.
  *
  * Performance notes
  * -----------------
@@ -54,10 +51,6 @@ var CONFIG = {
   // Remove any type you don't need to keep the output focused.
   edgeTypes: ['reference', 'extends', 'm2m', 'rel', 'view', 'cmdb_rel'],
 
-  // Print the full JSON to gs.print() in addition to writing the attachment?
-  // WARNING: very large exports (>5MB) may truncate in the script output panel.
-  printToScriptOutput: false,
-
   // Add per-table record counts to each node? Expensive — opt in only when
   // you actually need them (e.g. for the executive view).
   includeRecordCounts: false,
@@ -74,7 +67,7 @@ var CONFIG = {
   // flags. Same shape the Node extractor produces (defined once in SchemaBuilder).
   // Valid section names: 'plugins', 'storeApps', 'customApps', 'properties'.
   // Empty array = no metadata sections. Ignored for markdown/jsonld output.
-  metadataSections: [], // e.g. ['plugins', 'storeApps', 'customApps', 'properties']
+  metadataSections: ['plugins', 'storeApps', 'customApps', 'properties'],
 
   // sys_properties values can hold secrets, so values are OFF by default
   // (names + type + description only). Set true to include values — even then
@@ -1024,8 +1017,6 @@ function gatherInstanceInfo() {
   // be reassembled client-side.
   // Deliberately well below Rhino's 32 MB String limit: the lower trigger
   // caps peak in-memory string size to avoid memory pressure in ServiceNow.
-  // 5 MB also keeps a single attachment from truncating in the script output
-  // panel (see CONFIG note above); anything larger is split into parts.
   var STRING_CAP_BYTES = 5 * 1024 * 1024; // cap peak memory; split anything larger
 
   var chunks = [];
@@ -1257,17 +1248,4 @@ function gatherInstanceInfo() {
     }
   }
 
-  if (CONFIG.printToScriptOutput) {
-    // For diagnostic use only — runs a second pass, chunked to gs.print's cap.
-    gs.info('--- begin JSON (chunked to gs.print) ---');
-    SchemaBuilder.buildStreaming(
-      jsonInput,
-      function (chunk) {
-        var CAP = 4000;
-        for (var i = 0; i < chunk.length; i += CAP) gs.print(chunk.substring(i, i + CAP));
-      },
-      buildOptions
-    );
-    gs.info('--- end JSON ---');
-  }
 })();

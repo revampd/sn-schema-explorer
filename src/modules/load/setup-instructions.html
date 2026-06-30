@@ -56,15 +56,26 @@
                   <div class="bg-cfg-mount" data-bg-mount="format"></div>
                 </label>
                 <label class="sn-toggle"><input type="checkbox" data-bg="includeRecordCounts"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Per-table record counts <em>(adds 5–15 min)</em></span></label>
-                <label class="sn-toggle"><input type="checkbox" data-bg="printToScriptOutput"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Also print JSON to script output</span></label>
-                <label class="sn-toggle"><input type="checkbox" data-bg="includePropertyValues"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includeRecordCounts">
+                  <span class="bg-cfg-label">Count exclude patterns <em>(comma-separated regex)</em></span>
+                  <input class="bg-cfg-input" type="text" data-bg="recordCountExclude" value="^sys_, ^var_, ^ts_">
+                </label>
                 <fieldset class="bg-cfg-set" data-bg-group="metadataSections">
                   <legend>Metadata sections <em>(JSON only)</em></legend>
-                  <label class="sn-toggle"><input type="checkbox" value="plugins"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="storeApps"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="customApps"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
-                  <label class="sn-toggle"><input type="checkbox" value="properties"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="plugins" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Plugins</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="storeApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Store apps</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="customApps" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Custom apps</span></label>
+                  <label class="sn-toggle"><input type="checkbox" value="properties" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">Properties</span></label>
                 </fieldset>
+                <label class="sn-toggle" data-bg-show="properties"><input type="checkbox" data-bg="includePropertyValues"><span class="sn-toggle-track"></span><span class="sn-toggle-label">Include property values <em>(denylist-redacted)</em></span></label>
+                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="properties">
+                  <span class="bg-cfg-label">Property encoded query <em>(optional filter)</em></span>
+                  <input class="bg-cfg-input" type="text" data-bg="propertyEncodedQuery" placeholder="e.g. nameSTARTSWITHglide.ui">
+                </label>
+                <label class="bg-cfg-row bg-cfg-row--text" data-bg-show="includePropertyValues">
+                  <span class="bg-cfg-label">Property denylist <em>(regex, no slashes)</em></span>
+                  <input class="bg-cfg-input" type="text" data-bg="propertyValueDenylist" value="password|secret|key|token|cred|private|passwd">
+                </label>
                 <fieldset class="bg-cfg-set" data-bg-group="edgeTypes">
                   <legend>Edge types <em>(Markdown / JSON-LD)</em></legend>
                   <label class="sn-toggle"><input type="checkbox" value="reference" checked><span class="sn-toggle-track"></span><span class="sn-toggle-label">reference</span></label>
