@@ -11,6 +11,7 @@ import {
   onFocusChange,
   notifyFocusChange,
 } from '../../core/state.js';
+import { createDropdown } from '../../core/dropdown.js';
 import { registerCompareProvider, refreshHeaderCompare } from '../../core/header-compare.js';
 // Re-export so existing importers keep resolving refreshHeaderCompare here.
 export { refreshHeaderCompare };
@@ -115,8 +116,9 @@ function loadDiffSchema(compareData) {
   // "Changed only" toggle still narrows it on demand.
   diffState._diffShowAll = true;
   diffState._diffFilter = 'all';
-  // A fresh comparison starts with all report groups expanded.
+  // A fresh comparison starts with all report groups expanded and no element slice.
   diffState._collapsedGroups = [];
+  diffState._diffElementFilter = null;
   // Establishing a comparison turns the Differences overlay ON, regardless of any
   // prior toggle state — selecting one or more compare targets should light up the
   // diff view on the canvas (the toggle still mutes it without dropping the diff).
@@ -225,6 +227,7 @@ function clearDiff() {
   diffState._diffLayerOn = true;
   diffState._diffShowAll = false;
   diffState._diffFilter = 'all';
+  diffState._diffElementFilter = null;
   uiState._viewPositionCache.diff = null;
   const modeWarn = document.getElementById('diff-mode-warn');
   if (modeWarn) modeWarn.style.display = 'none';
@@ -301,6 +304,60 @@ function diffUpdateSummary() {
     const el = document.getElementById('diff-stat-' + k);
     if (el) el.classList.toggle('active', diffState._diffFilter === k);
   });
+  refreshDiffElementFilter();
+}
+
+// ── Element-type slice for the Changed list (#4) ────────────────────────────────
+// A marked-toggle dropdown that narrows the Changed rows to those whose change
+// touches a chosen element kind. null = all kinds (no slice).
+const ELEMENT_TYPES = [
+  { key: 'fields', label: 'Fields' },
+  { key: 'reference', label: 'References' },
+  { key: 'extends', label: 'Inheritance' },
+  { key: 'm2m', label: 'M2M' },
+  { key: 'rel', label: 'Named rel' },
+  { key: 'view', label: 'DB view' },
+  { key: 'cmdb_rel', label: 'CI topology' },
+];
+const ALL_ELEM = '__allelem__';
+let _elemDd = null;
+
+function elemSelectedKeys() {
+  return diffState._diffElementFilter || ELEMENT_TYPES.map(t => t.key);
+}
+
+function refreshDiffElementFilter() {
+  const host = document.getElementById('diff-element-filter');
+  if (!host) return;
+  if (!_elemDd) {
+    _elemDd = createDropdown({
+      ariaLabel: 'Filter changed tables by element type',
+      title: 'Show only changed tables whose change touches the chosen element kinds',
+      onChange: val => {
+        if (val === ALL_ELEM) {
+          diffState._diffElementFilter = null;
+        } else if (val) {
+          const all = ELEMENT_TYPES.map(t => t.key);
+          const sel = new Set(elemSelectedKeys());
+          if (sel.has(val)) sel.delete(val);
+          else sel.add(val);
+          diffState._diffElementFilter = all.every(k => sel.has(k)) ? null : [...sel];
+        }
+        diffBuildList();
+        refreshDiffElementFilter();
+      },
+    });
+  }
+  if (_elemDd.el.parentElement !== host) host.appendChild(_elemDd.el);
+  const sel = new Set(elemSelectedKeys());
+  const isAll = !diffState._diffElementFilter;
+  const summary = isAll ? 'Kind: all' : 'Kind: ' + sel.size;
+  const opts = [
+    { value: '', label: summary },
+    ...(isAll ? [] : [{ value: ALL_ELEM, label: 'All kinds' }]),
+    ...ELEMENT_TYPES.map(t => ({ value: t.key, label: (sel.has(t.key) ? '✓ ' : '') + t.label })),
+  ];
+  _elemDd.setOptions(opts, '');
 }
 
 // ── Canvas overlays ───────────────────────────────────────────────────────────

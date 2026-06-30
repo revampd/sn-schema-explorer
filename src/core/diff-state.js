@@ -31,6 +31,11 @@ export const diffState = {
   // Group keys collapsed in the report list ('added' | 'removed' | 'changed' |
   // 'matrix'). Purely a display state; doesn't affect counts.
   _collapsedGroups: [],
+  // Element-type slice for the report's CHANGED rows (#4): null = all kinds; else
+  // an array of element-type keys ('fields' | 'reference' | 'extends' | 'm2m' |
+  // 'rel' | 'view' | 'cmdb_rel'). A changed table shows only when its change
+  // touches a selected kind. Added/Removed rows are unaffected.
+  _diffElementFilter: null,
 };
 
 /**

@@ -80,6 +80,28 @@ describe('diffBuildList', () => {
     expect(changed.textContent).toBe('+1'); // 2 added − 1 removed
   });
 
+  it('element-type filter (#4) slices the Changed group by kind', () => {
+    diffState._diffFilter = 'changed';
+    const changedIds = () =>
+      [...document.querySelectorAll('.diff-group[data-group="changed"] .diff-item')].map(
+        e => e.dataset.id
+      );
+    // task touches fields + a 'ref' edge.
+    diffState._diffElementFilter = ['ref'];
+    diffBuildList();
+    expect(changedIds()).toEqual(['task']);
+
+    diffState._diffElementFilter = ['fields'];
+    diffBuildList();
+    expect(changedIds()).toEqual(['task']);
+
+    diffState._diffElementFilter = ['m2m']; // task has no m2m change
+    diffBuildList();
+    expect(changedIds()).toEqual([]);
+
+    diffState._diffElementFilter = null; // reset shared state
+  });
+
   it('renders a relationship-change subgroup for changed tables', () => {
     diffBuildList();
     expect(document.querySelector('.diff-edge-subgroup-header').textContent).toBe(
