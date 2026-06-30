@@ -13,8 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   twice on every compare selection (`loadDiffSchema` rendered the list/summary,
   then `diffSyncSidebar` rendered them again) — now built once. The element-kind
   set powering the **Kind** dropdown is also memoized per comparison instead of
-  rescanning the whole diff on every summary refresh. (Bounding the rendered row
-  count for very large diffs is a follow-up.)
+  rescanning the whole diff on every summary refresh.
+- **Large diffs no longer build tens of thousands of sidebar rows up front.** A
+  diff group larger than 200 tables now starts collapsed (its rows are built
+  lazily when you expand it), and an expanded group renders at most 200 rows with
+  a "+N more — refine with search or filter" footer. Bounds the diff sidebar's
+  DOM for very large comparisons; narrow with the header search, the Kind filter,
+  or the advanced filter to see specific tables.
 
 ### Added
 

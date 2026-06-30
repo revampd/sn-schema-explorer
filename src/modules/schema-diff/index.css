@@ -238,6 +238,13 @@
 .diff-group.collapsed .diff-group-body {
   display: none;
 }
+.diff-group-more {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted);
+  opacity: 0.8;
+}
 .diff-item {
   display: flex;
   align-items: center;
