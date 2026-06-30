@@ -373,13 +373,13 @@ function appendMatrixRows(frag, matrix, filter) {
     return tablePasses(r.id, r.node?.label, r.node);
   });
 
-  const body = makeCollapsibleGroup(
-    frag,
-    'matrix',
-    'Differs across instances',
-    rows.length,
-    'changed'
-  );
+  const groupLabel =
+    filter === 'added' ? 'Added' :
+    filter === 'removed' ? 'Removed' :
+    filter === 'changed' ? 'Changed' :
+    'Differs across instances';
+  const groupKind = filter === 'all' ? 'changed' : filter;
+  const body = makeCollapsibleGroup(frag, 'matrix', groupLabel, rows.length, groupKind);
   if (diffState._collapsedGroups?.includes('matrix')) return;
 
   const shown = rows.length > GROUP_ROW_CAP ? rows.slice(0, GROUP_ROW_CAP) : rows;
