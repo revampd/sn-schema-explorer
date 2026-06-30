@@ -177,34 +177,24 @@ const sbCompare = {
   },
 };
 
-test('Unified Differences report: config tiles + app rows in one list, filter, highlight', async ({
-  page,
-}) => {
+test('Differences report is table-only; config drift lives in the Inspector', async ({ page }) => {
   await loadApp(page);
   await openDiff(page, sbBase, sbCompare);
 
-  // #150/#149 — ONE summary row + ONE list. Config findings fold into the same
-  // Added/Removed/Changed counts: Widget App drift → changed (alongside the
-  // x_widget table change), Legacy App gone in compare → removed. App rows are
-  // type-tagged .diff-item[data-kind="app"] in the same #diff-list.
-  await expect(page.locator('#diff-n-changed')).toHaveText('2'); // x_widget table + Widget App drift
-  await expect(page.locator('#diff-n-removed')).toHaveText('1'); // Legacy App missing
+  // Config drift no longer rides the diff report (#2): no app rows, no
+  // Configuration group, and the counts are table-only. Structurally only
+  // x_widget changed (field b added); the drifted Widget App and the missing
+  // Legacy App are configuration, not tables, so they don't inflate the counts.
+  await expect(page.locator('#diff-list .diff-item[data-kind="app"]')).toHaveCount(0);
+  await expect(page.locator('.diff-group[data-group="config"]')).toHaveCount(0);
+  await expect(page.locator('#diff-n-changed')).toHaveText('1');
+  await expect(page.locator('#diff-n-removed')).toHaveText('0');
 
-  const appRows = page.locator('#diff-list .diff-item[data-kind="app"]');
-  await expect(appRows).toHaveCount(2); // Widget App (changed) + Legacy App (removed)
-
-  // Filter to Removed → only the Legacy App row (changed table + Widget App hidden).
-  await page.locator('#diff-stat-removed').click();
-  await expect(appRows).toHaveCount(1);
-  await expect(appRows).toContainText('Legacy App');
-  await page.locator('#diff-stat-removed').click(); // clear filter
-
-  // Pick the Widget App row → its owned table is brought into view & highlighted,
-  // and its config drift shows in the inspector (reachable even though it isn't in
-  // the structural diff list).
-  await appRows.filter({ hasText: 'Widget App' }).click();
-  await expect(page.locator('g.node-group.cfg-app-hi')).toHaveCount(1);
+  // Config drift is still reachable — selecting the drifted table shows it in the
+  // Inspector's Configuration section.
+  await page.locator('#diff-list .diff-item[data-id="x_widget"]').click();
   await expect(page.locator('#inspector-content')).toContainText('Configuration');
+  await expect(page.locator('#inspector-content')).toContainText('Widget App');
 });
 
 test('no Configuration section when the compare export omits app metadata (opt-in)', async ({

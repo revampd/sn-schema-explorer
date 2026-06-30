@@ -296,17 +296,11 @@ test.describe('Schema Diff', () => {
     expect(svg).toContain('>Added<'); // an added table exists (problem)
   });
 
-  test('report groups collapse, and the type filter rescopes the counts', async ({ page }) => {
+  test('report groups collapse on header click', async ({ page }) => {
     await loadApp(page, { enableFeatures: { schemaDiff: true } });
-    // Both sides carry a store-app metadata section that drifts → a Configuration
-    // group + a folded "changed" count alongside the structural table change.
-    const meta = ver => ({
-      storeApps: [{ key: 'x_app', name: 'App X', version: ver, active: true }],
-    });
-    const base = { ...JSON.parse(JSON.stringify(SCHEMA_OUTPUT)), _metadata: meta('1.0.0') };
+    const base = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
     const compare = JSON.parse(JSON.stringify(SCHEMA_OUTPUT));
     compare._instance = { ...(compare._instance || {}), instance_name: 'compare-inst' };
-    compare._metadata = meta('1.1.0'); // App X drifts → config "changed"
     compare.nodes.push({
       id: 'problem',
       label: 'Problem',
@@ -332,23 +326,16 @@ test.describe('Schema Diff', () => {
     await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
     await expect(page.locator('#diff-sidebar')).toBeVisible();
 
-    // Configuration group present; collapsing it hides its body.
-    const cfgGroup = page.locator('.diff-group[data-group="config"]');
-    await expect(cfgGroup).toBeVisible();
-    await expect(cfgGroup.locator('.diff-group-body')).toBeVisible();
-    await page.locator('.diff-group-header[data-group="config"]').click();
-    await expect(cfgGroup).toHaveClass(/collapsed/);
-    await expect(cfgGroup.locator('.diff-group-body')).toBeHidden();
-
-    // The drifting store app folds into the Changed count; hiding Configuration
-    // rescopes it down.
-    const changed = page.locator('#diff-n-changed');
-    const before = parseInt(await changed.textContent(), 10);
-    expect(before).toBeGreaterThanOrEqual(1);
-    await page.locator('#diff-type-app').click();
-    await expect(page.locator('#diff-type-app')).not.toHaveClass(/active/);
+    // The "Added" group (problem) collapses on header click; config rows never
+    // appear in the report (config drift lives in the Inspector now).
+    const addedGroup = page.locator('.diff-group[data-group="added"]');
+    await expect(addedGroup).toBeVisible();
+    await expect(addedGroup.locator('.diff-group-body')).toBeVisible();
+    await page.locator('.diff-group-header[data-group="added"]').click();
+    await expect(addedGroup).toHaveClass(/collapsed/);
+    await expect(addedGroup.locator('.diff-group-body')).toBeHidden();
     await expect(page.locator('.diff-group[data-group="config"]')).toHaveCount(0);
-    expect(parseInt(await changed.textContent(), 10)).toBeLessThan(before);
+    await expect(page.locator('#diff-type-table, #diff-type-app')).toHaveCount(0);
   });
 });
 
