@@ -468,6 +468,50 @@ test.describe('Schema Diff', () => {
     await expect(insp).toContainText('added');
     await expect(insp).toContainText('name'); // a compare-only field is listed
   });
+
+  test('a large diff group starts collapsed and caps its rows on expand', async ({ page }) => {
+    await loadApp(page, { enableFeatures: { schemaDiff: true } });
+    // Base = 1 table; compare adds 250 tables (over the 200 collapse/cap bound).
+    const base = {
+      _instance: { instance_name: 'base-inst' },
+      nodes: [{ id: 'root', label: 'Root', fields: [{ name: 'sys_id', type: 'GUID' }] }],
+      edges: [],
+    };
+    const compare = JSON.parse(JSON.stringify(base));
+    compare._instance = { instance_name: 'compare-inst' };
+    for (let i = 0; i < 250; i++) {
+      compare.nodes.push({ id: `extra_${i}`, label: `Extra ${i}`, fields: [] });
+    }
+    await page.locator('#file-input').setInputFiles({
+      name: 'base.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(base)),
+    });
+    await page.locator('#file-input').setInputFiles({
+      name: 'compare.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(compare)),
+    });
+    await page
+      .locator('.inst-card:not(.add-card)', { hasText: 'base-inst' })
+      .locator('[data-tool="schemaExplorer"]')
+      .click();
+    await page.waitForSelector('#graph-root g.node-group', { timeout: 15_000 });
+    await page.locator('#header-compare .sn-dd-btn').click();
+    await page.locator('body > .sn-dd-menu .sn-dd-opt', { hasText: 'compare-inst' }).click();
+    await expect(page.locator('#diff-sidebar')).toBeVisible();
+
+    const addedGroup = page.locator('.diff-group[data-group="added"]');
+    // The big Added group starts collapsed — header shows the full count, no rows built.
+    await expect(addedGroup).toHaveClass(/collapsed/);
+    await expect(addedGroup.locator('.diff-group-header')).toContainText('(250)');
+    await expect(addedGroup.locator('.diff-item')).toHaveCount(0);
+
+    // Expanding builds rows lazily, capped at 200, with a "+50 more" footer.
+    await addedGroup.locator('.diff-group-header').click();
+    await expect(addedGroup.locator('.diff-item')).toHaveCount(200);
+    await expect(addedGroup.locator('.diff-group-more')).toContainText('50 more');
+  });
 });
 
 // ── Configuration Data ─────────────────────────────────────────────────────

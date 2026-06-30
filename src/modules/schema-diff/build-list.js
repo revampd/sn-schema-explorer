@@ -16,6 +16,43 @@ import { rollupMatrix } from './compute-matrix.js';
 // new → added); it's one schema+config comparison, not two. The single filter
 // (`diffState._diffFilter`) is 'all' | 'added' | 'removed' | 'changed' and spans
 // both tables and apps.
+//
+// Large-diff DOM bound (#perf): the list renders a DOM row per table with no
+// virtualization, so very large comparisons (tens of thousands of tables) build
+// huge DOM trees. Two limits keep it bounded: a group whose size exceeds
+// GROUP_COLLAPSE_THRESHOLD starts collapsed (its rows aren't built until the
+// user expands it — the header click rebuilds the list), and an expanded group
+// renders at most GROUP_ROW_CAP rows, with a "+N more" footer pointing at search
+// /filter to narrow further.
+export const GROUP_COLLAPSE_THRESHOLD = 200;
+export const GROUP_ROW_CAP = 200;
+
+// Which groups should start collapsed for the current diff (those above the
+// threshold). Keyed the same way as diffState._collapsedGroups / makeGroup.
+export function defaultCollapsedGroups() {
+  const out = [];
+  const matrix = diffState._diffMatrix;
+  if (matrix && matrix.length > 1) {
+    const { tables } = rollupMatrix(matrix);
+    if (tables.size > GROUP_COLLAPSE_THRESHOLD) out.push('matrix');
+    return out;
+  }
+  const d = diffState._diffData;
+  if (!d) return out;
+  if (d.added.size > GROUP_COLLAPSE_THRESHOLD) out.push('added');
+  if (d.removed.size > GROUP_COLLAPSE_THRESHOLD) out.push('removed');
+  if (d.changed.size > GROUP_COLLAPSE_THRESHOLD) out.push('changed');
+  return out;
+}
+
+// A "+N more" footer appended when a group is capped — guides the user to narrow
+// the list rather than silently hiding rows.
+function appendMoreFooter(body, hidden) {
+  const more = document.createElement('div');
+  more.className = 'diff-group-more';
+  more.textContent = `+ ${hidden.toLocaleString()} more — refine with search or filter`;
+  body.appendChild(more);
+}
 
 function typeTag(kind) {
   const tag = document.createElement('span');
@@ -202,12 +239,17 @@ function appendGroupedRows(frag, filter) {
     items = items.filter(it => tablePasses(it.id, it.nodeLabel, it.node));
     if (!items.length) return;
     const body = makeCollapsibleGroup(frag, kind, label, items.length, kind);
-    for (const it of items) {
+    // Collapsed groups don't build their rows — they're rebuilt when the user
+    // expands (the header click triggers diffBuildList). Keeps the DOM bounded.
+    if (diffState._collapsedGroups?.includes(kind)) return;
+    const shown = items.length > GROUP_ROW_CAP ? items.slice(0, GROUP_ROW_CAP) : items;
+    for (const it of shown) {
       body.appendChild(tableRow(it.id, it.nodeLabel, kind, { count: it.count }));
       if (it.addedEdges || it.removedEdges) {
         appendEdgeSubgroup(body, it.id, it.addedEdges || [], it.removedEdges || [], kind);
       }
     }
+    if (items.length > GROUP_ROW_CAP) appendMoreFooter(body, items.length - GROUP_ROW_CAP);
   }
 
   if (filter === 'all' || filter === 'added') {
@@ -317,12 +359,15 @@ function appendMatrixRows(frag, matrix, filter) {
     rows.length,
     'changed'
   );
+  if (diffState._collapsedGroups?.includes('matrix')) return;
 
-  for (const r of rows) {
+  const shown = rows.length > GROUP_ROW_CAP ? rows.slice(0, GROUP_ROW_CAP) : rows;
+  for (const r of shown) {
     body.appendChild(
       tableRow(r.id, r.node?.label, overallKind(r), { statuses: r.statuses, matrix })
     );
   }
+  if (rows.length > GROUP_ROW_CAP) appendMoreFooter(body, rows.length - GROUP_ROW_CAP);
 }
 
 // The element kinds a whole-table add/remove "touches": 'fields' if the table

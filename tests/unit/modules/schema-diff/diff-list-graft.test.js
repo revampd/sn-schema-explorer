@@ -21,6 +21,9 @@ import {
   diffBuildList,
   filteredDiffCounts,
   presentElementTypes,
+  defaultCollapsedGroups,
+  GROUP_ROW_CAP,
+  GROUP_COLLAPSE_THRESHOLD,
 } from '../../../../src/modules/schema-diff/build-list.js';
 import {
   diffGraftAddedIntoBase,
@@ -232,6 +235,60 @@ describe('diffBuildList', () => {
     const list = document.getElementById('diff-list');
     expect(list.classList.contains('visible')).toBe(false);
     expect(list.children.length).toBe(0);
+  });
+});
+
+describe('large-diff DOM bounds', () => {
+  // A diff with more added tables than the cap, to exercise collapse + cap.
+  function makeBigDiffData(nAdded) {
+    const added = new Set();
+    const compareMap = new Map();
+    for (let i = 0; i < nAdded; i++) {
+      const id = `t_${i}`;
+      added.add(id);
+      compareMap.set(id, { id, label: id });
+    }
+    return {
+      added,
+      removed: new Set(),
+      changed: new Map(),
+      compareMap,
+      baseMap: new Map(),
+      allAddedEdges: [],
+      tableEdges: new Map(),
+    };
+  }
+
+  beforeEach(() => {
+    diffState._diffData = makeBigDiffData(GROUP_ROW_CAP + 50);
+    diffState._diffFilter = 'all';
+    diffState._diffElementFilter = null;
+    diffState._diffMatrix = null;
+  });
+
+  it('defaultCollapsedGroups collapses groups above the threshold', () => {
+    expect(GROUP_ROW_CAP + 50).toBeGreaterThan(GROUP_COLLAPSE_THRESHOLD);
+    expect(defaultCollapsedGroups()).toContain('added');
+  });
+
+  it('a collapsed group builds no rows but shows the full count in its header', () => {
+    diffState._collapsedGroups = ['added'];
+    diffBuildList();
+    const group = document.querySelector('.diff-group[data-group="added"]');
+    expect(group.querySelector('.diff-group-header').textContent).toContain(
+      `(${GROUP_ROW_CAP + 50})`
+    );
+    expect(group.querySelectorAll('.diff-item').length).toBe(0);
+  });
+
+  it('an expanded group caps rows and appends a "+N more" footer', () => {
+    diffState._collapsedGroups = [];
+    diffBuildList();
+    const group = document.querySelector('.diff-group[data-group="added"]');
+    expect(group.querySelectorAll('.diff-item').length).toBe(GROUP_ROW_CAP);
+    const more = group.querySelector('.diff-group-more');
+    expect(more).not.toBeNull();
+    expect(more.textContent).toContain('50 more');
   });
 });
 

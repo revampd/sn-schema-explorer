@@ -41,7 +41,12 @@ import { computeDiffMatrix, rollupMatrix } from './compute-matrix.js';
 import { onSearchChange } from '../search/index.js';
 import { onFilterChange } from '../../core/advanced-filter.js';
 import { diffFillInspector } from './inspector-diff.js';
-import { diffBuildList, filteredDiffCounts, presentElementTypes } from './build-list.js';
+import {
+  diffBuildList,
+  filteredDiffCounts,
+  presentElementTypes,
+  defaultCollapsedGroups,
+} from './build-list.js';
 import { diffGraftAddedIntoBase, diffUngraftAddedFromBase } from './graft.js';
 import { moveDiffCursor, clearDiffCursor, getFocusedDiffItem } from './list-cursor.js';
 
@@ -116,9 +121,11 @@ function loadDiffSchema(compareData) {
   // "Changed only" toggle still narrows it on demand.
   diffState._diffShowAll = true;
   diffState._diffFilter = 'all';
-  // A fresh comparison starts with all report groups expanded and no element slice.
-  diffState._collapsedGroups = [];
+  // A fresh comparison starts with no element slice. Groups larger than the
+  // collapse threshold start collapsed so a huge diff doesn't build tens of
+  // thousands of rows up front (the user expands a group to see it).
   diffState._diffElementFilter = null;
+  diffState._collapsedGroups = defaultCollapsedGroups();
   uiState._viewPositionCache.diff = null;
   diffGraftAddedIntoBase();
   // #141: starting a comparison no longer changes the view-mode, so sync the
@@ -491,7 +498,8 @@ export function selectDiffTable(id) {
   const list = document.getElementById('diff-list');
   if (list) {
     list.addEventListener('click', e => {
-      // Group header — collapse/expand its rows (display-only; no rebuild).
+      // Group header — collapse/expand its rows. Rebuilds the list so a newly
+      // expanded group's rows are built lazily (collapsed groups build nothing).
       const groupHeader = e.target.closest('.diff-group-header');
       if (groupHeader) {
         const key = groupHeader.dataset.group;
@@ -499,7 +507,7 @@ export function selectDiffTable(id) {
         const i = set.indexOf(key);
         if (i >= 0) set.splice(i, 1);
         else set.push(key);
-        groupHeader.parentElement?.classList.toggle('collapsed', i < 0);
+        diffBuildList();
         return;
       }
       // Edge row inside a table entry — navigate to the related table
