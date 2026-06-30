@@ -178,6 +178,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The comparison inspector no longer shows a compare-only table as "identical"
+  in the base.** When a table exists only in the compare schema (added), the base
+  graph has it grafted in (marked `_diffOnly`) so it can render on the map — but
+  the inspector was reading that grafted node, so the base column mirrored the
+  added table's fields ("8 fields identical across all instances"), properties
+  (e.g. record count), and relationships. The inspector now strips `_diffOnly`
+  graft artifacts from the base column, so an added table's fields, properties,
+  and references correctly show as **added** (base column shows "—").
 - **Configuration Data and the Schema Map share one comparison selection.**
   Following the move to the shared header controls, three rough edges are fixed:
   Config Data now opens with the compare set to **none** (just the base column)
