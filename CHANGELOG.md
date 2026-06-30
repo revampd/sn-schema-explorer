@@ -40,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Max PNG Scale removed from Settings.** The export resolution ceiling is now derived
   automatically from the browser's detected canvas size limit (16 MP → 50×, 64 MP+ →
   200×). The underlying setting is still respected if written to localStorage manually.
+- **Output format label standardised to "Schema Explorer format"** across the export
+  wizard (bg script and Node.js options) for consistency.
+- **Node.js minimum raised to 22** for the standalone Node exporter and dev toolchain.
+  Dev dependencies updated across the board.
 
 ## [1.0.3] - 2026-06-30
 
