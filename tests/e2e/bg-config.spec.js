@@ -13,8 +13,9 @@ const APP_URL = `file:///${join(__dirname, '../../dist/sn_schema_explorer.html')
 async function openSetup(page) {
   await page.goto(APP_URL);
   await page.waitForLoadState('domcontentloaded');
-  // The setup instructions live behind the landing <details> accordion.
-  await page.locator('.landing-setup > summary').click();
+  // Setup instructions are in the export wizard modal (replaced the <details> accordion in v1.0.3).
+  await page.locator('#btn-export-wizard').click();
+  await page.locator('[data-wiz-method="bg"]').click();
   await expect(page.locator('#bg-config')).toBeVisible();
 }
 
