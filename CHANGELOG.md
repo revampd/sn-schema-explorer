@@ -50,9 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration Data table: reorderable instance columns.** Drag an instance column
   header left or right to change the comparison order. Sort state and filters are
   preserved across reorders.
-- **Configuration Data table: full-width layout.** The table now fills the available
-  viewport width. The title, tabs, controls, and stat tiles remain at a comfortable
-  reading width. The hidden sidebar/inspector grid tracks no longer consume space on
+- **Configuration Data: centered, content-aware layout.** Title, subtitle, tabs,
+  controls, and stat tiles are centered (max 1200px). The comparison table and the
+  Instance Data panel are also centered and auto-size to their content — the table
+  only expands when columns need the space rather than always stretching to the full
+  viewport width. The hidden sidebar/inspector grid tracks no longer consume space on
   non-schema-explorer workspaces.
 - **Background exporter runtime estimate updated.** Comment in the script header
   reflects v1.0.4 benchmark data (1–3 min without counts, 2–6 min with counts) and
