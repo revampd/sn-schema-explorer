@@ -181,8 +181,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The diff "Kind" filter now updates the Changed count.** Selecting element
   kinds slices the Changed list, so the **Changed** summary now shows the sliced
   total as `passing/total` (e.g. `320/1750`) instead of staying on the full
-  count. Added/Removed are whole-table differences with no element-kind
-  breakdown, so they are intentionally unaffected by the Kind filter.
+  count. (The badge now also re-renders on every Kind change — previously the
+  summary wasn't refreshed when the slice changed, so the count never moved.)
+  Added/Removed are whole-table differences with no element-kind breakdown, so
+  they are intentionally unaffected by the Kind filter.
 - **The diff "Kind" filter dropdown no longer clips its labels.** The open menu
   was pinned to the (narrow) trigger-button width, so element-type labels
   (References, Inheritance, CI topology, …) were truncated to "R…", "In…", "C…".
